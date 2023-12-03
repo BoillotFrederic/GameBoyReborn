@@ -156,7 +156,7 @@ public static class Input
             if (AxisRightX < -1 * (DeadZoneStickRight / 100.0f) && AxisRightX < 0) AxisRightPadLeft = true;
         }
 
-/*        
+ 
         // Show keys/buttons
         // -----------------
 
@@ -192,6 +192,6 @@ public static class Input
         Raylib.DrawText("AXIS-PAD : RIGHT Left : " + AxisRightPadLeft, 10, 410, 20, Color.BLUE);
         Raylib.DrawText("AXIS-PAD : RIGHT Right : " + AxisRightPadRight, 10, 430, 20, Color.BLUE);
         Raylib.DrawText("AXIS-PAD : RIGHT Up : " + AxisRightPadUp, 10, 450, 20, Color.BLUE);
-*/
+
     }
 }
