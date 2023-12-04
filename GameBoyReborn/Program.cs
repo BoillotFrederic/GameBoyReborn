@@ -23,6 +23,7 @@ public class Program
             Raylib.BeginDrawing();
             Debug.UpdateTexts();
             Input.Set();
+            Emulation.Loop();
             Drawing.Screen();
         }
 
