@@ -43,7 +43,12 @@ public static class Debug
             TextToRemove.Add(i);
         }
 
-        foreach (int index in TextToRemove)
-        TextQueue.RemoveAt(index);
+        for (int i = TextToRemove.Count - 1; i >= 0; i--)
+        {
+            int index = TextToRemove[i];
+
+            if (index >= 0 && index < TextQueue.Count)
+            TextQueue.RemoveAt(index);
+        }
     }
 }
