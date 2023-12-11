@@ -6,6 +6,7 @@ using Raylib_cs;
 
 public class Cartridge
 {
+    // Attribute of Cartridge
     public string Title;
     public string ManufacturerCode;
     public byte CGB_Flag;
@@ -13,7 +14,8 @@ public class Cartridge
     public string Licensee;
     public byte SGB_Flag;
     public string SGBDescription;
-    public string Type;
+    public byte Type;
+    public string TypeDescription;
     public string SizeDescription;
     public SizeStruct Size;
     public string RamSizeDescription;
@@ -42,7 +44,8 @@ public class Cartridge
         Licensee = GetLicense(BitConverter.ToUInt16(LicenseeRange));
         SGB_Flag = header[0x0F];
         SGBDescription = GetSGBDescription(header[0x0F]);
-        Type = GetType(header[0x10]);
+        Type = header[0x10];
+        TypeDescription = GetTypeDescription(header[0x10]);
         SizeDescription = GetSizeDescription(header[0x11]);
         RamSizeDescription = GetRamSizeDescription(header[0x12]);
         RamSize = SetRamSize(header[0x12]);
@@ -121,7 +124,7 @@ public class Cartridge
         return licences[hex];
     }
 
-    private string GetType(byte hex)
+    private string GetTypeDescription(byte hex)
     {
         Dictionary<byte, string> types = new Dictionary<byte, string>
         {
