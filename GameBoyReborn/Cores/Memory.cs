@@ -1,11 +1,13 @@
 ﻿// ------
 // Memory
 // ------
+using Raylib_cs;
+
 public class Memory
 {
     private byte[] RomData;
     public byte[] RomBank_00 = new byte[0x4000];
-    public byte[,] RomBank_nn;
+    public byte[][] RomBank_nn;
     public byte[,] VideoRam_nn = new byte[2, 0x2000];
     public byte[] ExternalRam = new byte[0x2000];
     public byte[] WorkRam = new byte[0x1000];
@@ -29,12 +31,15 @@ public class Memory
         Array.Copy(RomData, 0, RomBank_00, 0, 0x4000);
 
         // Set RomBank 01~NN
-        ushort nbBank = (ushort)(Cartridge.Size.Bank - 1);
+        ushort nbBank = (ushort)(Cartridge.Size.Bank);
         int bankStart = 0x4000;
-        RomBank_nn = new byte[nbBank, 0x4000];
+        RomBank_nn = new byte[bankStart][];
 
         for(ushort i = 0; i < nbBank; i++, bankStart += 0x4000)
-        Array.Copy(RomData, bankStart, RomBank_nn, 0, 0x4000);
+        {
+            RomBank_nn[i] = new byte[0x4000];
+            Array.Copy(RomData, bankStart * (i + 1), RomBank_nn[i], 0, 0x4000);
+        }
     }
 
     // Read memory
@@ -46,43 +51,43 @@ public class Memory
 
         // Rom bank NN
         else if (at >= 0x4000 && at <= 0x7FFF)
-        return RomBank_nn[selectedRomBank, at];
+        return RomBank_nn[selectedRomBank][at - 0x4000];
 
         // Video RAM
         else if (at >= 0x8000 && at <= 0x9FFF)
-        return VideoRam_nn[selectedVideoBank, at];
+        return VideoRam_nn[selectedVideoBank, at - 0x8000];
 
         // External RAM
         else if (at >= 0xA000 && at <= 0xBFFF)
-        return ExternalRam[at];
+        return ExternalRam[at - 0xA000];
 
         // Work RAM (WRAM)
         else if (at >= 0xC000 && at <= 0xCFFF)
-        return WorkRam[at];
+        return WorkRam[at - 0xC000];
 
         // Work RAM (WRAM)
         else if (at >= 0xD000 && at <= 0xDFFF)
-        return WorkRamCGB[selectedWorkBank, at];
+        return WorkRamCGB[selectedWorkBank, at - 0xD000];
 
         // ECHO RAM
         else if (at >= 0xE000 && at <= 0xFDFF)
-        return EchoRam[at];
+        return EchoRam[at - 0xE000];
 
         // OAM
         else if (at >= 0xFE00 && at <= 0xFE9F)
-        return OAM[at];
+        return OAM[at - 0xFE00];
 
         // Not Usable
         else if (at >= 0xFEA0 && at <= 0xFEFF)
-        return NotUsable[at];
+        return NotUsable[at - 0xFEA0];
 
         // I/O Registers
         else if (at >= 0xFF00 && at <= 0xFF7F)
-        return IO_Registers[at];
+        return IO_Registers[at - 0xFF00];
 
         // High RAM (HRAM)
         else if (at >= 0xFF80 && at <= 0xFFFE)
-        return HighRAM[at];
+        return HighRAM[at - 0xFF80];
 
         // Interrupt Enable register
         else
@@ -98,43 +103,43 @@ public class Memory
 
         // Rom bank 01~NN
         if (at >= 0x4000 && at <= 0x7FFF)
-        RomBank_nn[selectedRomBank, at] = b;
+        RomBank_nn[selectedRomBank][at - 0x4000] = b;
 
         // Video RAM
         else if (at >= 0x8000 && at <= 0x9FFF)
-        VideoRam_nn[selectedVideoBank, at] = b;
+        VideoRam_nn[selectedVideoBank, at - 0x8000] = b;
 
         // External RAM
         else if (at >= 0xA000 && at <= 0xBFFF)
-        ExternalRam[at] = b;
+        ExternalRam[at - 0xA000] = b;
 
         // Work RAM (WRAM)
         else if (at >= 0xC000 && at <= 0xCFFF)
-        WorkRam[at] = b;
+        WorkRam[at - 0xC000] = b;
 
         // Work RAM (WRAM)
         else if (at >= 0xD000 && at <= 0xDFFF)
-        WorkRamCGB[selectedWorkBank, at] = b;
+        WorkRamCGB[selectedWorkBank, at - 0xD000] = b;
 
         // ECHO RAM
         else if (at >= 0xE000 && at <= 0xFDFF)
-        EchoRam[at] = b;
+        EchoRam[at - 0xE000] = b;
 
         // OAM
         else if (at >= 0xFE00 && at <= 0xFE9F)
-        OAM[at] = b;
+        OAM[at - 0xFE00] = b;
 
         // Not Usable
         else if (at >= 0xFEA0 && at <= 0xFEFF)
-        NotUsable[at] = b;
+        NotUsable[at - 0xFEA0] = b;
 
         // I/O Registers
         else if (at >= 0xFF00 && at <= 0xFF7F)
-        IO_Registers[at] = b;
+        IO_Registers[at - 0xFF00] = b;
 
         // High RAM (HRAM)
         else if (at >= 0xFF80 && at <= 0xFFFE)
-        HighRAM[at] = b;
+        HighRAM[at - 0xFF80] = b;
 
         // Interrupt Enable register
         else
