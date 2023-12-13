@@ -15,23 +15,27 @@ public class Memory
     public byte[] EchoRam = new byte[0x1E00];
     public byte[] OAM = new byte[0xA0];
     public byte[] NotUsable = new byte[0x60];
-    public byte[] IO_Registers = new byte[0x80];
     public byte[] HighRAM = new byte[0x7F];
-    public byte InterruptEnableregister = 0x00;
 
     public byte selectedRomBank = 0;
     public byte selectedVideoBank = 0;
     public byte selectedWorkBank = 0;
 
-    public Memory(Cartridge Cartridge, byte[] _RomData)
+    private IO IO;
+
+    public Memory(Cartridge Cartridge, IO _IO, byte[] _RomData)
     {
+        // I/O Ports
+        IO = _IO;
+
+        // Load rom
         RomData = _RomData;
 
         // Set RomBank 00
         Array.Copy(RomData, 0, RomBank_00, 0, 0x4000);
 
         // Set RomBank 01~NN
-        ushort nbBank = (ushort)(Cartridge.Size.Bank);
+        ushort nbBank = Cartridge.Size.Bank;
         int bankStart = 0x4000;
         RomBank_nn = new byte[bankStart][];
 
@@ -82,16 +86,15 @@ public class Memory
         return NotUsable[at - 0xFEA0];
 
         // I/O Registers
-        else if (at >= 0xFF00 && at <= 0xFF7F)
-        return IO_Registers[at - 0xFF00];
+        else if (at >= 0xFF00 && at <= 0xFF7F || at == 0xFFFF)
+        return IO.Read((ushort)(at - 0xFF00));
 
         // High RAM (HRAM)
         else if (at >= 0xFF80 && at <= 0xFFFE)
         return HighRAM[at - 0xFF80];
 
-        // Interrupt Enable register
         else
-        return InterruptEnableregister;
+        return 0x00;
     }
 
     // Write memory
@@ -102,7 +105,7 @@ public class Memory
         RomBank_00[at] = b;
 
         // Rom bank 01~NN
-        if (at >= 0x4000 && at <= 0x7FFF)
+        else if (at >= 0x4000 && at <= 0x7FFF)
         RomBank_nn[selectedRomBank][at - 0x4000] = b;
 
         // Video RAM
@@ -134,15 +137,11 @@ public class Memory
         NotUsable[at - 0xFEA0] = b;
 
         // I/O Registers
-        else if (at >= 0xFF00 && at <= 0xFF7F)
-        IO_Registers[at - 0xFF00] = b;
+        else if (at >= 0xFF00 && at <= 0xFF7F || at == 0xFFFF)
+        IO.Write((ushort)(at - 0xFF00), b);
 
         // High RAM (HRAM)
         else if (at >= 0xFF80 && at <= 0xFFFE)
         HighRAM[at - 0xFF80] = b;
-
-        // Interrupt Enable register
-        else
-        InterruptEnableregister = b;
     }
 }
