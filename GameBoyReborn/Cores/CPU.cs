@@ -11,29 +11,29 @@ public class CPU
     public WriteDelegate Write;
 
     // Cycles
-    public int Cycles;
+    public int Cycles = 0;
 
     // Program counter
-    public ushort PC;
+    public ushort PC = 0x00;
 
     // Stack pointer
-    private ushort SP;
+    private ushort SP = 0x00;
 
     // Registers
-    private byte A;
-    private byte B;
-    private byte C;
-    private byte D;
-    private byte E;
-    private byte F;
-    private byte H;
-    private byte L;
+    private byte A = 0x00;
+    private byte B = 0x00;
+    private byte C = 0x00;
+    private byte D = 0x00;
+    private byte E = 0x00;
+    private byte F = 0x00;
+    private byte H = 0x00;
+    private byte L = 0x00;
 
     // Interrupt
-    private bool Stop;
-    private bool Halt;
-    private bool IME;
-    private bool IME_scheduled;
+    private bool Stop = false;
+    private bool Halt = false;
+    private bool IME = false;
+    private bool IME_scheduled = false;
 
     // Handle flags
     private void Flags(bool Z, bool N, bool H, bool C)
