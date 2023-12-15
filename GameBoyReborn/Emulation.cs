@@ -10,6 +10,7 @@ public static class Emulation
     private static IO? IO;
     private static Memory? Memory;
     private static CPU? CPU;
+    private static PPU? PPU;
 
     // All cores init
     public static void Init()
@@ -23,6 +24,7 @@ public static class Emulation
             Cartridge = new Cartridge(header);
             Memory = new Memory(Cartridge, IO, romData);
             CPU = new CPU(Memory);
+            PPU = new PPU(IO, Memory, CPU);
 
             Debug.Text(Cartridge.Title, Color.BLACK, 10000);
             Debug.Text(Cartridge.ManufacturerCode, Color.BLACK, 10000);
@@ -44,17 +46,15 @@ public static class Emulation
     // Emulation loop
     public static void Loop()
     {
-        if(CPU != null)
+        if(CPU != null && PPU != null)
         {
-            CPU.Cycles = 0;
-
             while (CPU.Cycles <= 70224)
             {
                 CPU.Execution();
-
-/*                if(CPU.Cycles  == 70224)
-                Debug.Text("Test", Color.BLACK, 10000);*/
+                PPU.Execution();
             }
+
+            CPU.Cycles = 0;
         }
     }
 
@@ -65,5 +65,6 @@ public static class Emulation
         Cartridge = null;
         Memory = null;
         CPU = null;
+        PPU = null;
     }
 }
