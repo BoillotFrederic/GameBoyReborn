@@ -8,10 +8,10 @@ public class Memory
     private byte[] RomData;
     public byte[] RomBank_00 = new byte[0x4000];
     public byte[][] RomBank_nn;
-    public byte[,] VideoRam_nn = new byte[2, 0x2000];
+    public byte[][] VideoRam_nn;
     public byte[] ExternalRam = new byte[0x2000];
     public byte[] WorkRam = new byte[0x1000];
-    public byte[,] WorkRamCGB = new byte[7, 0x1000];
+    public byte[][] WorkRamCGB;
     public byte[] EchoRam = new byte[0x1E00];
     public byte[] OAM = new byte[0xA0];
     public byte[] NotUsable = new byte[0x60];
@@ -37,13 +37,23 @@ public class Memory
         // Set RomBank 01~NN
         ushort nbBank = Cartridge.Size.Bank;
         int bankStart = 0x4000;
-        RomBank_nn = new byte[bankStart][];
+        RomBank_nn = new byte[nbBank][];
 
-        for(ushort i = 0; i < nbBank; i++, bankStart += 0x4000)
+        for (ushort i = 0; i < nbBank; i++, bankStart += 0x4000)
         {
             RomBank_nn[i] = new byte[0x4000];
             Array.Copy(RomData, bankStart * (i + 1), RomBank_nn[i], 0, 0x4000);
         }
+
+        // Set video ram
+        VideoRam_nn = new byte[2][];
+        for (byte i = 0; i < 2; i++)
+        VideoRam_nn[i] = new byte[0x2000];
+
+        // Set work ram
+        WorkRamCGB = new byte[7][];
+        for(byte i = 0; i < 7; i++)
+        WorkRamCGB[i] = new byte[0x1000];
     }
 
     // Read memory
@@ -59,7 +69,7 @@ public class Memory
 
         // Video RAM
         else if (at >= 0x8000 && at <= 0x9FFF)
-        return VideoRam_nn[selectedVideoBank, at - 0x8000];
+        return VideoRam_nn[selectedVideoBank][at - 0x8000];
 
         // External RAM
         else if (at >= 0xA000 && at <= 0xBFFF)
@@ -71,7 +81,7 @@ public class Memory
 
         // Work RAM (WRAM)
         else if (at >= 0xD000 && at <= 0xDFFF)
-        return WorkRamCGB[selectedWorkBank, at - 0xD000];
+        return WorkRamCGB[selectedWorkBank][at - 0xD000];
 
         // ECHO RAM
         else if (at >= 0xE000 && at <= 0xFDFF)
@@ -110,7 +120,7 @@ public class Memory
 
         // Video RAM
         else if (at >= 0x8000 && at <= 0x9FFF)
-        VideoRam_nn[selectedVideoBank, at - 0x8000] = b;
+        VideoRam_nn[selectedVideoBank][at - 0x8000] = b;
 
         // External RAM
         else if (at >= 0xA000 && at <= 0xBFFF)
@@ -122,7 +132,7 @@ public class Memory
 
         // Work RAM (WRAM)
         else if (at >= 0xD000 && at <= 0xDFFF)
-        WorkRamCGB[selectedWorkBank, at - 0xD000] = b;
+        WorkRamCGB[selectedWorkBank][at - 0xD000] = b;
 
         // ECHO RAM
         else if (at >= 0xE000 && at <= 0xFDFF)
