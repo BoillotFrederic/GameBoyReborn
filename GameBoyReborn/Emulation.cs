@@ -26,13 +26,18 @@ public static class Emulation
             CPU = new CPU(Memory);
             PPU = new PPU(IO, Memory, CPU);
 
-            Debug.Text(Cartridge.Title, Color.BLACK, 10000);
-            Debug.Text(Cartridge.ManufacturerCode, Color.BLACK, 10000);
-            Debug.Text(Cartridge.CGBDescription, Color.BLACK, 10000);
-            Debug.Text(Cartridge.Licensee, Color.BLACK, 10000);
-            Debug.Text(Cartridge.SGBDescription, Color.BLACK, 10000);
-            Debug.Text(Cartridge.TypeDescription, Color.BLACK, 10000);
-            Debug.Text(Cartridge.SizeDescription, Color.BLACK, 10000);
+            // Update ref
+            Memory.CPU = CPU;
+            CPU.IO = IO;
+            /*
+                Debug.Text(Cartridge.Title, Color.BLACK, 10000);
+                Debug.Text(Cartridge.ManufacturerCode, Color.BLACK, 10000);
+                Debug.Text(Cartridge.CGBDescription, Color.BLACK, 10000);
+                Debug.Text(Cartridge.Licensee, Color.BLACK, 10000);
+                Debug.Text(Cartridge.SGBDescription, Color.BLACK, 10000);
+                Debug.Text(Cartridge.TypeDescription, Color.BLACK, 10000);
+                Debug.Text(Cartridge.SizeDescription, Color.BLACK, 10000);
+            */
         }
     }
 
@@ -48,10 +53,10 @@ public static class Emulation
     {
         if(CPU != null && PPU != null)
         {
-            while (CPU.Cycles <= 70224)
+            while (CPU.Cycles * 4 <= 70224)
             {
-                CPU.Execution();
                 PPU.Execution();
+                CPU.Execution();
             }
 
             CPU.Cycles = 0;
