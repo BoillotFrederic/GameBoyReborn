@@ -4,21 +4,21 @@
 public class IO
 {
     //JOYP	Joypad
-    public byte P1;
+    public byte P1 = 0xCF;
 
     // Serial transfer
-    public byte SB;
-    public byte SC;
+    public byte SB = 0x00;
+    public byte SC = 0x7E;
 
     // Timer
-    public byte DIV;
-    public byte TIMA;
-    public byte TMA;
-    public byte TAC;
+    public byte DIV = 0xAC;
+    public byte TIMA = 0x00;
+    public byte TMA = 0x00;
+    public byte TAC = 0xF8;
 
     // Interrupt
-    public byte IF;
-    public byte IE;
+    public byte IF = 0xE1;
+    public byte IE = 0x00;
 
     // Sound
     public byte NR10;
@@ -47,18 +47,18 @@ public class IO
     public byte[] WaveRAM = new byte[0x10];
 
     // Graphic
-    public byte LCDC;
-    public byte STAT;
-    public byte SCY;
-    public byte SCX;
-    public byte LY;
-    public byte LYC;
-    public byte DMA;
-    public byte BGP;
-    public byte OBP0;
-    public byte OBP1;
-    public byte WY;
-    public byte WX;
+    public byte LCDC = 0x91;
+    public byte STAT = 0x81;
+    public byte SCY = 0x00;
+    public byte SCX = 0x00;
+    public byte LY = 0x00;
+    public byte LYC = 0x00;
+    public byte DMA = 0xFF;
+    public byte BGP = 0xFC;
+    public byte OBP0 = 0xFF;
+    public byte OBP1 = 0xFF;
+    public byte WY = 0x00;
+    public byte WX = 0x00;
     public byte VBK;
     public byte HDMA1;
     public byte HDMA2;
@@ -78,6 +78,8 @@ public class IO
 
     public byte Read(ushort at)
     {
+        //Console.WriteLine(at);
+
         //JOYP	Joypad
         if (at == 0xFF00) return P1;
 
@@ -165,7 +167,7 @@ public class IO
         else if (at == 0xFF02) SC = b;
 
         // Timer
-        else if (at == 0xFF04) DIV = b;
+        else if (at == 0xFF04) DIV = 0x00;
         else if (at == 0xFF05) TIMA = b;
         else if (at == 0xFF06) TMA = b;
         else if (at == 0xFF07) TAC = b;
@@ -207,7 +209,7 @@ public class IO
         else if (at == 0xFF43) SCX = b;
         else if (at == 0xFF44) LY = b;
         else if (at == 0xFF45) LYC = b;
-        else if (at == 0xFF46) DMA = b;
+        //else if (at == 0xFF46) DMA = b;
         else if (at == 0xFF47) BGP = b;
         else if (at == 0xFF48) OBP0 = b;
         else if (at == 0xFF49) OBP1 = b;
