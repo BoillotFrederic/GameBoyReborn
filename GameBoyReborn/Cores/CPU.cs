@@ -5,35 +5,41 @@ public class CPU
 {
     // Handle memory
     Memory Memory;
+    public IO? IO;
     public delegate byte ReadDelegate(ushort at);
     public ReadDelegate Read;
     public delegate void WriteDelegate(ushort at, byte b);
     public WriteDelegate Write;
 
     // Cycles
-    public int Cycles = 0;
+    public int Cycles;
 
     // Program counter
-    public ushort PC = 0x00;
+    public ushort PC = 0x0000;
 
     // Stack pointer
-    private ushort SP = 0x00;
+    private ushort SP = 0xFFFE;
 
     // Registers
-    private byte A = 0x00;
+    private byte A = 0x01;
     private byte B = 0x00;
-    private byte C = 0x00;
+    private byte C = 0x13;
     private byte D = 0x00;
-    private byte E = 0x00;
-    private byte F = 0x00;
-    private byte H = 0x00;
-    private byte L = 0x00;
+    private byte E = 0xD8;
+    private byte F = 0xB0;
+    private byte H = 0x01;
+    private byte L = 0x4D;
 
     // Interrupt
     private bool Stop = false;
     private bool Halt = false;
-    private bool IME = false;
-    private bool IME_scheduled = false;
+    public bool IME = false;
+    public bool IME_scheduled = false;
+
+    // Timer
+    private ushort DivCycles = 0;
+    private int TacCycles = 0;
+    private readonly int[] ClockCPU = new int[4] { 4096, 262144, 65536, 16384 };
 
     // Handle flags
     private void Flags(bool Z, bool N, bool H, bool C)
@@ -69,7 +75,25 @@ public class CPU
     // ---------
     public void Execution()
     {
-        Instructions[Read(++PC)]?.Invoke();
+        int LastCycles = Cycles;
+
+        // Enable CPU
+        if (IME) CPUWakeUp();
+
+        // Run instructions
+        if (!Halt && !Stop)
+        Instructions[Read(PC++)]?.Invoke();
+        else
+        {
+            PC++;
+            Cycles++;
+        }
+
+        // Set timer
+        Timer(LastCycles);
+
+        // Enable CPU
+        if (IME_scheduled) CPUWakeUp();
     }
 
     // Init and instructions
@@ -127,6 +151,64 @@ public class CPU
             /* [6] */   ()=> SET_n_r(4, ref B),   ()=> SET_n_r(4, ref C),   ()=> SET_n_r(4, ref D),   ()=> SET_n_r(4, ref E),   ()=> SET_n_r(4, ref H),   ()=> SET_n_r(4, ref L),   ()=> SET_n_HLn(4),   ()=> SET_n_r(4, ref A),   ()=> SET_n_r(5, ref B),   ()=> SET_n_r(5, ref C),   ()=> SET_n_r(5, ref D),   ()=> SET_n_r(5, ref E),   ()=> SET_n_r(5, ref H),   ()=> SET_n_r(5, ref L),   ()=> SET_n_HLn(5),     ()=> SET_n_r(5, ref A),
             /* [7] */   ()=> SET_n_r(6, ref B),   ()=> SET_n_r(6, ref C),   ()=> SET_n_r(6, ref D),   ()=> SET_n_r(6, ref E),   ()=> SET_n_r(6, ref H),   ()=> SET_n_r(6, ref L),   ()=> SET_n_HLn(6),   ()=> SET_n_r(6, ref A),   ()=> SET_n_r(7, ref B),   ()=> SET_n_r(7, ref C),   ()=> SET_n_r(7, ref D),   ()=> SET_n_r(7, ref E),   ()=> SET_n_r(7, ref H),   ()=> SET_n_r(7, ref L),   ()=> SET_n_HLn(7),     ()=> SET_n_r(7, ref A),
         };
+    }
+
+    // Enable CPU
+    // ----------
+    private void CPUWakeUp()
+    {
+        Halt = false;
+        Stop = false;
+        IME = false;
+        IME_scheduled = false;
+    }
+
+    // Timer set
+    // ---------
+    private void Timer(int LastCycles)
+    {
+        if (IO != null)
+        {
+            // DIV
+            DivCycles += (ushort)(Cycles - LastCycles);
+
+            if (Cycles == 0 || Stop)
+            {
+                IO.DIV = 0;
+                DivCycles = 0;
+            }
+            else if (DivCycles >= 256)
+            {
+                IO.DIV++;
+                DivCycles -= 256;
+            }
+
+            // TIMA and TMA
+            TacCycles += Cycles - LastCycles;
+            byte ClockSelect = (byte)(IO.TAC & 3);
+
+            if (ReadBit(IO.TAC, 2))
+            {
+                if(TacCycles > ClockCPU[ClockSelect])
+                {
+                    ushort NewTima = (ushort)(IO.TIMA + 1);
+
+                    if (NewTima > 0xFF)
+                    {
+                        NewTima = 0;
+                        IO.TMA = 0;
+                        IME_scheduled = true;
+                    }
+
+                    IO.TIMA = (byte)NewTima;
+
+                    if (IO.TMA == 0xFF || (IO.TIMA % (0xFF - IO.TMA) == 0))
+                    IME_scheduled = true;
+
+                    TacCycles -= ClockCPU[ClockSelect];
+                }
+            }
+        }
     }
 
     // ####################
@@ -1074,6 +1156,7 @@ public class CPU
     {
         Cycles += 1;
         IME = false;
+        IME_scheduled = false;
     }
 
     // EI: Enable interrupts
