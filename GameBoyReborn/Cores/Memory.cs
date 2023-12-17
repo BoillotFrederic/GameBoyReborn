@@ -22,6 +22,7 @@ public class Memory
     public byte selectedWorkBank = 0;
 
     private IO IO;
+    public CPU ?CPU;
 
     public Memory(Cartridge Cartridge, IO _IO, byte[] _RomData)
     {
@@ -147,11 +148,37 @@ public class Memory
         NotUsable[at - 0xFEA0] = b;
 
         // I/O Registers
-        else if (at >= 0xFF00 && at <= 0xFF7F || at == 0xFFFF)
+        else if ((at >= 0xFF00 && at <= 0xFF7F || at == 0xFFFF) && at != 0xFF46)
         IO.Write((ushort)(at - 0xFF00), b);
+
+        // DMA transfer
+        else if (at == 0xFF46)
+        DMATransfer(b);
 
         // High RAM (HRAM)
         else if (at >= 0xFF80 && at <= 0xFFFE)
         HighRAM[at - 0xFF80] = b;
+    }
+
+    // DMA Transfer
+    private void DMATransfer(byte sourceAddress)
+    {
+        if (CPU != null)
+        {
+            ushort startAddress;
+
+            // Rom source
+            if (sourceAddress <= 0x7F)
+            {
+                startAddress = (ushort)(sourceAddress << 8);
+                Array.Copy(RomData, startAddress, OAM, 0, 160);
+            }
+            // RAM source
+            else if (sourceAddress >= 0xC0 && sourceAddress <= 0xFD)
+            {
+                startAddress = (ushort)((sourceAddress - 0xC0) << 8);
+                Array.Copy(WorkRamCGB[selectedWorkBank], startAddress, OAM, 0, 160);
+            }
+        }
     }
 }
