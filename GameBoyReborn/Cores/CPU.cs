@@ -26,7 +26,6 @@ public class CPU
     private byte C = 0x13;
     private byte D = 0x00;
     private byte E = 0xD8;
-    private byte F = 0xB0;
     private byte H = 0x01;
     private byte L = 0x4D;
 
@@ -42,34 +41,17 @@ public class CPU
     private readonly int[] ClockCPU = new int[4] { 4096, 262144, 65536, 16384 };
 
     // Handle flags
-    private void Flags(bool Z, bool N, bool H, bool C)
-    {
-        byte _f = F;
-
-        _f = Z ? (byte)(_f | 0b10000000) : (byte)(_f ^ 0b01111111);
-        _f = N ? (byte)(_f | 0b01000000) : (byte)(_f ^ 0b10111111);
-        _f = H ? (byte)(_f | 0b00100000) : (byte)(_f ^ 0b11011111);
-        _f = C ? (byte)(_f | 0b00010000) : (byte)(_f ^ 0b11101111);
-
-        F = _f;
-    }
-    /* Also to be tested : H => result > 0b1111 | C => result > 0b11111111 */
-    private bool SetFlagZ(ushort result) { return result == 0; }
-    private bool SetFlagH(ushort result) { return ReadBit(result, 3); }
-    private bool SetFlagC(ushort result) { return ReadBit(result, 7); }
-    private bool GetFlagZ() { return ReadBit(F, 7); }
-    private bool GetFlagN() { return ReadBit(F, 6); }
-    private bool GetFlagH() { return ReadBit(F, 5); }
-    private bool GetFlagC() { return ReadBit(F, 4); }
+    private bool FlagZ = true;
+    private bool FlagN = false;
+    private bool FlagH = true;
+    private bool FlagC = true;
 
     // Handle binary
     private byte Lsb(ushort u16) { return (byte)(u16 & 0xFF); } // Least significant bit
     private byte Msb(ushort u16) { return (byte)((u16 >> 8) & 0xFF); } // Most significant bit
     private ushort u16(byte lsb, byte msb) { return (ushort)((msb << 8) | lsb); } // Create unsigned 16
     private bool ReadBit(byte data, byte pos) { return ((data >> pos) & 0x01) == 1; } // From right to left
-    private bool ReadBit(ushort data, byte pos) { return ((data >> pos) & 0x01) == 1; } // Same
-    private void SetBit(ref byte data, byte pos) { data |= (byte)(1 << pos); }
-    private void UnSetBit(ref byte data, byte pos) { data &= (byte)~(1 << pos); }
+    private void SetBit(ref byte data, byte pos, bool set) { if(set) data |= (byte)(1 << pos); else data &= (byte)~(1 << pos); } // Set/unset bit
 
     // Execution
     // ---------
@@ -112,10 +94,10 @@ public class CPU
         // Instructions
         Instructions = new InstructionDelegate[]
         {   /*          [0]                           [1]                             [2]                           [3]                           [4]                             [5]                        [6]                      [7]                        [8]                          [9]                                  [A]                          [B]                           [C]                            [D]                        [E]                      [F]      */
-            /* [0] */   ()=> NOP(),                   ()=> LD_RRw_nn(ref B, ref C),   ()=> LD_BCn_A(),              ()=> INC_RRw(ref B, ref C),   ()=> INC_Rw(ref B),             ()=> DEC_Rw(ref B),        ()=> LD_Rw_n(ref B),     ()=> RLCA(),               ()=> LD_Nnn_SP(),            ()=> ADD_HL_RRr(B, C),               ()=> LD_A_BCn(),             ()=> DEC_RRw(ref B, ref C),   ()=> INC_Rw(ref C),            ()=> DEC_Rw(ref C),        ()=> LD_Rw_n(ref C),     ()=> RRCA(),
-            /* [1] */   ()=> STOP(),                  ()=> LD_RRw_nn(ref D, ref E),   ()=> LD_DEn_A(),              ()=> INC_RRw(ref D, ref E),   ()=> INC_Rw(ref D),             ()=> DEC_Rw(ref D),        ()=> LD_Rw_n(ref D),     ()=> RLA(),                ()=> JR_en(),                ()=> ADD_HL_RRr(D, E),               ()=> LD_A_DEn(),             ()=> DEC_RRw(ref D, ref E),   ()=> INC_Rw(ref E),            ()=> DEC_Rw(ref E),        ()=> LD_Rw_n(ref E),     ()=> RRA(),
-            /* [2] */   ()=> JR_CC_en(!GetFlagZ()),   ()=> LD_RRw_nn(ref H, ref L),   ()=> LD_HLnp_A(),             ()=> INC_RRw(ref H, ref L),   ()=> INC_Rw(ref H),             ()=> DEC_Rw(ref H),        ()=> LD_Rw_n(ref H),     ()=> DAA(),                ()=> JR_CC_en(GetFlagZ()),   ()=> ADD_HL_RRr(H, L),               ()=> LD_A_HLnp(),            ()=> DEC_RRw(ref H, ref L),   ()=> INC_Rw(ref L),            ()=> DEC_Rw(ref L),        ()=> LD_Rw_n(ref L),     ()=> CPL(),
-            /* [3] */   ()=> JR_CC_en(!GetFlagC()),   ()=> LD_RRw_nn(ref SP),         ()=> LD_HLnm_A(),             ()=> INC_RRw(ref SP),         ()=> INC_HLn(),                 ()=> DEC_HLn(),            ()=> LD_HLn_n(),         ()=> SCF(),                ()=> JR_CC_en(GetFlagC()),   ()=> ADD_HL_RRr(Msb(SP), Lsb(SP)),   ()=> LD_A_HLnm(),            ()=> DEC_RRw(ref SP),         ()=> INC_Rw(ref A),            ()=> DEC_Rw(ref A),        ()=> LD_Rw_n(ref A),     ()=> CCF(),
+            /* [0] */   ()=> NOP(),                   ()=> LD_RRw_nn(ref B, ref C),   ()=> LD_RRn_A(B, C),          ()=> INC_RRw(ref B, ref C),   ()=> INC_Rw(ref B),             ()=> DEC_Rw(ref B),        ()=> LD_Rw_n(ref B),     ()=> RLCA(),               ()=> LD_Nnn_SP(),            ()=> ADD_HL_RRr(B, C),               ()=> LD_A_RRn(B, C),         ()=> DEC_RRw(ref B, ref C),   ()=> INC_Rw(ref C),            ()=> DEC_Rw(ref C),        ()=> LD_Rw_n(ref C),     ()=> RRCA(),
+            /* [1] */   ()=> STOP(),                  ()=> LD_RRw_nn(ref D, ref E),   ()=> LD_RRn_A(D, E),          ()=> INC_RRw(ref D, ref E),   ()=> INC_Rw(ref D),             ()=> DEC_Rw(ref D),        ()=> LD_Rw_n(ref D),     ()=> RLA(),                ()=> JR_en(),                ()=> ADD_HL_RRr(D, E),               ()=> LD_A_RRn(D, E),         ()=> DEC_RRw(ref D, ref E),   ()=> INC_Rw(ref E),            ()=> DEC_Rw(ref E),        ()=> LD_Rw_n(ref E),     ()=> RRA(),
+            /* [2] */   ()=> JR_CC_en(!FlagZ),        ()=> LD_RRw_nn(ref H, ref L),   ()=> LD_HLnp_A(),             ()=> INC_RRw(ref H, ref L),   ()=> INC_Rw(ref H),             ()=> DEC_Rw(ref H),        ()=> LD_Rw_n(ref H),     ()=> DAA(),                ()=> JR_CC_en(FlagZ),        ()=> ADD_HL_RRr(H, L),               ()=> LD_A_HLnp(),            ()=> DEC_RRw(ref H, ref L),   ()=> INC_Rw(ref L),            ()=> DEC_Rw(ref L),        ()=> LD_Rw_n(ref L),     ()=> CPL(),
+            /* [3] */   ()=> JR_CC_en(!FlagC),        ()=> LD_RRw_nn(ref SP),         ()=> LD_HLnm_A(),             ()=> INC_RRw(ref SP),         ()=> INC_HLn(),                 ()=> DEC_HLn(),            ()=> LD_HLn_n(),         ()=> SCF(),                ()=> JR_CC_en(FlagC),        ()=> ADD_HL_SP(),                    ()=> LD_A_HLnm(),            ()=> DEC_RRw(ref SP),         ()=> INC_Rw(ref A),            ()=> DEC_Rw(ref A),        ()=> LD_Rw_n(ref A),     ()=> CCF(),
             /* [4] */   ()=> LD_Rw_Rr(ref B, B),      ()=> LD_Rw_Rr(ref B, C),        ()=> LD_Rw_Rr(ref B, D),      ()=> LD_Rw_Rr(ref B, E),      ()=> LD_Rw_Rr(ref B, H),        ()=> LD_Rw_Rr(ref B, L),   ()=> LD_Rw_HLn(ref B),   ()=> LD_Rw_Rr(ref B, A),   ()=> LD_Rw_Rr(ref C, B),     ()=> LD_Rw_Rr(ref C, C),             ()=> LD_Rw_Rr(ref C, D),     ()=> LD_Rw_Rr(ref C, E),      ()=> LD_Rw_Rr(ref C, H),       ()=> LD_Rw_Rr(ref C, L),   ()=> LD_Rw_HLn(ref C),   ()=> LD_Rw_Rr(ref C, A),
             /* [5] */   ()=> LD_Rw_Rr(ref D, B),      ()=> LD_Rw_Rr(ref D, C),        ()=> LD_Rw_Rr(ref D, D),      ()=> LD_Rw_Rr(ref D, E),      ()=> LD_Rw_Rr(ref D, H),        ()=> LD_Rw_Rr(ref D, L),   ()=> LD_Rw_HLn(ref D),   ()=> LD_Rw_Rr(ref D, A),   ()=> LD_Rw_Rr(ref E, B),     ()=> LD_Rw_Rr(ref E, C),             ()=> LD_Rw_Rr(ref E, D),     ()=> LD_Rw_Rr(ref E, E),      ()=> LD_Rw_Rr(ref E, H),       ()=> LD_Rw_Rr(ref E, L),   ()=> LD_Rw_HLn(ref E),   ()=> LD_Rw_Rr(ref E, A),
             /* [6] */   ()=> LD_Rw_Rr(ref H, B),      ()=> LD_Rw_Rr(ref H, C),        ()=> LD_Rw_Rr(ref H, D),      ()=> LD_Rw_Rr(ref H, E),      ()=> LD_Rw_Rr(ref H, H),        ()=> LD_Rw_Rr(ref H, L),   ()=> LD_Rw_HLn(ref H),   ()=> LD_Rw_Rr(ref H, A),   ()=> LD_Rw_Rr(ref L, B),     ()=> LD_Rw_Rr(ref L, C),             ()=> LD_Rw_Rr(ref L, D),     ()=> LD_Rw_Rr(ref L, E),      ()=> LD_Rw_Rr(ref L, H),       ()=> LD_Rw_Rr(ref L, L),   ()=> LD_Rw_HLn(ref L),   ()=> LD_Rw_Rr(ref L, A),
@@ -124,10 +106,10 @@ public class CPU
             /* [9] */   ()=> SUB_Rr(B),               ()=> SUB_Rr(C),                 ()=> SUB_Rr(D),               ()=> SUB_Rr(E),               ()=> SUB_Rr(H),                 ()=> SUB_Rr(L),            ()=> SUB_HLn(),          ()=> SUB_Rr(A),            ()=> SBC_Rr(B),              ()=> SBC_Rr(C),                      ()=> SBC_Rr(D),              ()=> SBC_Rr(E),               ()=> SBC_Rr(H),                ()=> SBC_Rr(L),            ()=> SBC_HLn(),          ()=> SBC_Rr(A),
             /* [A] */   ()=> AND_Rr(B),               ()=> AND_Rr(C),                 ()=> AND_Rr(D),               ()=> AND_Rr(E),               ()=> AND_Rr(H),                 ()=> AND_Rr(L),            ()=> AND_HLn(),          ()=> AND_Rr(A),            ()=> XOR_Rr(B),              ()=> XOR_Rr(C),                      ()=> XOR_Rr(D),              ()=> XOR_Rr(E),               ()=> XOR_Rr(H),                ()=> XOR_Rr(L),            ()=> XOR_HLn(),          ()=> XOR_Rr(A),
             /* [B] */   ()=> OR_Rr(B),                ()=> OR_Rr(C),                  ()=> OR_Rr(D),                ()=> OR_Rr(E),                ()=> OR_Rr(H),                  ()=> OR_Rr(L),             ()=> OR_HLn(),           ()=> OR_Rr(A),             ()=> CP_Rr(B),               ()=> CP_Rr(C),                       ()=> CP_Rr(D),               ()=> CP_Rr(E),                ()=> CP_Rr(H),                 ()=> CP_Rr(L),             ()=> CP_HLn(),           ()=> CP_Rr(A),
-            /* [C] */   ()=> RET_CC(!GetFlagZ()),     ()=> POP_RR(ref B, ref C),      ()=> JP_CC_nn(!GetFlagZ()),   ()=> JP_nn(),                 ()=> CALL_CC_nn(!GetFlagZ()),   ()=> PUSH_RR(B, C),        ()=> ADD_n(),            ()=> RST_n(0x00),          ()=> RET_CC(GetFlagZ()),     ()=> RET(),                          ()=> JP_CC_nn(GetFlagZ()),   ()=> CB_op(),                 ()=> CALL_CC_nn(GetFlagZ()),   ()=> CALL_nn(),            ()=> ADC_n(),            ()=> RST_n(0x08),
-            /* [D] */   ()=> RET_CC(!GetFlagC()),     ()=> POP_RR(ref D, ref E),      ()=> JP_CC_nn(!GetFlagC()),   ()=> unknown(),               ()=> CALL_CC_nn(!GetFlagC()),   ()=> PUSH_RR(D, E),        ()=> SUB_n(),            ()=> RST_n(0x10),          ()=> RET_CC(GetFlagC()),     ()=> RETI(),                         ()=> JP_CC_nn(GetFlagC()),   ()=> unknown(),               ()=> CALL_CC_nn(GetFlagC()),   ()=> unknown(),            ()=> SBC_n(),            ()=> RST_n(0x18),
+            /* [C] */   ()=> RET_CC(!FlagZ),          ()=> POP_RR(ref B, ref C),      ()=> JP_CC_nn(!FlagZ),        ()=> JP_nn(),                 ()=> CALL_CC_nn(!FlagZ),        ()=> PUSH_RR(B, C),        ()=> ADD_n(),            ()=> RST_n(0x00),          ()=> RET_CC(FlagZ),          ()=> RET(),                          ()=> JP_CC_nn(FlagZ),        ()=> CB_op(),                 ()=> CALL_CC_nn(FlagZ),        ()=> CALL_nn(),            ()=> ADC_n(),            ()=> RST_n(0x08),
+            /* [D] */   ()=> RET_CC(!FlagC),          ()=> POP_RR(ref D, ref E),      ()=> JP_CC_nn(!FlagC),        ()=> unknown(),               ()=> CALL_CC_nn(!FlagC),        ()=> PUSH_RR(D, E),        ()=> SUB_n(),            ()=> RST_n(0x10),          ()=> RET_CC(FlagC),          ()=> RETI(),                         ()=> JP_CC_nn(FlagC),        ()=> unknown(),               ()=> CALL_CC_nn(FlagC),        ()=> unknown(),            ()=> SBC_n(),            ()=> RST_n(0x18),
             /* [E] */   ()=> LDH_Nn_A(),              ()=> POP_RR(ref H, ref L),      ()=> LDH_Cn_A(),              ()=> unknown(),               ()=> unknown(),                 ()=> PUSH_RR(H, L),        ()=> AND_n(),            ()=> RST_n(0x20),          ()=> ADD_SP_en(),            ()=> JP_HL(),                        ()=> LD_nn_A(),              ()=> unknown(),               ()=> unknown(),                ()=> unknown(),            ()=> XOR_n(),            ()=> RST_n(0x28),
-            /* [F] */   ()=> LDH_A_Nn(),              ()=> POP_RR(ref A, ref F),      ()=> LDH_A_Cn(),              ()=> DI(),                    ()=> unknown(),                 ()=> PUSH_RR(A, F),        ()=> OR_n(),             ()=> RST_n(0x30),          ()=> LD_HL_SP_en(),          ()=> LD_SP_HL(),                     ()=> LD_A_nn(),              ()=> EI(),                    ()=> unknown(),                ()=> unknown(),            ()=> CP_n(),             ()=> RST_n(0x38)
+            /* [F] */   ()=> LDH_A_Nn(),              ()=> POP_AF(),                  ()=> LDH_A_Cn(),              ()=> DI(),                    ()=> unknown(),                 ()=> PUSH_AF(),            ()=> OR_n(),             ()=> RST_n(0x30),          ()=> LD_HL_SP_en(),          ()=> LD_SP_HL(),                     ()=> LD_A_nn(),              ()=> EI(),                    ()=> unknown(),                ()=> unknown(),            ()=> CP_n(),             ()=> RST_n(0x38)
         };
 
         // CB Instructions
@@ -264,44 +246,24 @@ public class CPU
         Write(u16(L, H), Read(PC++));
     }
 
-    // LD A, (BC): Load accumulator (indirect BC)
+    // LD A, (RR): Load accumulator (indirect BC)
     // ------------------------------------------
     // Load to the 8-bit A register, data from the absolute address specified by
     // the 16-bit register BC.
-    private void LD_A_BCn()
+    private void LD_A_RRn(byte Rmr, byte Rlr)
     {
         Cycles += 2;
-        A = Read(u16(C, B));
+        A = Read(u16(Rlr, Rmr));
     }
 
-    // LD A, (DE): Load accumulator (indirect DE)
-    // ------------------------------------------
-    // Load to the 8-bit A register, data from the absolute address specified by the
-    // 16-bit register DE.
-    private void LD_A_DEn()
-    {
-        Cycles += 2;
-        A = Read(u16(E, D));
-    }
-
-    // LD (BC), A: Load from accumulator (indirect BC)
+    // LD (RR), A: Load from accumulator (indirect BC)
     // -----------------------------------------------
     // Load to the absolute address specified by the 16-bit register BC, data
     // from the 8-bit A register
-    private void LD_BCn_A()
+    private void LD_RRn_A(byte Rmr, byte Rlr)
     {
         Cycles += 2;
-        Write(u16(C, B), A);
-    }
-
-    // LD (DE), A: Load from accumulator (indirect DE)
-    // -----------------------------------------------
-    // Load to the absolute address specified by the 16-bit register DE, data
-    // from the 8-bit A register
-    private void LD_DEn_A()
-    {
-        Cycles += 2;
-        Write(u16(E, D), A);
+        Write(u16(Rlr, Rmr), A);
     }
 
     // LD A, (nn): Load accumulator (direct)
@@ -457,8 +419,10 @@ public class CPU
         Cycles += 5;
 
         ushort nn = u16(Read(PC++), Read(PC++));
+
+
         Write(nn, Lsb(SP));
-        Write(nn++, Msb(SP));
+        Write(++nn, Msb(SP));
     }
 
     // LD SP, HL: Load stack pointer from HL
@@ -471,8 +435,8 @@ public class CPU
     }
 
     // LD HL, SP e
-    // -------------
-    // -
+    // -----------
+    // Add the signed value e8 to SP and store the result in HL.
     private void LD_HL_SP_en()
     {
         Cycles += 3;
@@ -482,6 +446,11 @@ public class CPU
 
         H = Msb(_SP);
         L = Lsb(_SP);
+
+        FlagZ = false;
+        FlagN = false;
+        FlagH = (_SP & 0x08) != 0;
+        FlagC = (_SP & 0x80) != 0;
     }
 
     // PUSH rr: Push to stack
@@ -491,9 +460,22 @@ public class CPU
     {
         Cycles += 4;
 
-        SP--;
-        Write(SP--, Rlr);
-        Write(SP, Rmr);
+        Write(--SP, Rmr);
+        Write(--SP, Rlr);
+    }
+    private void PUSH_AF()
+    {
+        Cycles += 4;
+
+        byte F = 0;
+
+        if (FlagZ) SetBit(ref F, 7, true);
+        if (FlagN) SetBit(ref F, 6, true);
+        if (FlagH) SetBit(ref F, 5, true);
+        if (FlagC) SetBit(ref F, 4, true);
+
+        Write(--SP, F);
+        Write(--SP, A);
     }
 
     // POP rr: Pop from stack
@@ -509,6 +491,19 @@ public class CPU
         Rlw = Read(SP++);
         Rmw = Read(SP++);
     }
+    private void POP_AF()
+    {
+        Cycles += 3;
+
+        byte F = Read(SP++);
+
+        FlagZ = ReadBit(F, 7);
+        FlagN = ReadBit(F, 6);
+        FlagH = ReadBit(F, 5);
+        FlagC = ReadBit(F, 4);
+
+        A = Read(SP++);
+    }
 
     // ADD r: Add (register)
     // ---------------------
@@ -517,10 +512,13 @@ public class CPU
     private void ADD_Rr(byte Rr)
     {
         Cycles += 1;
-        ushort result = (ushort)(A + Rr);
 
-        A = (byte)result;
-        Flags(SetFlagZ(result), false, SetFlagH(result), SetFlagC(result));
+        A += Rr;
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = (A & 0x08) != 0;
+        FlagC = (A & 0x80) != 0;
     }
 
     // ADD (HL): Add (indirect HL)
@@ -530,12 +528,13 @@ public class CPU
     private void ADD_HLn()
     {
         Cycles += 2;
-        byte data = Read(u16(L, H));
-        ushort result = (ushort)(A + data);
 
-        A = (byte)result;
-        Flags(SetFlagZ(result), false, SetFlagH(result), SetFlagC(result));
+        A += Read(u16(L, H));
 
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = (A & 0x08) != 0;
+        FlagC = (A & 0x80) != 0;
     }
 
     // ADD n: Add (immediate)
@@ -545,16 +544,18 @@ public class CPU
     private void ADD_n()
     {
         Cycles += 2;
-        byte data = Read(PC++);
-        ushort result = (ushort)(A + data);
 
-        A = (byte)result;
-        Flags(SetFlagZ(result), false, SetFlagH(result), SetFlagC(result));
+        A += Read(PC++);
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = (A & 0x08) != 0;
+        FlagC = (A & 0x80) != 0;
     }
 
     // ADD SP e
     // --------
-    // -
+    // Add the signed value e8 to SP.
     private void ADD_SP_en()
     {
         Cycles += 4;
@@ -563,22 +564,39 @@ public class CPU
         int result = SP + e;
 
         SP = (ushort)result;
-        Flags(false, false, result > 0xFF, result > 0xFFFF);
+
+        FlagZ = false;
+        FlagN = false;
+        FlagH = (SP & 0x08) != 0;
+        FlagC = (SP & 0x80) != 0;
     }
 
     // ADD HL rr
     // ---------
-    // -
+    // Add the value in r16 to HL.
     private void ADD_HL_RRr(byte Rmr, byte Rlr)
     {
         Cycles += 2;
-        ushort _HL = u16(L, H);
-        int result = _HL + u16(Rlr, Rmr);
+        ushort HL = (ushort)(u16(L, H) + u16(Rlr, Rmr));
 
-        H = Msb((ushort)result);
-        L = Lsb((ushort)result);
+        H = Msb(HL);
+        L = Lsb(HL);
 
-        Flags(false, false, result > 0xFF, result > 0xFFFF);
+        FlagN = false;
+        FlagH = ((HL & 0xFFF) + (u16(Rlr, Rmr) & 0xFFF)) > 0xFFF;
+        FlagC = (HL & 0x10000) != 0;
+    }
+    private void ADD_HL_SP()
+    {
+        Cycles += 2;
+        ushort HL = (ushort)(u16(L, H) + SP);
+
+        H = Msb(HL);
+        L = Lsb(HL);
+
+        FlagN = false;
+        FlagH = ((HL & 0xFFF) + (SP & 0xFFF)) > 0xFFF;
+        FlagC = (HL & 0x10000) != 0;
     }
 
     // ADC r: Add with carry (register)
@@ -588,10 +606,13 @@ public class CPU
     private void ADC_Rr(byte Rr)
     {
         Cycles += 1;
-        ushort result = (ushort)(A + (GetFlagC() ? 1 : 0) + Rr);
 
-        A = (byte)result;
-        Flags(SetFlagZ(result), false, SetFlagH(result), SetFlagC(result));
+        A += (byte)((FlagC ? 1 : 0) + Rr);
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = (A & 0x08) != 0;
+        FlagC = (A & 0x80) != 0;
     }
 
     // ADC (HL): Add with carry (indirect HL)
@@ -603,11 +624,12 @@ public class CPU
     {
         Cycles += 2;
 
-        byte data = Read(u16(L, H));
-        ushort result = (ushort)(A + (GetFlagC() ? 1 : 0) + data);
+        A += (byte)((FlagC ? 1 : 0) + Read(u16(L, H)));
 
-        A = (byte)result;
-        Flags(SetFlagZ(result), false, SetFlagH(result), SetFlagC(result));
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = (A & 0x08) != 0;
+        FlagC = (A & 0x80) != 0;
     }
 
     // ADC n: Add with carry (immediate)
@@ -618,11 +640,12 @@ public class CPU
     {
         Cycles += 2;
 
-        byte data = Read(PC++);
-        ushort result = (ushort)(A + (GetFlagC() ? 1 : 0) + data);
+        A += (byte)((FlagC ? 1 : 0) + Read(PC++));
 
-        A = (byte)result;
-        Flags(SetFlagZ(result), false, SetFlagH(result), SetFlagC(result));
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = (A & 0x08) != 0;
+        FlagC = (A & 0x80) != 0;
     }
 
     // SUB r: Subtract (register)
@@ -631,12 +654,17 @@ public class CPU
     // result back into the A register.
     private void SUB_Rr(byte Rr)
     {
-        Cycles += 2;
+        Cycles += 1;
 
         ushort result = (ushort)(A - Rr);
+        bool borrowFromBit4 = (result & 0x10) != 0;
 
         A = (byte)result;
-        Flags(SetFlagZ(result), true, SetFlagH(result), SetFlagC(result));
+
+        FlagZ = A == 0;
+        FlagN = true;
+        FlagH = borrowFromBit4;
+        FlagC = Rr > A;
     }
 
     // SUB (HL): Subtract (indirect HL)
@@ -647,11 +675,16 @@ public class CPU
     {
         Cycles += 2;
 
-        byte data = Read(u16(L, H));
-        ushort result = (ushort)(A - data);
+        byte HL = Read(u16(L, H));
+        ushort result = (ushort)(A - HL);
+        bool borrowFromBit4 = (result & 0x10) != 0;
 
         A = (byte)result;
-        Flags(SetFlagZ(result), true, SetFlagH(result), SetFlagC(result));
+
+        FlagZ = A == 0;
+        FlagN = true;
+        FlagH = borrowFromBit4;
+        FlagC = HL > A;
     }
 
     // SUB n: Subtract (immediate)
@@ -662,11 +695,16 @@ public class CPU
     {
         Cycles += 2;
 
-        byte data = Read(PC++);
-        ushort result = (ushort)(A - data);
+        byte n = Read(PC++);
+        ushort result = (ushort)(A - n);
+        bool borrowFromBit4 = (result & 0x10) != 0;
 
         A = (byte)result;
-        Flags(SetFlagZ(result), true, SetFlagH(result), SetFlagC(result));
+
+        FlagZ = A == 0;
+        FlagN = true;
+        FlagH = borrowFromBit4;
+        FlagC = n > A;
     }
 
     // SBC r: Subtract with carry (register)
@@ -677,10 +715,15 @@ public class CPU
     {
         Cycles += 1;
 
-        ushort result = (ushort)(A - (GetFlagC() ? 1 : 0) - Rr);
+        ushort result = (ushort)(A - (Rr + (FlagC ? 1 : 0)));
+        bool borrowFromBit4 = (result & 0x10) != 0;
 
         A = (byte)result;
-        Flags(SetFlagZ(result), true, SetFlagH(result), SetFlagC(result));
+
+        FlagZ = A == 0;
+        FlagN = true;
+        FlagH = borrowFromBit4;
+        FlagC = Rr + (FlagC ? 1 : 0) > A;
     }
 
     // SBC (HL): Subtract with carry (indirect HL)
@@ -691,11 +734,16 @@ public class CPU
     {
         Cycles += 2;
 
-        byte data = Read(u16(L, H));
-        ushort result = (ushort)(A - (GetFlagC() ? 1 : 0) - data);
+        byte HL = Read(u16(L, H));
+        ushort result = (ushort)(A - (HL + (FlagC ? 1 : 0)));
+        bool borrowFromBit4 = (result & 0x10) != 0;
 
         A = (byte)result;
-        Flags(SetFlagZ(result), true, SetFlagH(result), SetFlagC(result));
+
+        FlagZ = A == 0;
+        FlagN = true;
+        FlagH = borrowFromBit4;
+        FlagC = HL + (FlagC ? 1 : 0) > A;
     }
 
     // SBC n: Subtract with carry (immediate)
@@ -706,11 +754,16 @@ public class CPU
     {
         Cycles += 2;
 
-        byte data = Read(PC++);
-        ushort result = (ushort)(A - (GetFlagC() ? 1 : 0) - data);
+        byte n = Read(PC++);
+        ushort result = (ushort)(A - (n + (FlagC ? 1 : 0)));
+        bool borrowFromBit4 = (result & 0x10) != 0;
 
         A = (byte)result;
-        Flags(SetFlagZ(result), true, SetFlagH(result), SetFlagC(result));
+
+        FlagZ = A == 0;
+        FlagN = true;
+        FlagH = borrowFromBit4;
+        FlagC = n + (FlagC ? 1 : 0) > A;
     }
 
     // CP r: Compare (register)
@@ -722,7 +775,11 @@ public class CPU
         Cycles += 1;
 
         ushort result = (ushort)(A - Rr);
-        Flags(SetFlagZ(result), true, SetFlagH(result), SetFlagC(result));
+
+        FlagZ = result == 0;
+        FlagN = true;
+        FlagH = (result & 0x10) != 0;
+        FlagC = Rr > A;
     }
 
     // CP (HL): Compare (indirect HL)
@@ -734,10 +791,13 @@ public class CPU
     {
         Cycles += 2;
 
-        byte data = Read(u16(L, H));
-        ushort result = (ushort)(A - data);
+        byte HL = Read(u16(L, H));
+        ushort result = (ushort)(A - HL);
 
-        Flags(SetFlagZ(result), true, SetFlagH(result), SetFlagC(result));
+        FlagZ = result == 0;
+        FlagN = true;
+        FlagH = (result & 0x10) != 0;
+        FlagC = HL > A;
     }
 
     // CP n: Compare (immediate)
@@ -748,10 +808,13 @@ public class CPU
     {
         Cycles += 2;
 
-        byte data = Read(PC++);
-        ushort result = (ushort)(A - data);
+        byte n = Read(PC++);
+        ushort result = (ushort)(A - n);
 
-        Flags(SetFlagZ(result), true, SetFlagH(result), SetFlagC(result));
+        FlagZ = result == 0;
+        FlagN = true;
+        FlagH = (result & 0x10) != 0;
+        FlagC = n > A;
     }
 
     // INC r: Increment (register)
@@ -761,10 +824,11 @@ public class CPU
     {
         Cycles += 1;
 
-        ushort result = (ushort)(Rw + 1);
-        Rw = (byte)result;
+        Rw++;
 
-        Flags(SetFlagZ(result), false, SetFlagH(result), GetFlagC());
+        FlagZ = Rw == 0;
+        FlagN = false;
+        FlagH = (Rw & 0x08) != 0;
     }
 
     // INC (HL): Increment (indirect HL)
@@ -774,32 +838,30 @@ public class CPU
     {
         Cycles += 3;
 
-        byte data = Read(u16(L, H));
-        ushort result = (ushort)(data + 1);
-        Write(u16(L, H), (byte)result);
+        byte data = (byte)(Read(u16(L, H)) + 1);
+        Write(u16(L, H), data);
 
-        Flags(SetFlagZ(result), false, SetFlagH(result), GetFlagC());
+        FlagZ = data == 0;
+        FlagN = false;
+        FlagH = (data & 0x08) != 0;
     }
 
     // INC rr
     // ------
-    // -
+    // Increment value in register RR by 1.
     private void INC_RRw(ref byte Rmw, ref byte Rlw)
     {
         Cycles += 2;
 
-        ushort RR = u16(Rlw, Rmw);
-        int result = RR + 1;
+        ushort RR = (ushort)(u16(Rlw, Rmw) + 1);
 
-        Rmw = Msb((ushort)result);
-        Rlw = Msb((ushort)result);
+        Rmw = Msb(RR);
+        Rlw = Lsb(RR);
     }
     private void INC_RRw(ref ushort RRw)
     {
         Cycles += 2;
-
-        int result = RRw + 1;
-        RRw = (ushort)result;
+        RRw++;
     }
 
     // DEC r: Decrement (register)
@@ -809,10 +871,12 @@ public class CPU
     {
         Cycles += 1;
 
-        ushort result = (ushort)(Rw - 1);
-        Rw = (byte)result;
+        bool borrowFromBit4 = (Rw & 0x10) != 0;
+        Rw--;
 
-        Flags(SetFlagZ(result), true, SetFlagH(result), GetFlagC());
+        FlagZ = Rw == 0;
+        FlagN = true;
+        FlagH = borrowFromBit4;
     }
 
     // DEC (HL): Decrement (indirect HL)
@@ -822,32 +886,33 @@ public class CPU
     {
         Cycles += 3;
 
-        byte data = Read(u16(L, H));
-        ushort result = (ushort)(data - 1);
-        Write(u16(L, H), (byte)result);
+        byte HLn = Read(u16(L, H));
+        bool borrowFromBit4 = (HLn & 0x10) != 0;
 
-        Flags(SetFlagZ(result), true, SetFlagH(result), GetFlagC());
+        byte data = (byte)(HLn - 1);
+        Write(u16(L, H), data);
+
+        FlagZ = data == 0;
+        FlagN = true;
+        FlagH = borrowFromBit4;
     }
 
     // DEC rr
     // ------
-    // -
+    // Decrement value in register rr by 1.
     private void DEC_RRw(ref byte Rmw, ref byte Rlw)
     {
         Cycles += 2;
 
-        ushort RR = u16(Rlw, Rmw);
-        int result = RR - 1;
+        ushort RR = (ushort)(u16(Rlw, Rmw) - 1);
 
-        Rmw = Msb((ushort)result);
-        Rlw = Msb((ushort)result);
+        Rmw = Msb(RR);
+        Rlw = Lsb(RR);
     }
     private void DEC_RRw(ref ushort RRw)
     {
         Cycles += 2;
-
-        int result = RRw - 1;
-        RRw = (ushort)result;
+        RRw--;
     }
 
     // AND r: Bitwise AND (register)
@@ -858,8 +923,12 @@ public class CPU
     {
         Cycles += 1;
 
-        A = (byte)(A & B);
-        Flags(SetFlagZ(A), false, true, false);
+        A &= Rr;
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = true;
+        FlagC = false;
     }
 
     // AND (HL): Bitwise AND (indirect HL)
@@ -870,8 +939,12 @@ public class CPU
     {
         Cycles += 2;
 
-        A = (byte)(A & Read(u16(L, H)));
-        Flags(SetFlagZ(A), false, true, false);
+        A &= Read(u16(L, H));
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = true;
+        FlagC = false;
     }
 
     // AND n: Bitwise AND (immediate)
@@ -882,8 +955,12 @@ public class CPU
     {
         Cycles += 2;
 
-        A = (byte)(A & Read(PC++));
-        Flags(SetFlagZ(A), false, true, false);
+        A &= Read(PC++);
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = true;
+        FlagC = false;
     }
 
     // OR r: Bitwise OR (register)
@@ -894,8 +971,12 @@ public class CPU
     {
         Cycles += 1;
 
-        A = (byte)(A | B);
-        Flags(SetFlagZ(A), false, false, false);
+        A |= Rr;
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = false;
     }
 
     // OR (HL): Bitwise OR (indirect HL)
@@ -906,8 +987,12 @@ public class CPU
     {
         Cycles += 2;
 
-        A = (byte)(A | Read(u16(L, H)));
-        Flags(SetFlagZ(A), false, false, false);
+        A |= Read(u16(L, H));
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = false;
     }
 
     // OR n: Bitwise OR (immediate)
@@ -918,8 +1003,12 @@ public class CPU
     {
         Cycles += 2;
 
-        A = (byte)(A | Read(PC++));
-        Flags(SetFlagZ(A), false, false, false);
+        A |= Read(PC++);
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = false;
     }
 
     // XOR r: Bitwise XOR (register)
@@ -930,8 +1019,12 @@ public class CPU
     {
         Cycles += 1;
 
-        A = (byte)(A ^ B);
-        Flags(SetFlagZ(A), false, false, false);
+        A ^= Rr;
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = false;
     }
 
     // XOR (HL): Bitwise XOR (indirect HL)
@@ -942,8 +1035,12 @@ public class CPU
     {
         Cycles += 2;
 
-        A = (byte)(A ^ Read(u16(L, H)));
-        Flags(SetFlagZ(A), false, false, false);
+        A ^= Read(u16(L, H));
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = false;
     }
 
     // XOR n: Bitwise XOR (immediate)
@@ -954,8 +1051,12 @@ public class CPU
     {
         Cycles += 2;
 
-        A = (byte)(A ^ Read(PC++));
-        Flags(SetFlagZ(A), false, false, false);
+        A ^= Read(PC++);
+
+        FlagZ = A == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = false;
     }
 
     // CCF: Complement carry flag
@@ -964,7 +1065,10 @@ public class CPU
     private void CCF()
     {
         Cycles += 1;
-        Flags(GetFlagZ(), false, false, !GetFlagC());
+
+        FlagN = false;
+        FlagH = false;
+        FlagC = !FlagC;
     }
 
     // SCF: Set carry flag
@@ -973,16 +1077,42 @@ public class CPU
     private void SCF()
     {
         Cycles += 1;
-        Flags(GetFlagZ(), false, false, true);
+
+        FlagN = false;
+        FlagH = false;
+        FlagC = true;
     }
 
     // DAA: Decimal adjust accumulator
     // -------------------------------
-    // -
+    // Decimal Adjust Accumulator to get a correct BCD representation after an arithmetic instruction.
     private void DAA()
     {
         Cycles += 1;
-        Flags(!GetFlagZ(), GetFlagN(), false, !GetFlagC());
+
+        byte lo = (byte)(A & 0x0F);
+        byte hi = (byte)(A >> 4);
+
+        if (FlagN)
+        {
+            if (FlagH || (lo > 9))
+            lo -= 6;
+        }
+        else
+        {
+            if ((lo > 9) || FlagH)
+            lo += 6;
+        }
+
+        if (FlagC || (hi > 9))
+        {
+            hi += 6;
+            FlagC = true;
+        }
+        else
+        FlagC = false;
+
+        A = (byte)((hi << 4) | (lo & 0x0F));
     }
 
     // CPL: Complement accumulator
@@ -992,7 +1122,9 @@ public class CPU
     {
         Cycles += 1;
         A = (byte)~A;
-        Flags(GetFlagZ(), true, true, GetFlagC());
+
+        FlagN = true;
+        FlagH = true;
     }
 
     // JP nn: Jump
@@ -1023,7 +1155,7 @@ public class CPU
         ushort nn = u16(Read(PC++), Read(PC++));
 
         if (CC)
-            PC = nn;
+        PC = nn;
     }
 
     // JR e: Relative jump
@@ -1046,7 +1178,9 @@ public class CPU
         sbyte e = unchecked((sbyte)Read(PC++));
 
         if (CC)
-            PC = (ushort)(PC + e);
+        PC = (ushort)(PC + e);
+        else
+        PC++;
     }
 
     // CALL nn: Call function
@@ -1058,9 +1192,8 @@ public class CPU
 
         ushort nn = u16(Read(PC++), Read(PC++));
 
-        SP--;
-        Write(SP--, Msb(nn));
-        Write(SP, Lsb(nn));
+        Write(--SP, Msb(nn));
+        Write(--SP, Lsb(nn));
 
         PC = nn;
     }
@@ -1073,15 +1206,15 @@ public class CPU
     private void CALL_CC_nn(bool CC)
     {
         Cycles += CC ? 6 : 3;
-        ushort nn = u16(Read(PC++), Read(PC++));
+        byte lsb = Read(PC++);
+        byte msb = Read(PC++);
 
         if (CC)
         {
-            SP--;
-            Write(SP--, Msb(nn));
-            Write(SP, Lsb(nn));
+            Write(--SP, msb);
+            Write(--SP, lsb);
 
-            PC = nn;
+            PC = u16(lsb, msb);
         }
     }
 
@@ -1102,7 +1235,7 @@ public class CPU
         Cycles += CC ? 5 : 2;
 
         if (CC)
-            PC = u16(Read(SP++), Read(SP++));
+        PC = u16(Read(SP++), Read(SP++));
     }
 
     // RETI: Return from interrupt handler
@@ -1113,7 +1246,7 @@ public class CPU
         Cycles += 4;
 
         PC = u16(Read(SP++), Read(SP++));
-        IME = true;
+        IME_scheduled = true;
     }
 
     // RST n: Restart / Call function (implied)
@@ -1125,19 +1258,31 @@ public class CPU
 
         byte n = Read(PC);
 
-        SP--;
-        Write(SP--, Msb(PC));
-        Write(SP, Lsb(PC));
+        Write(--SP, Msb(PC));
+        Write(--SP, Lsb(PC));
 
         PC = u16(n, at);
     }
 
     // HALT: Halt system clock
     // -----------------------
-    // -
+    // Enter CPU low-power consumption mode until an interrupt occurs. The exact behavior of
+    // this instruction depends on the state of the IME flag.
     private void HALT()
     {
         Halt = true;
+
+        if (IME)
+        {
+            if (Memory.Read(0xFF0F) != 0)
+            Halt = false;
+            else
+            {
+                
+            }
+        }
+        else
+        Halt = false;
     }
 
     // STOP: Stop system and main clocks
@@ -1194,7 +1339,10 @@ public class CPU
         byte _A = A;
         A = (byte)((A << 1) | (A >> 7));
 
-        Flags(false, false, false, ReadBit(_A, 7));
+        FlagZ = false;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_A, 7);
     }
 
     // RLA
@@ -1205,9 +1353,14 @@ public class CPU
         Cycles += 1;
 
         byte _A = A;
-        A = (byte)((A << 1) | (F & 0x01));
+        A <<= 1;
 
-        Flags(false, false, false, ReadBit(_A, 7));
+        SetBit(ref A, 0, FlagC);
+
+        FlagZ = false;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_A, 7);
     }
 
     // RRCA
@@ -1220,7 +1373,10 @@ public class CPU
         byte _A = A;
         A = (byte)((A >> 1) | ((A & 0x01) << 7));
 
-        Flags(false, false, false, ReadBit(_A, 0));
+        FlagZ = false;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_A, 0);
     }
 
     // RRA
@@ -1231,9 +1387,14 @@ public class CPU
         Cycles += 1;
 
         byte _A = A;
-        A = (byte)((A >> 1) | ((F & 0x01) << 7));
+        A >>= 1;
 
-        Flags(false, false, false, ReadBit(_A, 0));
+        SetBit(ref A, 7, FlagC);
+
+        FlagZ = false;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_A, 0);
     }
 
     // CB operation
@@ -1258,7 +1419,10 @@ public class CPU
         byte _R = Rw;
         Rw = (byte)((Rw << 1) | (Rw >> 7));
 
-        Flags(false, false, false, ReadBit(_R, 7));
+        FlagZ = Rw == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_R, 7);
     }
 
     // RLC (HL)
@@ -1268,11 +1432,15 @@ public class CPU
     {
         Cycles += 4;
 
-        byte data = Read(u16(L, H));
+        ushort HL = u16(L, H);
+        byte data = Read(HL);
         byte newData = (byte)((data << 1) | (data >> 7));
-        Write(u16(L, H), newData);
+        Write(HL, newData);
 
-        Flags(false, false, false, ReadBit(data, 7));
+        FlagZ = newData == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(data, 7);
     }
 
     // RRC r
@@ -1285,7 +1453,10 @@ public class CPU
         byte _R = Rw;
         Rw = (byte)((Rw >> 1) | ((Rw & 0x01) << 7));
 
-        Flags(false, false, false, ReadBit(_R, 0));
+        FlagZ = Rw == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_R, 0);
     }
 
     // RRC (HL)
@@ -1295,11 +1466,15 @@ public class CPU
     {
         Cycles += 4;
 
-        byte data = Read(u16(L, H));
+        ushort HL = u16(L, H);
+        byte data = Read(HL);
         byte newData = (byte)((data >> 1) | ((data & 0x01) << 7));
-        Write(u16(L, H), newData);
+        Write(HL, newData);
 
-        Flags(false, false, false, ReadBit(data, 0));
+        FlagZ = newData == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(data, 0);
     }
 
     // RL r
@@ -1310,9 +1485,14 @@ public class CPU
         Cycles += 2;
 
         byte _R = Rw;
-        Rw = (byte)((Rw << 1) | (F & 0x01));
+        Rw <<= 1;
 
-        Flags(false, false, false, ReadBit(_R, 7));
+        SetBit(ref Rw, 0, FlagC);
+
+        FlagZ = Rw == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_R, 7);
     }
 
     // RL (HL)
@@ -1322,11 +1502,17 @@ public class CPU
     {
         Cycles += 4;
 
-        byte data = Read(u16(L, H));
-        byte newData = (byte)((data << 1) | (F & 0x01));
-        Write(u16(L, H), newData);
+        ushort HL = u16(L, H);
+        byte data = Read(HL);
+        byte newData = (byte)(data << 1);
 
-        Flags(false, false, false, ReadBit(data, 7));
+        SetBit(ref newData, 0, FlagC);
+        Write(HL, newData);
+
+        FlagZ = newData == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(data, 7);
     }
 
     // RR r
@@ -1337,9 +1523,14 @@ public class CPU
         Cycles += 2;
 
         byte _R = Rw;
-        Rw = (byte)((Rw >> 1) | ((F & 0x01) << 7));
+        Rw >>= 1;
 
-        Flags(false, false, false, ReadBit(_R, 0));
+        SetBit(ref Rw, 7, FlagC);
+
+        FlagZ = Rw == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_R, 0);
     }
 
     // RR (HL)
@@ -1349,11 +1540,17 @@ public class CPU
     {
         Cycles += 4;
 
-        byte data = Read(u16(L, H));
-        byte newData = (byte)((data >> 1) | ((F & 0x01) << 7));
-        Write(u16(L, H), newData);
+        ushort HL = u16(L, H);
+        byte data = Read(HL);
+        byte newData = (byte)(data >> 1);
 
-        Flags(false, false, false, ReadBit(data, 0));
+        SetBit(ref newData, 7, FlagC);
+        Write(HL, newData);
+
+        FlagZ = newData == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(data, 0);
     }
 
     // SLA r
@@ -1366,7 +1563,10 @@ public class CPU
         byte _R = Rw;
         Rw = (byte)(Rw << 1);
 
-        Flags(false, false, false, ReadBit(_R, 7));
+        FlagZ = Rw == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_R, 7);
     }
 
     // SLA (HL)
@@ -1376,11 +1576,15 @@ public class CPU
     {
         Cycles += 4;
 
-        byte data = Read(u16(L, H));
+        ushort HL = u16(L, H);
+        byte data = Read(HL);
         byte newData = (byte)(data << 1);
-        Write(u16(L, H), newData);
+        Write(HL, newData);
 
-        Flags(false, false, false, ReadBit(data, 7));
+        FlagZ = newData == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(data, 7);
     }
 
     // SRA r
@@ -1393,7 +1597,10 @@ public class CPU
         byte _R = Rw;
         Rw = (byte)((Rw >> 1) | (Rw & 0x80));
 
-        Flags(false, false, false, ReadBit(_R, 0));
+        FlagZ = Rw == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_R, 0);
     }
 
     // SRA (HL)
@@ -1403,11 +1610,15 @@ public class CPU
     {
         Cycles += 4;
 
-        byte data = Read(u16(L, H));
+        ushort HL = u16(L, H);
+        byte data = Read(HL);
         byte newData = (byte)((data >> 1) | (data & 0x80));
-        Write(u16(L, H), newData);
+        Write(HL, newData);
 
-        Flags(false, false, false, ReadBit(data, 0));
+        FlagZ = newData == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(data, 0);
     }
 
     // SWAP r
@@ -1418,7 +1629,11 @@ public class CPU
         Cycles += 2;
 
         Rw = (byte)(((Rw & 0x0F) << 4) | ((Rw & 0xF0) >> 4));
-        Flags(false, false, false, false);
+
+        FlagZ = Rw == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = false;
     }
 
     // SWAP (HL)
@@ -1428,10 +1643,15 @@ public class CPU
     {
         Cycles += 4;
 
-        byte data = Read(u16(L, H));
-        Write(u16(L, H), (byte)(((data & 0x0F) << 4) | ((data & 0xF0) >> 4)));
+        ushort HL = u16(L, H);
+        byte data = Read(HL);
+        byte newData = (byte)(((data & 0x0F) << 4) | ((data & 0xF0) >> 4));
+        Write(HL, newData);
 
-        Flags(false, false, false, false);
+        FlagZ = newData == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = false;
     }
 
     // SRL r
@@ -1444,7 +1664,10 @@ public class CPU
         byte _R = Rw;
         Rw = (byte)(Rw >> 1);
 
-        Flags(false, false, false, ReadBit(_R, 0));
+        FlagZ = Rw == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(_R, 0);
     }
 
     // SRL (HL)
@@ -1452,12 +1675,17 @@ public class CPU
     // Shift right logical with direct memory at HL
     private void SRL_HLn()
     {
-        Cycles += 2;
+        Cycles += 4;
 
-        byte data = Read(u16(L, H));
-        Write(u16(L, H), (byte)(data >> 1));
+        ushort HL = u16(L, H);
+        byte data = Read(HL);
+        byte newData = (byte)(data >> 1);
+        Write(HL, newData);
 
-        Flags(false, false, false, ReadBit(data, 0));
+        FlagZ = newData == 0;
+        FlagN = false;
+        FlagH = false;
+        FlagC = ReadBit(data, 0);
     }
 
     // BIT n,r
@@ -1466,7 +1694,10 @@ public class CPU
     private void BIT_n_r(byte n, byte Rr)
     {
         Cycles += 2;
-        Flags(ReadBit(Rr, n), false, true, false);
+
+        FlagZ = ReadBit(Rr, n);
+        FlagN = false;
+        FlagH = true;
     }
 
     // BIT n,(HL)
@@ -1474,10 +1705,11 @@ public class CPU
     // Test bit n with direct memory at HL
     private void BIT_n_HLn(byte n)
     {
-        Cycles += 4;
+        Cycles += 3;
 
-        byte data = Read(u16(L, H));
-        Flags(ReadBit(data, n), false, true, false);
+        FlagZ = ReadBit(Read(u16(L, H)), n);
+        FlagN = false;
+        FlagH = true;
     }
 
     // SET n,r
@@ -1486,7 +1718,7 @@ public class CPU
     private void SET_n_r(byte n, ref byte Rw)
     {
         Cycles += 2;
-        SetBit(ref Rw, n);
+        SetBit(ref Rw, n, true);
     }
 
     // SET n,(HL)
@@ -1496,9 +1728,10 @@ public class CPU
     {
         Cycles += 4;
 
-        byte data = Read(u16(L, H));
-        SetBit(ref data, n);
-        Write(u16(L, H), data);
+        ushort HL = u16(L, H);
+        byte data = Read(HL);
+        SetBit(ref data, n, true);
+        Write(HL, data);
     }
 
     // RES n,r
@@ -1507,7 +1740,7 @@ public class CPU
     private void RES_n_r(byte n, ref byte Rw)
     {
         Cycles += 2;
-        UnSetBit(ref Rw, n);
+        SetBit(ref Rw, n, false);
     }
 
     // RES n,(HL)
@@ -1517,8 +1750,9 @@ public class CPU
     {
         Cycles += 4;
 
-        byte data = Read(u16(L, H));
-        UnSetBit(ref data, n);
-        Write(u16(L, H), data);
+        ushort HL = u16(L, H);
+        byte data = Read(HL);
+        SetBit(ref data, n, false);
+        Write(HL, data);
     }
 }
