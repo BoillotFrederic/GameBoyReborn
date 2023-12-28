@@ -4,7 +4,7 @@
 public class CPU
 {
     // Handle memory
-    Memory Memory;
+    public Memory Memory;
     public IO? IO;
     public delegate byte ReadDelegate(ushort at);
     public ReadDelegate Read;
@@ -15,25 +15,24 @@ public class CPU
     public int Cycles;
 
     // Program counter
-    public ushort PC = 0x0000;
+    public ushort PC;
 
     // Stack pointer
-    private ushort SP = 0xFFFE;
+    private ushort SP;
 
     // Registers
-    private byte A = 0x01;
-    private byte B = 0x00;
-    private byte C = 0x13;
-    private byte D = 0x00;
-    private byte E = 0xD8;
-    private byte H = 0x01;
-    private byte L = 0x4D;
+    private byte A;
+    private byte B;
+    private byte C;
+    private byte D;
+    private byte E;
+    private byte H;
+    private byte L;
 
     // Interrupt
     private bool Stop = false;
     private bool Halt = false;
     public bool IME = false;
-    public bool IME_scheduled = false;
 
     // Timer
     private ushort DivCycles = 0;
@@ -41,30 +40,606 @@ public class CPU
     private readonly int[] ClockCPU = new int[4] { 4096, 262144, 65536, 16384 };
 
     // Handle flags
-    private bool FlagZ = true;
-    private bool FlagN = false;
-    private bool FlagH = true;
-    private bool FlagC = true;
+    private bool FlagZ;
+    private bool FlagN;
+    private bool FlagH;
+    private bool FlagC;
 
     // Handle binary
-    private byte Lsb(ushort u16) { return (byte)(u16 & 0xFF); } // Least significant bit
-    private byte Msb(ushort u16) { return (byte)((u16 >> 8) & 0xFF); } // Most significant bit
-    private ushort u16(byte lsb, byte msb) { return (ushort)((msb << 8) | lsb); } // Create unsigned 16
-    private bool ReadBit(byte data, byte pos) { return ((data >> pos) & 0x01) == 1; } // From right to left
-    private void SetBit(ref byte data, byte pos, bool set) { if(set) data |= (byte)(1 << pos); else data &= (byte)~(1 << pos); } // Set/unset bit
+    private static byte Lsb(ushort u16) { return (byte)(u16 & 0xFF); } // Least significant bit
+    private static byte Msb(ushort u16) { return (byte)((u16 >> 8) & 0xFF); } // Most significant bit
+    private static ushort U16(byte lsb, byte msb) { return (ushort)((msb << 8) | lsb); } // Create unsigned 16
+    private static bool ReadBit(byte data, byte pos) { return ((data >> pos) & 0x01) == 1; } // From right to left
+    private static void SetBit(ref byte data, byte pos, bool set) { if(set) data |= (byte)(1 << pos); else data &= (byte)~(1 << pos); } // Set/unset bit
+
+    /* 
+    //
+    // Debug mode --------------------------------------------
+    //
+    */
+
+    private readonly string[] InstructionsName = new string[]
+    {
+        "NOP()",
+        "LD_RRw_nn(ref B, ref C)",
+        "LD_RRn_A(B, C)",
+        "INC_RRw(ref B, ref C)",
+        "INC_Rw(ref B)",
+        "DEC_Rw(ref B)",
+        "LD_Rw_n(ref B)",
+        "RLCA()",
+        "LD_Nnn_SP()",
+        "ADD_HL_RRr(B, C)",
+        "LD_A_RRn(B, C)",
+        "DEC_RRw(ref B, ref C)",
+        "INC_Rw(ref C)",
+        "DEC_Rw(ref C)",
+        "LD_Rw_n(ref C)",
+        "RRCA()",
+        "STOP()",
+        "LD_RRw_nn(ref D, ref E)",
+        "LD_RRn_A(D, E)",
+        "INC_RRw(ref D, ref E)",
+        "INC_Rw(ref D)",
+        "DEC_Rw(ref D)",
+        "LD_Rw_n(ref D)",
+        "RLA()",
+        "JR_en()",
+        "ADD_HL_RRr(D, E)",
+        "LD_A_RRn(D, E)",
+        "DEC_RRw(ref D, ref E)",
+        "INC_Rw(ref E)",
+        "DEC_Rw(ref E)",
+        "LD_Rw_n(ref E)",
+        "RRA()",
+        "JR_CC_en(!FlagZ)",
+        "LD_RRw_nn(ref H, ref L)",
+        "LD_HLnp_A()",
+        "INC_RRw(ref H, ref L)",
+        "INC_Rw(ref H)",
+        "DEC_Rw(ref H)",
+        "LD_Rw_n(ref H)",
+        "DAA()",
+        "JR_CC_en(FlagZ)",
+        "ADD_HL_RRr(H, L)",
+        "LD_A_HLnp()",
+        "DEC_RRw(ref H, ref L)",
+        "INC_Rw(ref L)",
+        "DEC_Rw(ref L)",
+        "LD_Rw_n(ref L)",
+        "CPL()",
+        "JR_CC_en(!FlagC)",
+        "LD_RRw_nn(ref SP)",
+        "LD_HLnm_A()",
+        "INC_RRw(ref SP)",
+        "INC_HLn()",
+        "DEC_HLn()",
+        "LD_HLn_n()",
+        "SCF()",
+        "JR_CC_en(FlagC)",
+        "ADD_HL_SP()",
+        "LD_A_HLnm()",
+        "DEC_RRw(ref SP)",
+        "INC_Rw(ref A)",
+        "DEC_Rw(ref A)",
+        "LD_Rw_n(ref A)",
+        "CCF()",
+        "LD_Rw_Rr(ref B, B)",
+        "LD_Rw_Rr(ref B, C)",
+        "LD_Rw_Rr(ref B, D)",
+        "LD_Rw_Rr(ref B, E)",
+        "LD_Rw_Rr(ref B, H)",
+        "LD_Rw_Rr(ref B, L)",
+        "LD_Rw_HLn(ref B)",
+        "LD_Rw_Rr(ref B, A)",
+        "LD_Rw_Rr(ref C, B)",
+        "LD_Rw_Rr(ref C, C)",
+        "LD_Rw_Rr(ref C, D)",
+        "LD_Rw_Rr(ref C, E)",
+        "LD_Rw_Rr(ref C, H)",
+        "LD_Rw_Rr(ref C, L)",
+        "LD_Rw_HLn(ref C)",
+        "LD_Rw_Rr(ref C, A)",
+        "LD_Rw_Rr(ref D, B)",
+        "LD_Rw_Rr(ref D, C)",
+        "LD_Rw_Rr(ref D, D)",
+        "LD_Rw_Rr(ref D, E)",
+        "LD_Rw_Rr(ref D, H)",
+        "LD_Rw_Rr(ref D, L)",
+        "LD_Rw_HLn(ref D)",
+        "LD_Rw_Rr(ref D, A)",
+        "LD_Rw_Rr(ref E, B)",
+        "LD_Rw_Rr(ref E, C)",
+        "LD_Rw_Rr(ref E, D)",
+        "LD_Rw_Rr(ref E, E)",
+        "LD_Rw_Rr(ref E, H)",
+        "LD_Rw_Rr(ref E, L)",
+        "LD_Rw_HLn(ref E)",
+        "LD_Rw_Rr(ref E, A)",
+        "LD_Rw_Rr(ref H, B)",
+        "LD_Rw_Rr(ref H, C)",
+        "LD_Rw_Rr(ref H, D)",
+        "LD_Rw_Rr(ref H, E)",
+        "LD_Rw_Rr(ref H, H)",
+        "LD_Rw_Rr(ref H, L)",
+        "LD_Rw_HLn(ref H)",
+        "LD_Rw_Rr(ref H, A)",
+        "LD_Rw_Rr(ref L, B)",
+        "LD_Rw_Rr(ref L, C)",
+        "LD_Rw_Rr(ref L, D)",
+        "LD_Rw_Rr(ref L, E)",
+        "LD_Rw_Rr(ref L, H)",
+        "LD_Rw_Rr(ref L, L)",
+        "LD_Rw_HLn(ref L)",
+        "LD_Rw_Rr(ref L, A)",
+        "LD_HLn_Rr(B)",
+        "LD_HLn_Rr(C)",
+        "LD_HLn_Rr(D)",
+        "LD_HLn_Rr(E)",
+        "LD_HLn_Rr(H)",
+        "LD_HLn_Rr(L)",
+        "HALT()",
+        "LD_HLn_Rr(A)",
+        "LD_Rw_Rr(ref A, B)",
+        "LD_Rw_Rr(ref A, C)",
+        "LD_Rw_Rr(ref A, D)",
+        "LD_Rw_Rr(ref A, E)",
+        "LD_Rw_Rr(ref A, H)",
+        "LD_Rw_Rr(ref A, L)",
+        "LD_Rw_HLn(ref A)",
+        "LD_Rw_Rr(ref A, A)",
+        "ADD_Rr(B)",
+        "ADD_Rr(C)",
+        "ADD_Rr(D)",
+        "ADD_Rr(E)",
+        "ADD_Rr(H)",
+        "ADD_Rr(L)",
+        "ADD_HLn()",
+        "ADD_Rr(A)",
+        "ADC_Rr(B)",
+        "ADC_Rr(C)",
+        "ADC_Rr(D)",
+        "ADC_Rr(E)",
+        "ADC_Rr(H)",
+        "ADC_Rr(L)",
+        "ADC_HLn()",
+        "ADC_Rr(A)",
+        "SUB_Rr(B)",
+        "SUB_Rr(C)",
+        "SUB_Rr(D)",
+        "SUB_Rr(E)",
+        "SUB_Rr(H)",
+        "SUB_Rr(L)",
+        "SUB_HLn()",
+        "SUB_Rr(A)",
+        "SBC_Rr(B)",
+        "SBC_Rr(C)",
+        "SBC_Rr(D)",
+        "SBC_Rr(E)",
+        "SBC_Rr(H)",
+        "SBC_Rr(L)",
+        "SBC_HLn()",
+        "SBC_Rr(A)",
+        "AND_Rr(B)",
+        "AND_Rr(C)",
+        "AND_Rr(D)",
+        "AND_Rr(E)",
+        "AND_Rr(H)",
+        "AND_Rr(L)",
+        "AND_HLn()",
+        "AND_Rr(A)",
+        "XOR_Rr(B)",
+        "XOR_Rr(C)",
+        "XOR_Rr(D)",
+        "XOR_Rr(E)",
+        "XOR_Rr(H)",
+        "XOR_Rr(L)",
+        "XOR_HLn()",
+        "XOR_Rr(A)",
+        "OR_Rr(B)",
+        "OR_Rr(C)",
+        "OR_Rr(D)",
+        "OR_Rr(E)",
+        "OR_Rr(H)",
+        "OR_Rr(L)",
+        "OR_HLn()",
+        "OR_Rr(A)",
+        "CP_Rr(B)",
+        "CP_Rr(C)",
+        "CP_Rr(D)",
+        "CP_Rr(E)",
+        "CP_Rr(H)",
+        "CP_Rr(L)",
+        "CP_HLn()",
+        "CP_Rr(A)",
+        "RET_CC(!FlagZ)",
+        "POP_RR(ref B, ref C)",
+        "JP_CC_nn(!FlagZ)",
+        "JP_nn()",
+        "CALL_CC_nn(!FlagZ)",
+        "PUSH_RR(B, C)",
+        "ADD_n()",
+        "RST_n(0x00)",
+        "RET_CC(FlagZ)",
+        "RET()",
+        "JP_CC_nn(FlagZ)",
+        "CB_op()",
+        "CALL_CC_nn(FlagZ)",
+        "CALL_nn()",
+        "ADC_n()",
+        "RST_n(0x08)",
+        "RET_CC(!FlagC)",
+        "POP_RR(ref D, ref E)",
+        "JP_CC_nn(!FlagC)",
+        "unknown()",
+        "CALL_CC_nn(!FlagC)",
+        "PUSH_RR(D, E)",
+        "SUB_n()",
+        "RST_n(0x10)",
+        "RET_CC(FlagC)",
+        "RETI()",
+        "JP_CC_nn(FlagC)",
+        "unknown()",
+        "CALL_CC_nn(FlagC)",
+        "unknown()",
+        "SBC_n()",
+        "RST_n(0x18)",
+        "LDH_Nn_A()",
+        "POP_RR(ref H, ref L)",
+        "LDH_Cn_A()",
+        "unknown()",
+        "unknown()",
+        "PUSH_RR(H, L)",
+        "AND_n()",
+        "RST_n(0x20)",
+        "ADD_SP_en()",
+        "JP_HL()",
+        "LD_nn_A()",
+        "unknown()",
+        "unknown()",
+        "unknown()",
+        "XOR_n()",
+        "RST_n(0x28)",
+        "LDH_A_Nn()",
+        "POP_AF()",
+        "LDH_A_Cn()",
+        "DI()",
+        "unknown()",
+        "PUSH_AF()",
+        "OR_n()",
+        "RST_n(0x30)",
+        "LD_HL_SP_en()",
+        "LD_SP_HL()",
+        "LD_A_nn()",
+        "EI()",
+        "unknown()",
+        "unknown()",
+        "CP_n()",
+        "RST_n(0x38)"
+    };
+
+    private readonly string[] CBInstructionsName = new string[]
+    {
+
+        "RLC_Rw(ref B)",
+        "RLC_Rw(ref C)",
+        "RLC_Rw(ref D)",
+        "RLC_Rw(ref E)",
+        "RLC_Rw(ref H)",
+        "RLC_Rw(ref L)",
+        "RLC_HLn()",
+        "RLC_Rw(ref A)",
+        "RRC_Rw(ref B)",
+        "RRC_Rw(ref C)",
+        "RRC_Rw(ref D)",
+        "RRC_Rw(ref E)",
+        "RRC_Rw(ref H)",
+        "RRC_Rw(ref L)",
+        "RRC_HLn()",
+        "RRC_Rw(ref A)",
+        "RL_Rw(ref B)",
+        "RL_Rw(ref C)",
+        "RL_Rw(ref D)",
+        "RL_Rw(ref E)",
+        "RL_Rw(ref H)",
+        "RL_Rw(ref L)",
+        "RL_HLn()",
+        "RL_Rw(ref A)",
+        "RR_Rw(ref B)",
+        "RR_Rw(ref C)",
+        "RR_Rw(ref D)",
+        "RR_Rw(ref E)",
+        "RR_Rw(ref H)",
+        "RR_Rw(ref L)",
+        "RR_HLn()",
+        "RR_Rw(ref A)",
+        "SLA_Rw(ref B)",
+        "SLA_Rw(ref C)",
+        "SLA_Rw(ref D)",
+        "SLA_Rw(ref E)",
+        "SLA_Rw(ref H)",
+        "SLA_Rw(ref L)",
+        "SLA_HLn()",
+        "SLA_Rw(ref A)",
+        "SRA_Rw(ref B)",
+        "SRA_Rw(ref C)",
+        "SRA_Rw(ref D)",
+        "SRA_Rw(ref E)",
+        "SRA_Rw(ref H)",
+        "SRA_Rw(ref L)",
+        "SRA_HLn()",
+        "SRA_Rw(ref A)",
+        "SWAP_Rw(ref B)",
+        "SWAP_Rw(ref C)",
+        "SWAP_Rw(ref D)",
+        "SWAP_Rw(ref E)",
+        "SWAP_Rw(ref H)",
+        "SWAP_Rw(ref L)",
+        "SWAP_HLn()",
+        "SWAP_Rw(ref A)",
+        "SRL_Rw(ref B)",
+        "SRL_Rw(ref C)",
+        "SRL_Rw(ref D)",
+        "SRL_Rw(ref E)",
+        "SRL_Rw(ref H)",
+        "SRL_Rw(ref L)",
+        "SRL_HLn()",
+        "SRL_Rw(ref A)",
+        "BIT_n_r(0, B)",
+        "BIT_n_r(0, C)",
+        "BIT_n_r(0, D)",
+        "BIT_n_r(0, E)",
+        "BIT_n_r(0, H)",
+        "BIT_n_r(0, L)",
+        "BIT_n_HLn(0)",
+        "BIT_n_r(0, A)",
+        "BIT_n_r(1, B)",
+        "BIT_n_r(1, C)",
+        "BIT_n_r(1, D)",
+        "BIT_n_r(1, E)",
+        "BIT_n_r(1, H)",
+        "BIT_n_r(1, L)",
+        "BIT_n_HLn(1)",
+        "BIT_n_r(1, A)",
+        "BIT_n_r(2, B)",
+        "BIT_n_r(2, C)",
+        "BIT_n_r(2, D)",
+        "BIT_n_r(2, E)",
+        "BIT_n_r(2, H)",
+        "BIT_n_r(2, L)",
+        "BIT_n_HLn(2)",
+        "BIT_n_r(2, A)",
+        "BIT_n_r(3, B)",
+        "BIT_n_r(3, C)",
+        "BIT_n_r(3, D)",
+        "BIT_n_r(3, E)",
+        "BIT_n_r(3, H)",
+        "BIT_n_r(3, L)",
+        "BIT_n_HLn(3)",
+        "BIT_n_r(3, A)",
+        "BIT_n_r(4, B)",
+        "BIT_n_r(4, C)",
+        "BIT_n_r(4, D)",
+        "BIT_n_r(4, E)",
+        "BIT_n_r(4, H)",
+        "BIT_n_r(4, L)",
+        "BIT_n_HLn(4)",
+        "BIT_n_r(4, A)",
+        "BIT_n_r(5, B)",
+        "BIT_n_r(5, C)",
+        "BIT_n_r(5, D)",
+        "BIT_n_r(5, E)",
+        "BIT_n_r(5, H)",
+        "BIT_n_r(5, L)",
+        "BIT_n_HLn(5)",
+        "BIT_n_r(5, A)",
+        "BIT_n_r(6, B)",
+        "BIT_n_r(6, C)",
+        "BIT_n_r(6, D)",
+        "BIT_n_r(6, E)",
+        "BIT_n_r(6, H)",
+        "BIT_n_r(6, L)",
+        "BIT_n_HLn(6)",
+        "BIT_n_r(6, A)",
+        "BIT_n_r(7, B)",
+        "BIT_n_r(7, C)",
+        "BIT_n_r(7, D)",
+        "BIT_n_r(7, E)",
+        "BIT_n_r(7, H)",
+        "BIT_n_r(7, L)",
+        "BIT_n_HLn(7)",
+        "BIT_n_r(7, A)",
+        "RES_n_r(0, ref B)",
+        "RES_n_r(0, ref C)",
+        "RES_n_r(0, ref D)",
+        "RES_n_r(0, ref E)",
+        "RES_n_r(0, ref H)",
+        "RES_n_r(0, ref L)",
+        "RES_n_HLn(0)",
+        "RES_n_r(0, ref A)",
+        "RES_n_r(1, ref B)",
+        "RES_n_r(1, ref C)",
+        "RES_n_r(1, ref D)",
+        "RES_n_r(1, ref E)",
+        "RES_n_r(1, ref H)",
+        "RES_n_r(1, ref L)",
+        "RES_n_HLn(1)",
+        "RES_n_r(1, ref A)",
+        "RES_n_r(2, ref B)",
+        "RES_n_r(2, ref C)",
+        "RES_n_r(2, ref D)",
+        "RES_n_r(2, ref E)",
+        "RES_n_r(2, ref H)",
+        "RES_n_r(2, ref L)",
+        "RES_n_HLn(2)",
+        "RES_n_r(2, ref A)",
+        "RES_n_r(3, ref B)",
+        "RES_n_r(3, ref C)",
+        "RES_n_r(3, ref D)",
+        "RES_n_r(3, ref E)",
+        "RES_n_r(3, ref H)",
+        "RES_n_r(3, ref L)",
+        "RES_n_HLn(3)",
+        "RES_n_r(3, ref A)",
+        "RES_n_r(4, ref B)",
+        "RES_n_r(4, ref C)",
+        "RES_n_r(4, ref D)",
+        "RES_n_r(4, ref E)",
+        "RES_n_r(4, ref H)",
+        "RES_n_r(4, ref L)",
+        "RES_n_HLn(4)",
+        "RES_n_r(4, ref A)",
+        "RES_n_r(5, ref B)",
+        "RES_n_r(5, ref C)",
+        "RES_n_r(5, ref D)",
+        "RES_n_r(5, ref E)",
+        "RES_n_r(5, ref H)",
+        "RES_n_r(5, ref L)",
+        "RES_n_HLn(5)",
+        "RES_n_r(5, ref A)",
+        "RES_n_r(6, ref B)",
+        "RES_n_r(6, ref C)",
+        "RES_n_r(6, ref D)",
+        "RES_n_r(6, ref E)",
+        "RES_n_r(6, ref H)",
+        "RES_n_r(6, ref L)",
+        "RES_n_HLn(6)",
+        "RES_n_r(6, ref A)",
+        "RES_n_r(7, ref B)",
+        "RES_n_r(7, ref C)",
+        "RES_n_r(7, ref D)",
+        "RES_n_r(7, ref E)",
+        "RES_n_r(7, ref H)",
+        "RES_n_r(7, ref L)",
+        "RES_n_HLn(7)",
+        "RES_n_r(7, ref A)",
+        "SET_n_r(0, ref B)",
+        "SET_n_r(0, ref C)",
+        "SET_n_r(0, ref D)",
+        "SET_n_r(0, ref E)",
+        "SET_n_r(0, ref H)",
+        "SET_n_r(0, ref L)",
+        "SET_n_HLn(0)",
+        "SET_n_r(0, ref A)",
+        "SET_n_r(1, ref B)",
+        "SET_n_r(1, ref C)",
+        "SET_n_r(1, ref D)",
+        "SET_n_r(1, ref E)",
+        "SET_n_r(1, ref H)",
+        "SET_n_r(1, ref L)",
+        "SET_n_HLn(1)",
+        "SET_n_r(1, ref A)",
+        "SET_n_r(2, ref B)",
+        "SET_n_r(2, ref C)",
+        "SET_n_r(2, ref D)",
+        "SET_n_r(2, ref E)",
+        "SET_n_r(2, ref H)",
+        "SET_n_r(2, ref L)",
+        "SET_n_HLn(2)",
+        "SET_n_r(2, ref A)",
+        "SET_n_r(3, ref B)",
+        "SET_n_r(3, ref C)",
+        "SET_n_r(3, ref D)",
+        "SET_n_r(3, ref E)",
+        "SET_n_r(3, ref H)",
+        "SET_n_r(3, ref L)",
+        "SET_n_HLn(3)",
+        "SET_n_r(3, ref A)",
+        "SET_n_r(4, ref B)",
+        "SET_n_r(4, ref C)",
+        "SET_n_r(4, ref D)",
+        "SET_n_r(4, ref E)",
+        "SET_n_r(4, ref H)",
+        "SET_n_r(4, ref L)",
+        "SET_n_HLn(4)",
+        "SET_n_r(4, ref A)",
+        "SET_n_r(5, ref B)",
+        "SET_n_r(5, ref C)",
+        "SET_n_r(5, ref D)",
+        "SET_n_r(5, ref E)",
+        "SET_n_r(5, ref H)",
+        "SET_n_r(5, ref L)",
+        "SET_n_HLn(5)",
+        "SET_n_r(5, ref A)",
+        "SET_n_r(6, ref B)",
+        "SET_n_r(6, ref C)",
+        "SET_n_r(6, ref D)",
+        "SET_n_r(6, ref E)",
+        "SET_n_r(6, ref H)",
+        "SET_n_r(6, ref L)",
+        "SET_n_HLn(6)",
+        "SET_n_r(6, ref A)",
+        "SET_n_r(7, ref B)",
+        "SET_n_r(7, ref C)",
+        "SET_n_r(7, ref D)",
+        "SET_n_r(7, ref E)",
+        "SET_n_r(7, ref H)",
+        "SET_n_r(7, ref L)",
+        "SET_n_HLn(7)",
+        "SET_n_r(7, ref A)"
+    };
+    private void ShowStat(byte opcode)
+    {
+        Console.WriteLine("Cyclce = " + Cycles);
+        Console.WriteLine("PC = " + (PC - 1).ToString("X4") + " ("+ (PC - 1) + ")");
+        Console.WriteLine("SP = " + SP.ToString("X4") + " (" + SP + ")");
+        Console.WriteLine("A = " + A.ToString("X2") + " (" + A + ")");
+        Console.WriteLine("B = " + B.ToString("X2") + " (" + B + ")");
+        Console.WriteLine("C = " + C.ToString("X2") + " (" + C + ")");
+        Console.WriteLine("D = " + D.ToString("X2") + " (" + D + ")");
+        Console.WriteLine("E = " + E.ToString("X2") + " (" + E + ")");
+        Console.WriteLine("H = " + H.ToString("X2") + " (" + H + ")");
+        Console.WriteLine("L = " + L.ToString("X2") + " (" + L + ")");
+        Console.WriteLine("FLAGS = Z("+ (FlagZ ? 1 : 0) + "), N(" + (FlagN ? 1 : 0) + "), H(" + (FlagH ? 1 : 0) + "), C(" + (FlagC ? 1 : 0) + ")");
+        Console.WriteLine("Interrupts = Stop(" + (Stop ? 1 : 0) + "), Halt(" + (Halt ? 1 : 0) + "), IME(" + (IME ? 1 : 0) + ")");
+
+        string InstructionName = opcode != 0xCB ? InstructionsName[opcode] : (Read(PC).ToString("X2") + " : " + CBInstructionsName[Read(PC)]);
+        Console.WriteLine("Op = " + opcode.ToString("X2") + ", " + InstructionName + " : Next ushort = " + Read(opcode != 0xCB ? PC : (ushort)(PC + 1)).ToString("X2") + Read((ushort)(opcode != 0xCB ? PC + 1 : PC + 2)).ToString("X2"));
+        Console.ReadKey();
+        Console.WriteLine("----------------------------------------");
+        //Console.WriteLine(Memory.VideoRam_nn[0][10].ToString("X2") +" : "+ Memory.VideoRam_nn[0][11].ToString("X2") + " : " + Memory.VideoRam_nn[0][12].ToString("X2") + " : " + Memory.VideoRam_nn[0][13].ToString("X2"));
+        Console.WriteLine();
+    }
+
+    private List<string> OpcodeUsed = new List<string>();
+
+    private void ShowOpcodeUsed(byte opcode)
+    {
+        string InstructionName = opcode != 0xCB
+            ? (opcode.ToString("X2") + " : " + InstructionsName[opcode])
+            : (opcode.ToString("X2") + Read(PC).ToString("X2") + " : " + CBInstructionsName[Read(PC)]);
+
+        if (!OpcodeUsed.Contains(InstructionName))
+        {
+            OpcodeUsed.Add(InstructionName);
+
+            // Écriture dans le fichier texte
+            using (StreamWriter sw = File.AppendText("opcodes.txt"))
+            {
+                sw.WriteLine(InstructionName);
+            }
+        }
+    }
+
+    // -------------------------------------------------------
 
     // Execution
     // ---------
+    //int foo = 0;
     public void Execution()
     {
         int LastCycles = Cycles;
 
-        // Enable CPU
-        if (IME) CPUWakeUp();
-
-        // Run instructions
         if (!Halt && !Stop)
-        Instructions[Read(PC++)]?.Invoke();
+        {
+            byte opcode = Read(PC++);
+
+            //if(foo > 56000)
+            //
+            //ShowStat(opcode);
+            //ShowOpcodeUsed(opcode);
+            Instructions[opcode]?.Invoke();
+        }
         else
         {
             PC++;
@@ -74,8 +649,10 @@ public class CPU
         // Set timer
         Timer(LastCycles);
 
-        // Enable CPU
-        if (IME_scheduled) CPUWakeUp();
+        // Interrupts handle
+        if (IME) CPUWakeUp();
+
+        //foo += Cycles - LastCycles;
     }
 
     // Init and instructions
@@ -90,6 +667,9 @@ public class CPU
         Memory = _Memory;
         Read = Memory.Read;
         Write = Memory.Write;
+
+        // Init registers
+        InitRegisters();
 
         // Instructions
         Instructions = new InstructionDelegate[]
@@ -112,6 +692,7 @@ public class CPU
             /* [F] */   ()=> LDH_A_Nn(),              ()=> POP_AF(),                  ()=> LDH_A_Cn(),              ()=> DI(),                    ()=> unknown(),                 ()=> PUSH_AF(),            ()=> OR_n(),             ()=> RST_n(0x30),          ()=> LD_HL_SP_en(),          ()=> LD_SP_HL(),                     ()=> LD_A_nn(),              ()=> EI(),                    ()=> unknown(),                ()=> unknown(),            ()=> CP_n(),             ()=> RST_n(0x38)
         };
 
+
         // CB Instructions
         CB_Instructions = new InstructionDelegate[]
         {
@@ -128,21 +709,26 @@ public class CPU
             /* [9] */   ()=> RES_n_r(2, ref B),   ()=> RES_n_r(2, ref C),   ()=> RES_n_r(2, ref D),   ()=> RES_n_r(2, ref E),   ()=> RES_n_r(2, ref H),   ()=> RES_n_r(2, ref L),   ()=> RES_n_HLn(2),   ()=> RES_n_r(2, ref A),   ()=> RES_n_r(3, ref B),   ()=> RES_n_r(3, ref C),   ()=> RES_n_r(3, ref D),   ()=> RES_n_r(3, ref E),   ()=> RES_n_r(3, ref H),   ()=> RES_n_r(3, ref L),   ()=> RES_n_HLn(3),     ()=> RES_n_r(3, ref A),
             /* [A] */   ()=> RES_n_r(4, ref B),   ()=> RES_n_r(4, ref C),   ()=> RES_n_r(4, ref D),   ()=> RES_n_r(4, ref E),   ()=> RES_n_r(4, ref H),   ()=> RES_n_r(4, ref L),   ()=> RES_n_HLn(4),   ()=> RES_n_r(4, ref A),   ()=> RES_n_r(5, ref B),   ()=> RES_n_r(5, ref C),   ()=> RES_n_r(5, ref D),   ()=> RES_n_r(5, ref E),   ()=> RES_n_r(5, ref H),   ()=> RES_n_r(5, ref L),   ()=> RES_n_HLn(5),     ()=> RES_n_r(5, ref A),
             /* [B] */   ()=> RES_n_r(6, ref B),   ()=> RES_n_r(6, ref C),   ()=> RES_n_r(6, ref D),   ()=> RES_n_r(6, ref E),   ()=> RES_n_r(6, ref H),   ()=> RES_n_r(6, ref L),   ()=> RES_n_HLn(6),   ()=> RES_n_r(6, ref A),   ()=> RES_n_r(7, ref B),   ()=> RES_n_r(7, ref C),   ()=> RES_n_r(7, ref D),   ()=> RES_n_r(7, ref E),   ()=> RES_n_r(7, ref H),   ()=> RES_n_r(7, ref L),   ()=> RES_n_HLn(7),     ()=> RES_n_r(7, ref A),
-            /* [4] */   ()=> SET_n_r(0, ref B),   ()=> SET_n_r(0, ref C),   ()=> SET_n_r(0, ref D),   ()=> SET_n_r(0, ref E),   ()=> SET_n_r(0, ref H),   ()=> SET_n_r(0, ref L),   ()=> SET_n_HLn(0),   ()=> SET_n_r(0, ref A),   ()=> SET_n_r(1, ref B),   ()=> SET_n_r(1, ref C),   ()=> SET_n_r(1, ref D),   ()=> SET_n_r(1, ref E),   ()=> SET_n_r(1, ref H),   ()=> SET_n_r(1, ref L),   ()=> SET_n_HLn(1),     ()=> SET_n_r(1, ref A),
-            /* [5] */   ()=> SET_n_r(2, ref B),   ()=> SET_n_r(2, ref C),   ()=> SET_n_r(2, ref D),   ()=> SET_n_r(2, ref E),   ()=> SET_n_r(2, ref H),   ()=> SET_n_r(2, ref L),   ()=> SET_n_HLn(2),   ()=> SET_n_r(2, ref A),   ()=> SET_n_r(3, ref B),   ()=> SET_n_r(3, ref C),   ()=> SET_n_r(3, ref D),   ()=> SET_n_r(3, ref E),   ()=> SET_n_r(3, ref H),   ()=> SET_n_r(3, ref L),   ()=> SET_n_HLn(3),     ()=> SET_n_r(3, ref A),
-            /* [6] */   ()=> SET_n_r(4, ref B),   ()=> SET_n_r(4, ref C),   ()=> SET_n_r(4, ref D),   ()=> SET_n_r(4, ref E),   ()=> SET_n_r(4, ref H),   ()=> SET_n_r(4, ref L),   ()=> SET_n_HLn(4),   ()=> SET_n_r(4, ref A),   ()=> SET_n_r(5, ref B),   ()=> SET_n_r(5, ref C),   ()=> SET_n_r(5, ref D),   ()=> SET_n_r(5, ref E),   ()=> SET_n_r(5, ref H),   ()=> SET_n_r(5, ref L),   ()=> SET_n_HLn(5),     ()=> SET_n_r(5, ref A),
-            /* [7] */   ()=> SET_n_r(6, ref B),   ()=> SET_n_r(6, ref C),   ()=> SET_n_r(6, ref D),   ()=> SET_n_r(6, ref E),   ()=> SET_n_r(6, ref H),   ()=> SET_n_r(6, ref L),   ()=> SET_n_HLn(6),   ()=> SET_n_r(6, ref A),   ()=> SET_n_r(7, ref B),   ()=> SET_n_r(7, ref C),   ()=> SET_n_r(7, ref D),   ()=> SET_n_r(7, ref E),   ()=> SET_n_r(7, ref H),   ()=> SET_n_r(7, ref L),   ()=> SET_n_HLn(7),     ()=> SET_n_r(7, ref A),
+            /* [C] */   ()=> SET_n_r(0, ref B),   ()=> SET_n_r(0, ref C),   ()=> SET_n_r(0, ref D),   ()=> SET_n_r(0, ref E),   ()=> SET_n_r(0, ref H),   ()=> SET_n_r(0, ref L),   ()=> SET_n_HLn(0),   ()=> SET_n_r(0, ref A),   ()=> SET_n_r(1, ref B),   ()=> SET_n_r(1, ref C),   ()=> SET_n_r(1, ref D),   ()=> SET_n_r(1, ref E),   ()=> SET_n_r(1, ref H),   ()=> SET_n_r(1, ref L),   ()=> SET_n_HLn(1),     ()=> SET_n_r(1, ref A),
+            /* [D] */   ()=> SET_n_r(2, ref B),   ()=> SET_n_r(2, ref C),   ()=> SET_n_r(2, ref D),   ()=> SET_n_r(2, ref E),   ()=> SET_n_r(2, ref H),   ()=> SET_n_r(2, ref L),   ()=> SET_n_HLn(2),   ()=> SET_n_r(2, ref A),   ()=> SET_n_r(3, ref B),   ()=> SET_n_r(3, ref C),   ()=> SET_n_r(3, ref D),   ()=> SET_n_r(3, ref E),   ()=> SET_n_r(3, ref H),   ()=> SET_n_r(3, ref L),   ()=> SET_n_HLn(3),     ()=> SET_n_r(3, ref A),
+            /* [E] */   ()=> SET_n_r(4, ref B),   ()=> SET_n_r(4, ref C),   ()=> SET_n_r(4, ref D),   ()=> SET_n_r(4, ref E),   ()=> SET_n_r(4, ref H),   ()=> SET_n_r(4, ref L),   ()=> SET_n_HLn(4),   ()=> SET_n_r(4, ref A),   ()=> SET_n_r(5, ref B),   ()=> SET_n_r(5, ref C),   ()=> SET_n_r(5, ref D),   ()=> SET_n_r(5, ref E),   ()=> SET_n_r(5, ref H),   ()=> SET_n_r(5, ref L),   ()=> SET_n_HLn(5),     ()=> SET_n_r(5, ref A),
+            /* [F] */   ()=> SET_n_r(6, ref B),   ()=> SET_n_r(6, ref C),   ()=> SET_n_r(6, ref D),   ()=> SET_n_r(6, ref E),   ()=> SET_n_r(6, ref H),   ()=> SET_n_r(6, ref L),   ()=> SET_n_HLn(6),   ()=> SET_n_r(6, ref A),   ()=> SET_n_r(7, ref B),   ()=> SET_n_r(7, ref C),   ()=> SET_n_r(7, ref D),   ()=> SET_n_r(7, ref E),   ()=> SET_n_r(7, ref H),   ()=> SET_n_r(7, ref L),   ()=> SET_n_HLn(7),     ()=> SET_n_r(7, ref A),
         };
     }
 
-    // Enable CPU
-    // ----------
+    // Interrupts handle
+    // -----------------
     private void CPUWakeUp()
     {
-        Halt = false;
-        Stop = false;
-        IME = false;
-        IME_scheduled = false;
+        if (Memory.Read(0xFFFF) != 0)
+        {
+            // HaltBug
+            if (Halt) PC--;
+
+            Halt = false;
+            Stop = false;
+            IME = false;
+        }
     }
 
     // Timer set
@@ -179,17 +765,53 @@ public class CPU
                     {
                         NewTima = 0;
                         IO.TMA = 0;
-                        IME_scheduled = true;
+                        //IME_scheduled = true;
                     }
 
                     IO.TIMA = (byte)NewTima;
 
-                    if (IO.TMA == 0xFF || (IO.TIMA % (0xFF - IO.TMA) == 0))
-                    IME_scheduled = true;
+                    //if (IO.TMA == 0xFF || (IO.TIMA % (0xFF - IO.TMA) == 0))
+                    //IME_scheduled = true;
 
                     TacCycles -= ClockCPU[ClockSelect];
                 }
             }
+        }
+    }
+
+    private void InitRegisters()
+    {
+        if (Memory.booting)
+        {
+            PC = 0x0000;
+            SP = 0xFFFE;
+            A = 0x01;
+            B = 0x00;
+            C = 0x13;
+            D = 0x00;
+            E = 0xD8;
+            H = 0x01;
+            L = 0x4D;
+            FlagZ = true;
+            FlagN = false;
+            FlagH = false;
+            FlagC = false;
+        }
+        else
+        {
+            PC = 0x0100;
+            SP = 0xFFFE;
+            A = 0x01;
+            B = 0x00;
+            C = 0x13;
+            D = 0x00;
+            E = 0xD8;
+            H = 0x01;
+            L = 0x4D;
+            FlagZ = true;
+            FlagN = false;
+            FlagH = true;
+            FlagC = true;
         }
     }
 
@@ -223,7 +845,7 @@ public class CPU
     private void LD_Rw_HLn(ref byte Rw)
     {
         Cycles += 2;
-        Rw = Read(u16(L, H));
+        Rw = Read(U16(L, H));
     }
 
     //LD (HL), r: Load from register (indirect HL)
@@ -233,7 +855,7 @@ public class CPU
     private void LD_HLn_Rr(byte Rr)
     {
         Cycles += 2;
-        Write(u16(L, H), Rr);
+        Write(U16(L, H), Rr);
     }
 
     // LD (HL), n: Load from immediate data (indirect HL)
@@ -243,7 +865,7 @@ public class CPU
     private void LD_HLn_n()
     {
         Cycles += 3;
-        Write(u16(L, H), Read(PC++));
+        Write(U16(L, H), Read(PC++));
     }
 
     // LD A, (RR): Load accumulator (indirect BC)
@@ -253,7 +875,7 @@ public class CPU
     private void LD_A_RRn(byte Rmr, byte Rlr)
     {
         Cycles += 2;
-        A = Read(u16(Rlr, Rmr));
+        A = Read(U16(Rlr, Rmr));
     }
 
     // LD (RR), A: Load from accumulator (indirect BC)
@@ -263,7 +885,7 @@ public class CPU
     private void LD_RRn_A(byte Rmr, byte Rlr)
     {
         Cycles += 2;
-        Write(u16(Rlr, Rmr), A);
+        Write(U16(Rlr, Rmr), A);
     }
 
     // LD A, (nn): Load accumulator (direct)
@@ -273,7 +895,7 @@ public class CPU
     private void LD_A_nn()
     {
         Cycles += 4;
-        A = Read(u16(Read(PC++), Read(PC++)));
+        A = Read(U16(Read(PC++), Read(PC++)));
     }
 
     // LD (nn), A: Load from accumulator (direct)
@@ -283,7 +905,7 @@ public class CPU
     private void LD_nn_A()
     {
         Cycles += 4;
-        Write(u16(Read(PC++), Read(PC++)), A);
+        Write(U16(Read(PC++), Read(PC++)), A);
     }
 
     // LDH A, (C): Load accumulator (indirect 0xFF00+C)
@@ -295,7 +917,7 @@ public class CPU
     private void LDH_A_Cn()
     {
         Cycles += 2;
-        A = Read(u16(C, 0xFF));
+        A = Read(U16(C, 0xFF));
     }
 
     // LDH (C), A: Load from accumulator (indirect 0xFF00+C)
@@ -307,7 +929,7 @@ public class CPU
     private void LDH_Cn_A()
     {
         Cycles += 2;
-        Write(u16(C, 0xFF), A);
+        Write(U16(C, 0xFF), A);
     }
 
     // LDH A, (n): Load accumulator (direct 0xFF00+n)
@@ -319,7 +941,7 @@ public class CPU
     private void LDH_A_Nn()
     {
         Cycles += 3;
-        A = Read(u16(Read(PC++), 0xFF));
+        A = Read(U16(Read(PC++), 0xFF));
     }
 
     // LDH (n), A: Load from accumulator (direct 0xFF00+n)
@@ -331,7 +953,7 @@ public class CPU
     private void LDH_Nn_A()
     {
         Cycles += 3;
-        Write(u16(Read(PC++), 0xFF), A);
+        Write(U16(Read(PC++), 0xFF), A);
     }
 
     // LD A, (HL-): Load accumulator (indirect HL, decrement)
@@ -342,7 +964,7 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
 
         A = Read(HL--);
         H = Msb(HL);
@@ -357,7 +979,7 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
 
         Write(HL--, A);
         H = Msb(HL);
@@ -372,7 +994,7 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
 
         A = Read(HL++);
         H = Msb(HL);
@@ -387,7 +1009,7 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
 
         Write(HL++, A);
         H = Msb(HL);
@@ -408,7 +1030,7 @@ public class CPU
     {
         Cycles += 3;
 
-        RRw = u16(Read(PC++), Read(PC++));
+        RRw = U16(Read(PC++), Read(PC++));
     }
 
     // LD (nn), SP: Load from stack pointer (direct)
@@ -418,8 +1040,7 @@ public class CPU
     {
         Cycles += 5;
 
-        ushort nn = u16(Read(PC++), Read(PC++));
-
+        ushort nn = U16(Read(PC++), Read(PC++));
 
         Write(nn, Lsb(SP));
         Write(++nn, Msb(SP));
@@ -431,7 +1052,7 @@ public class CPU
     private void LD_SP_HL()
     {
         Cycles += 2;
-        SP = u16(L, H);
+        SP = U16(L, H);
     }
 
     // LD HL, SP e
@@ -511,7 +1132,7 @@ public class CPU
     // back into the A register.
     private void ADD_Rr(byte Rr)
     {
-        Cycles += 1;
+        Cycles++;
 
         A += Rr;
 
@@ -529,7 +1150,7 @@ public class CPU
     {
         Cycles += 2;
 
-        A += Read(u16(L, H));
+        A += Read(U16(L, H));
 
         FlagZ = A == 0;
         FlagN = false;
@@ -577,19 +1198,19 @@ public class CPU
     private void ADD_HL_RRr(byte Rmr, byte Rlr)
     {
         Cycles += 2;
-        ushort HL = (ushort)(u16(L, H) + u16(Rlr, Rmr));
+        ushort HL = (ushort)(U16(L, H) + U16(Rlr, Rmr));
 
         H = Msb(HL);
         L = Lsb(HL);
 
         FlagN = false;
-        FlagH = ((HL & 0xFFF) + (u16(Rlr, Rmr) & 0xFFF)) > 0xFFF;
+        FlagH = ((HL & 0xFFF) + (U16(Rlr, Rmr) & 0xFFF)) > 0xFFF;
         FlagC = (HL & 0x10000) != 0;
     }
     private void ADD_HL_SP()
     {
         Cycles += 2;
-        ushort HL = (ushort)(u16(L, H) + SP);
+        ushort HL = (ushort)(U16(L, H) + SP);
 
         H = Msb(HL);
         L = Lsb(HL);
@@ -605,7 +1226,7 @@ public class CPU
     // stores the result back into the A register.
     private void ADC_Rr(byte Rr)
     {
-        Cycles += 1;
+        Cycles++;
 
         A += (byte)((FlagC ? 1 : 0) + Rr);
 
@@ -624,7 +1245,7 @@ public class CPU
     {
         Cycles += 2;
 
-        A += (byte)((FlagC ? 1 : 0) + Read(u16(L, H)));
+        A += (byte)((FlagC ? 1 : 0) + Read(U16(L, H)));
 
         FlagZ = A == 0;
         FlagN = false;
@@ -654,7 +1275,7 @@ public class CPU
     // result back into the A register.
     private void SUB_Rr(byte Rr)
     {
-        Cycles += 1;
+        Cycles++;
 
         ushort result = (ushort)(A - Rr);
         bool borrowFromBit4 = (result & 0x10) != 0;
@@ -675,7 +1296,7 @@ public class CPU
     {
         Cycles += 2;
 
-        byte HL = Read(u16(L, H));
+        byte HL = Read(U16(L, H));
         ushort result = (ushort)(A - HL);
         bool borrowFromBit4 = (result & 0x10) != 0;
 
@@ -713,7 +1334,7 @@ public class CPU
     // the result back into the A register.
     private void SBC_Rr(byte Rr)
     {
-        Cycles += 1;
+        Cycles++;
 
         ushort result = (ushort)(A - (Rr + (FlagC ? 1 : 0)));
         bool borrowFromBit4 = (result & 0x10) != 0;
@@ -734,7 +1355,7 @@ public class CPU
     {
         Cycles += 2;
 
-        byte HL = Read(u16(L, H));
+        byte HL = Read(U16(L, H));
         ushort result = (ushort)(A - (HL + (FlagC ? 1 : 0)));
         bool borrowFromBit4 = (result & 0x10) != 0;
 
@@ -772,7 +1393,7 @@ public class CPU
     // the result. This instruction is basically identical to SUB r, but does not update the A register.
     private void CP_Rr(byte Rr)
     {
-        Cycles += 1;
+        Cycles++;
 
         ushort result = (ushort)(A - Rr);
 
@@ -791,7 +1412,7 @@ public class CPU
     {
         Cycles += 2;
 
-        byte HL = Read(u16(L, H));
+        byte HL = Read(U16(L, H));
         ushort result = (ushort)(A - HL);
 
         FlagZ = result == 0;
@@ -822,13 +1443,14 @@ public class CPU
     // Increments data in the 8-bit register r.
     private void INC_Rw(ref byte Rw)
     {
-        Cycles += 1;
+        Cycles++;
 
+        bool carryPerBit = ((Rw + 1) & 0x08) != 0;
         Rw++;
 
         FlagZ = Rw == 0;
         FlagN = false;
-        FlagH = (Rw & 0x08) != 0;
+        FlagH = carryPerBit;
     }
 
     // INC (HL): Increment (indirect HL)
@@ -838,12 +1460,14 @@ public class CPU
     {
         Cycles += 3;
 
-        byte data = (byte)(Read(u16(L, H)) + 1);
-        Write(u16(L, H), data);
+        ushort HL = U16(L, H);
+        byte data = Read(U16(L, H));
+        bool carryPerBit = ((data + 1) & 0x08) != 0;
+        Write(HL, ++data);
 
         FlagZ = data == 0;
         FlagN = false;
-        FlagH = (data & 0x08) != 0;
+        FlagH = carryPerBit;
     }
 
     // INC rr
@@ -853,7 +1477,7 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort RR = (ushort)(u16(Rlw, Rmw) + 1);
+        ushort RR = (ushort)(U16(Rlw, Rmw) + 1);
 
         Rmw = Msb(RR);
         Rlw = Lsb(RR);
@@ -869,7 +1493,7 @@ public class CPU
     // Decrements data in the 8-bit register r.
     private void DEC_Rw(ref byte Rw)
     {
-        Cycles += 1;
+        Cycles++;
 
         bool borrowFromBit4 = (Rw & 0x10) != 0;
         Rw--;
@@ -886,11 +1510,11 @@ public class CPU
     {
         Cycles += 3;
 
-        byte HLn = Read(u16(L, H));
+        byte HLn = Read(U16(L, H));
         bool borrowFromBit4 = (HLn & 0x10) != 0;
 
         byte data = (byte)(HLn - 1);
-        Write(u16(L, H), data);
+        Write(U16(L, H), data);
 
         FlagZ = data == 0;
         FlagN = true;
@@ -904,7 +1528,7 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort RR = (ushort)(u16(Rlw, Rmw) - 1);
+        ushort RR = (ushort)(U16(Rlw, Rmw) - 1);
 
         Rmw = Msb(RR);
         Rlw = Lsb(RR);
@@ -921,7 +1545,7 @@ public class CPU
     // and stores the result back into the A register.
     private void AND_Rr(byte Rr)
     {
-        Cycles += 1;
+        Cycles++;
 
         A &= Rr;
 
@@ -939,7 +1563,7 @@ public class CPU
     {
         Cycles += 2;
 
-        A &= Read(u16(L, H));
+        A &= Read(U16(L, H));
 
         FlagZ = A == 0;
         FlagN = false;
@@ -969,7 +1593,7 @@ public class CPU
     // stores the result back into the A register
     private void OR_Rr(byte Rr)
     {
-        Cycles += 1;
+        Cycles++;
 
         A |= Rr;
 
@@ -987,7 +1611,7 @@ public class CPU
     {
         Cycles += 2;
 
-        A |= Read(u16(L, H));
+        A |= Read(U16(L, H));
 
         FlagZ = A == 0;
         FlagN = false;
@@ -1017,7 +1641,7 @@ public class CPU
     // stores the result back into the A register
     private void XOR_Rr(byte Rr)
     {
-        Cycles += 1;
+        Cycles++;
 
         A ^= Rr;
 
@@ -1035,7 +1659,7 @@ public class CPU
     {
         Cycles += 2;
 
-        A ^= Read(u16(L, H));
+        A ^= Read(U16(L, H));
 
         FlagZ = A == 0;
         FlagN = false;
@@ -1064,7 +1688,7 @@ public class CPU
     // Flips the carry flag, and clears the N and H flags.
     private void CCF()
     {
-        Cycles += 1;
+        Cycles++;
 
         FlagN = false;
         FlagH = false;
@@ -1076,7 +1700,7 @@ public class CPU
     // Sets the carry flag, and clears the N and H flags.
     private void SCF()
     {
-        Cycles += 1;
+        Cycles++;
 
         FlagN = false;
         FlagH = false;
@@ -1088,31 +1712,31 @@ public class CPU
     // Decimal Adjust Accumulator to get a correct BCD representation after an arithmetic instruction.
     private void DAA()
     {
-        Cycles += 1;
+        Cycles++;
 
-        byte lo = (byte)(A & 0x0F);
-        byte hi = (byte)(A >> 4);
+        byte lsb = (byte)(A & 0x0F);
+        byte msb = (byte)(A >> 4);
 
         if (FlagN)
         {
-            if (FlagH || (lo > 9))
-            lo -= 6;
+            if (FlagH || (lsb > 9))
+            lsb -= 6;
         }
         else
         {
-            if ((lo > 9) || FlagH)
-            lo += 6;
+            if ((lsb > 9) || FlagH)
+            lsb += 6;
         }
 
-        if (FlagC || (hi > 9))
+        if (FlagC || (msb > 9))
         {
-            hi += 6;
+            msb += 6;
             FlagC = true;
         }
         else
         FlagC = false;
 
-        A = (byte)((hi << 4) | (lo & 0x0F));
+        A = (byte)((msb << 4) | (lsb & 0x0F));
     }
 
     // CPL: Complement accumulator
@@ -1120,7 +1744,7 @@ public class CPU
     // Flips all the bits in the 8-bit A register, and sets the N and H flags.
     private void CPL()
     {
-        Cycles += 1;
+        Cycles++;
         A = (byte)~A;
 
         FlagN = true;
@@ -1133,7 +1757,7 @@ public class CPU
     private void JP_nn()
     {
         Cycles += 4;
-        PC = u16(Lsb(Read(PC++)), Msb(Read(PC++)));
+        PC = U16(Lsb(Read(PC++)), Msb(Read(PC++)));
     }
 
     // JP HL: Jump to HL
@@ -1141,8 +1765,8 @@ public class CPU
     // Unconditional jump to the absolute address specified by the 16-bit register HL.
     private void JP_HL()
     {
-        Cycles += 1;
-        PC = u16(L, H);
+        Cycles++;
+        PC = U16(L, H);
     }
 
     // JP cc, nn: Jump (conditional)
@@ -1152,7 +1776,7 @@ public class CPU
     private void JP_CC_nn(bool CC)
     {
         Cycles += CC ? 4 : 3;
-        ushort nn = u16(Read(PC++), Read(PC++));
+        ushort nn = U16(Read(PC++), Read(PC++));
 
         if (CC)
         PC = nn;
@@ -1179,8 +1803,6 @@ public class CPU
 
         if (CC)
         PC = (ushort)(PC + e);
-        else
-        PC++;
     }
 
     // CALL nn: Call function
@@ -1190,11 +1812,10 @@ public class CPU
     {
         Cycles += 6;
 
-        ushort nn = u16(Read(PC++), Read(PC++));
+        ushort nn = U16(Read(PC++), Read(PC++));
 
-        Write(--SP, Msb(nn));
-        Write(--SP, Lsb(nn));
-
+        Write(--SP, Msb(PC));
+        Write(--SP, Lsb(PC));
         PC = nn;
     }
 
@@ -1211,10 +1832,10 @@ public class CPU
 
         if (CC)
         {
-            Write(--SP, msb);
-            Write(--SP, lsb);
+            Write(--SP, Msb(PC));
+            Write(--SP, Lsb(PC));
 
-            PC = u16(lsb, msb);
+            PC = U16(lsb, msb);
         }
     }
 
@@ -1224,7 +1845,7 @@ public class CPU
     private void RET()
     {
         Cycles += 4;
-        PC = u16(Read(SP++), Read(SP++));
+        PC = U16(Read(SP++), Read(SP++));
     }
 
     // RET cc: Return from function (conditional)
@@ -1235,7 +1856,7 @@ public class CPU
         Cycles += CC ? 5 : 2;
 
         if (CC)
-        PC = u16(Read(SP++), Read(SP++));
+        PC = U16(Read(SP++), Read(SP++));
     }
 
     // RETI: Return from interrupt handler
@@ -1245,8 +1866,8 @@ public class CPU
     {
         Cycles += 4;
 
-        PC = u16(Read(SP++), Read(SP++));
-        IME_scheduled = true;
+        PC = U16(Read(SP++), Read(SP++));
+        IME = true;
     }
 
     // RST n: Restart / Call function (implied)
@@ -1261,7 +1882,7 @@ public class CPU
         Write(--SP, Msb(PC));
         Write(--SP, Lsb(PC));
 
-        PC = u16(n, at);
+        PC = U16(n, at);
     }
 
     // HALT: Halt system clock
@@ -1299,9 +1920,9 @@ public class CPU
     // the EI instruction if any.
     private void DI()
     {
-        Cycles += 1;
+        Cycles++;
         IME = false;
-        IME_scheduled = false;
+        //IME_scheduled = false;
     }
 
     // EI: Enable interrupts
@@ -1310,7 +1931,8 @@ public class CPU
     private void EI()
     {
         Cycles += 1;
-        IME_scheduled = true;
+        IME = true;
+        //IME_scheduled = true;
     }
 
     // NOP: No operation
@@ -1319,7 +1941,7 @@ public class CPU
     // machine cycle and increment PC by one.
     private void NOP()
     {
-        Cycles += 1;
+        Cycles++;
     }
 
     // Unknown
@@ -1334,7 +1956,7 @@ public class CPU
     // Rotate Left through Carry Accumulator : 000c rotate akku left
     private void RLCA()
     {
-        Cycles += 1;
+        Cycles++;
 
         byte _A = A;
         A = (byte)((A << 1) | (A >> 7));
@@ -1350,7 +1972,7 @@ public class CPU
     // Rotate Left through Accumulator : 000c rotate akku left through carry
     private void RLA()
     {
-        Cycles += 1;
+        Cycles++;
 
         byte _A = A;
         A <<= 1;
@@ -1368,7 +1990,7 @@ public class CPU
     // Rotate Right through Carry Accumulator : 000c rotate akku right
     private void RRCA()
     {
-        Cycles += 1;
+        Cycles++;
 
         byte _A = A;
         A = (byte)((A >> 1) | ((A & 0x01) << 7));
@@ -1384,7 +2006,7 @@ public class CPU
     // Rotate Right through Accumulator : 000c rotate akku right through carry
     private void RRA()
     {
-        Cycles += 1;
+        Cycles++;
 
         byte _A = A;
         A >>= 1;
@@ -1402,7 +2024,7 @@ public class CPU
     // Execute opcode with CB prefix
     private void CB_op()
     {
-        CB_Instructions[Read(++PC)]?.Invoke();
+        CB_Instructions[Read(PC++)]?.Invoke();
     }
 
     // ###############################
@@ -1432,7 +2054,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)((data << 1) | (data >> 7));
         Write(HL, newData);
@@ -1466,7 +2088,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)((data >> 1) | ((data & 0x01) << 7));
         Write(HL, newData);
@@ -1502,7 +2124,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)(data << 1);
 
@@ -1540,7 +2162,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)(data >> 1);
 
@@ -1576,7 +2198,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)(data << 1);
         Write(HL, newData);
@@ -1610,7 +2232,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)((data >> 1) | (data & 0x80));
         Write(HL, newData);
@@ -1643,7 +2265,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)(((data & 0x0F) << 4) | ((data & 0xF0) >> 4));
         Write(HL, newData);
@@ -1677,7 +2299,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)(data >> 1);
         Write(HL, newData);
@@ -1695,7 +2317,7 @@ public class CPU
     {
         Cycles += 2;
 
-        FlagZ = ReadBit(Rr, n);
+        FlagZ = !ReadBit(Rr, n);
         FlagN = false;
         FlagH = true;
     }
@@ -1707,7 +2329,7 @@ public class CPU
     {
         Cycles += 3;
 
-        FlagZ = ReadBit(Read(u16(L, H)), n);
+        FlagZ = !ReadBit(Read(U16(L, H)), n);
         FlagN = false;
         FlagH = true;
     }
@@ -1728,7 +2350,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
         byte data = Read(HL);
         SetBit(ref data, n, true);
         Write(HL, data);
@@ -1750,7 +2372,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = u16(L, H);
+        ushort HL = U16(L, H);
         byte data = Read(HL);
         SetBit(ref data, n, false);
         Write(HL, data);
