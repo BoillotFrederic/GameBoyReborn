@@ -21,6 +21,9 @@ public class Memory
     public byte selectedVideoBank = 0;
     public byte selectedWorkBank = 0;
 
+    private byte[] RomBoot = new byte[256];
+    public bool booting = true;
+
     private IO IO;
     public CPU ?CPU;
 
@@ -31,19 +34,29 @@ public class Memory
 
         // Load rom
         RomData = _RomData;
+        int RomBankSizeMin = RomData.Length >= 0x4000 ? 0x4000 : RomData.Length;
+
+        // Load rom boot
+        LoadRomBoot();
 
         // Set RomBank 00
-        Array.Copy(RomData, 0, RomBank_00, 0, 0x4000);
+        Array.Copy(RomData, 0, RomBank_00, 0, RomBankSizeMin);
 
         // Set RomBank 01~NN
         ushort nbBank = Cartridge.Size.Bank;
         int bankStart = 0x4000;
         RomBank_nn = new byte[nbBank][];
 
+        if(RomData.Length > 0x4000)
         for (ushort i = 0; i < nbBank; i++, bankStart += 0x4000)
         {
             RomBank_nn[i] = new byte[0x4000];
-            Array.Copy(RomData, bankStart * (i + 1), RomBank_nn[i], 0, 0x4000);
+            Array.Copy(RomData, bankStart * (i + 1), RomBank_nn[i], 0, RomBankSizeMin);
+        }
+        else
+        {
+            RomBank_nn[0] = new byte[0x4000];
+            Array.Copy(RomData, 0, RomBank_nn[0], 0, RomBankSizeMin);
         }
 
         // Set video ram
@@ -60,8 +73,12 @@ public class Memory
     // Read memory
     public byte Read(ushort at)
     {
+        // Rom boot
+        if(booting && at >= 0 && at < 0x100)
+        return RomBoot[at];
+
         // Rom bank 00
-        if (at >= 0 && at <= 0x3FFF)
+        else if (at >= 0 && at <= 0x3FFF)
         return RomBank_00[at];
 
         // Rom bank NN
@@ -111,6 +128,10 @@ public class Memory
     // Write memory
     public void Write(ushort at, byte b)
     {
+        // Rom boot
+        if (booting && at >= 0 && at < 0x100)
+        RomBoot[at] = b;
+
         // Rom bank 00
         if (at >= 0 && at <= 0x3FFF)
         RomBank_00[at] = b;
@@ -180,5 +201,12 @@ public class Memory
                 Array.Copy(WorkRamCGB[selectedWorkBank], startAddress, OAM, 0, 160);
             }
         }
+    }
+
+    // Rom boot
+    private void LoadRomBoot()
+    {
+        if (File.Exists("Boot\\DMG_ROM.bin"))
+        RomBoot = File.ReadAllBytes("Boot\\DMG_ROM.bin");
     }
 }
