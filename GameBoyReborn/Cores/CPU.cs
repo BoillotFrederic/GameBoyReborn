@@ -12,7 +12,7 @@ public class CPU
     public WriteDelegate Write;
 
     // Cycles
-    public int Cycles;
+    public byte Cycles;
 
     // Program counter
     public ushort PC;
@@ -580,7 +580,6 @@ public class CPU
     };
     private void ShowStat(byte opcode)
     {
-        Console.WriteLine("Cyclce = " + Cycles);
         Console.WriteLine("PC = " + (PC - 1).ToString("X4") + " ("+ (PC - 1) + ")");
         Console.WriteLine("SP = " + SP.ToString("X4") + " (" + SP + ")");
         Console.WriteLine("A = " + A.ToString("X2") + " (" + A + ")");
@@ -613,7 +612,6 @@ public class CPU
         {
             OpcodeUsed.Add(InstructionName);
 
-            // Écriture dans le fichier texte
             using (StreamWriter sw = File.AppendText("opcodes.txt"))
             {
                 sw.WriteLine(InstructionName);
@@ -628,14 +626,14 @@ public class CPU
     //int foo = 0;
     public void Execution()
     {
-        int LastCycles = Cycles;
+        Cycles = 0;
+        //int LastCycles = Cycles;
 
         if (!Halt && !Stop)
         {
             byte opcode = Read(PC++);
 
             //if(foo > 56000)
-            //
             //ShowStat(opcode);
             //ShowOpcodeUsed(opcode);
             Instructions[opcode]?.Invoke();
@@ -647,7 +645,7 @@ public class CPU
         }
 
         // Set timer
-        Timer(LastCycles);
+        //Timer(LastCycles);
 
         // Interrupts handle
         if (IME) CPUWakeUp();
@@ -1775,7 +1773,7 @@ public class CPU
     // condition cc. Note that the operand(absolute address) is read even when the condition is false!
     private void JP_CC_nn(bool CC)
     {
-        Cycles += CC ? 4 : 3;
+        Cycles += (byte)(CC ? 4 : 3);
         ushort nn = U16(Read(PC++), Read(PC++));
 
         if (CC)
@@ -1798,7 +1796,7 @@ public class CPU
     // Note that the operand(relative address offset) is read even when the condition is false!
     private void JR_CC_en(bool CC)
     {
-        Cycles += CC ? 3 : 2;
+        Cycles += (byte)(CC ? 3 : 2);
         sbyte e = unchecked((sbyte)Read(PC++));
 
         if (CC)
@@ -1826,7 +1824,7 @@ public class CPU
     // condition is false!
     private void CALL_CC_nn(bool CC)
     {
-        Cycles += CC ? 6 : 3;
+        Cycles += (byte)(CC ? 6 : 3);
         byte lsb = Read(PC++);
         byte msb = Read(PC++);
 
@@ -1853,7 +1851,7 @@ public class CPU
     // Conditional return from a function, depending on the condition cc.
     private void RET_CC(bool CC)
     {
-        Cycles += CC ? 5 : 2;
+        Cycles += (byte)(CC ? 5 : 2);
 
         if (CC)
         PC = U16(Read(SP++), Read(SP++));
