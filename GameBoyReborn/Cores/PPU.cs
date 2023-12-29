@@ -18,10 +18,6 @@ public class PPU
         CPU = _CPU;
     }
 
-    // Handle binary
-    private static bool ReadBit(byte data, byte pos) { return ((data >> pos) & 0x01) == 1; }
-    private static void SetBit(ref byte data, byte pos, bool set) { if (set) data |= (byte)(1 << pos); else data &= (byte)~(1 << pos); }
-
     // CONTROL
     private bool LCD_and_PPU_enable;
     private bool Window_tile_map_area;
@@ -40,13 +36,7 @@ public class PPU
     private bool LYC_equal_LY;
     private byte Mode_PPU;
 
-    // Mode
-    private bool mode0;
-    private bool mode1;
-    private bool mode2;
-    private bool mode3;
-
-    private short LastLy = -1;
+    // Check append frame
     public bool CompletedFrame;
 
     // Cycles
@@ -59,21 +49,21 @@ public class PPU
     public void Execution()
     {
         // Read CONTROL
-        LCD_and_PPU_enable = ReadBit(IO.LCDC, 7);
-        Window_tile_map_area = ReadBit(IO.LCDC, 6);
-        Window_enable = ReadBit(IO.LCDC, 5);
-        BG_and_Window_tile_data_area = ReadBit(IO.LCDC, 4);
-        BG_tile_map_area = ReadBit(IO.LCDC, 3);
-        OBJ_size = ReadBit(IO.LCDC, 2);
-        OBJ_enable = ReadBit(IO.LCDC, 1);
-        BG_and_Window_enable_priority = ReadBit(IO.LCDC, 0);
+        LCD_and_PPU_enable = Binary.ReadBit(IO.LCDC, 7);
+        Window_tile_map_area = Binary.ReadBit(IO.LCDC, 6);
+        Window_enable = Binary.ReadBit(IO.LCDC, 5);
+        BG_and_Window_tile_data_area = Binary.ReadBit(IO.LCDC, 4);
+        BG_tile_map_area = Binary.ReadBit(IO.LCDC, 3);
+        OBJ_size = Binary.ReadBit(IO.LCDC, 2);
+        OBJ_enable = Binary.ReadBit(IO.LCDC, 1);
+        BG_and_Window_enable_priority = Binary.ReadBit(IO.LCDC, 0);
 
         // Read STAT
-        LYC_int_select = ReadBit(IO.STAT, 6);
-        Mode_2_int_select = ReadBit(IO.STAT, 5);
-        Mode_1_int_select = ReadBit(IO.STAT, 4);
-        Mode_0_int_select = ReadBit(IO.STAT, 3);
-        LYC_equal_LY = ReadBit(IO.STAT, 2);
+        LYC_int_select = Binary.ReadBit(IO.STAT, 6);
+        Mode_2_int_select = Binary.ReadBit(IO.STAT, 5);
+        Mode_1_int_select = Binary.ReadBit(IO.STAT, 4);
+        Mode_0_int_select = Binary.ReadBit(IO.STAT, 3);
+        LYC_equal_LY = Binary.ReadBit(IO.STAT, 2);
         Mode_PPU = (byte)((IO.STAT) & 3);
 
         int cycles = CPU.Cycles * 4;
@@ -101,7 +91,7 @@ public class PPU
                             IO.STAT = (byte)(IO.STAT & 0xFC | 2);
 
                             if (Mode_2_int_select)
-                            SetBit(ref IO.IF, 1, true); // 1 = LCD
+                            Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
                         }
                         else
                         {
@@ -109,7 +99,7 @@ public class PPU
                             IO.STAT = (byte)(IO.STAT & 0xFC | 1);
 
                             if (Mode_1_int_select)
-                            SetBit(ref IO.IF, 0, true); // 0 = VBlank
+                            Binary.SetBit(ref IO.IF, 0, true); // 0 = VBlank
                         }
                     }
                 break;
@@ -133,7 +123,7 @@ public class PPU
                         IO.STAT = (byte)(IO.STAT & 0xFC | 2); // Mode_PPU = 2
 
                         if (Mode_2_int_select)
-                        SetBit(ref IO.IF, 1, true); // 1 = LCD
+                        Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
 
                         IO.LY = 0;
                     }
@@ -167,7 +157,7 @@ public class PPU
                         IO.STAT = (byte)(IO.STAT & 0xFC | 0); // Mode_PPU = 0
 
                         if (Mode_0_int_select)
-                        SetBit(ref IO.IF, 1, true); // 1 = LCD
+                        Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
                     }
                 break;
             }
@@ -188,11 +178,13 @@ public class PPU
     {
         if (IO.LY == IO.LYC)
         {
-            SetBit(ref IO.STAT, 2, true);
+            Binary.SetBit(ref IO.STAT, 2, true);
 
 /*            if (ReadBit(IO.IE, setInterrupt))
             SetBit(ref IO.IF, setInterrupt, true);*/
         }
+        else
+        Binary.SetBit(ref IO.STAT, 2, false);
     }
 
 
@@ -297,7 +289,6 @@ public class PPU
                         byte[] TileData = new byte[16];
                         Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], StartTileDataArea + TileIndex * 16, TileData, 0, 16);
 
-
                         // Draw tiles
                         for (byte y = 0; y < 8; y++)
                         {
@@ -333,11 +324,11 @@ public class PPU
                 byte oy = Memory.OAM[i];
                 byte ox = Memory.OAM[i + 2];
                 byte oIndex = Memory.OAM[i + 3];
-                bool oPriority = ReadBit(Memory.OAM[i + 4], 7);
-                bool oYflip = ReadBit(Memory.OAM[i + 4], 6);
-                bool oXflip = ReadBit(Memory.OAM[i + 4], 5);
-                bool oDMGPalette = ReadBit(Memory.OAM[i + 4], 4);
-                bool oBank = ReadBit(Memory.OAM[i + 4], 3); // CGB
+                bool oPriority = Binary.ReadBit(Memory.OAM[i + 4], 7);
+                bool oYflip = Binary.ReadBit(Memory.OAM[i + 4], 6);
+                bool oXflip = Binary.ReadBit(Memory.OAM[i + 4], 5);
+                bool oDMGPalette = Binary.ReadBit(Memory.OAM[i + 4], 4);
+                bool oBank = Binary.ReadBit(Memory.OAM[i + 4], 3); // CGB
                 byte oCGBPalette = (byte)(Memory.OAM[i + 4] & 7); // CGB
 
                 // Draw 8x8 object
