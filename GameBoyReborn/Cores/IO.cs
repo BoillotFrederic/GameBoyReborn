@@ -11,7 +11,7 @@ public class IO
     public byte SC = 0x7E;
 
     // Timer
-    public byte DIV = 0xAC;
+    public byte DIV = 0xAB;
     public byte TIMA = 0x00;
     public byte TMA = 0x00;
     public byte TAC = 0xF8;
@@ -21,27 +21,27 @@ public class IO
     public byte IE = 0x00;
 
     // Sound
-    public byte NR10;
-    public byte NR11;
-    public byte NR12;
-    public byte NR13;
-    public byte NR14;
-    public byte NR21;
-    public byte NR22;
-    public byte NR23;
-    public byte NR24;
-    public byte NR30;
-    public byte NR31;
-    public byte NR32; 
-    public byte NR33;
-    public byte NR34;
-    public byte NR41;
-    public byte NR42;
-    public byte NR43;
-    public byte NR44;
-    public byte NR50;
-    public byte NR51;
-    public byte NR52;
+    public byte NR10 = 0x80;
+    public byte NR11 = 0xBF;
+    public byte NR12 = 0xF3;
+    public byte NR13 = 0xFF;
+    public byte NR14 = 0xBF;
+    public byte NR21 = 0x3F;
+    public byte NR22 = 0x00;
+    public byte NR23 = 0xFF;
+    public byte NR24 = 0xBF;
+    public byte NR30 = 0x7F;
+    public byte NR31 = 0xFF;
+    public byte NR32 = 0x9F; 
+    public byte NR33 = 0xFF;
+    public byte NR34 = 0xBF;
+    public byte NR41 = 0xFF;
+    public byte NR42 = 0x00;
+    public byte NR43 = 0x00;
+    public byte NR44 = 0xBF;
+    public byte NR50 = 0x77;
+    public byte NR51 = 0xF3;
+    public byte NR52 = 0xF1;
     public byte PCM12;
     public byte PCM34;
     public byte[] WaveRAM = new byte[0x10];
@@ -51,30 +51,30 @@ public class IO
     public byte STAT = 0x81;
     public byte SCY = 0x00;
     public byte SCX = 0x00;
-    public byte LY = 0x00;
+    public byte LY = 0x91;
     public byte LYC = 0x00;
     public byte DMA = 0xFF;
     public byte BGP = 0xFC;
-    public byte OBP0 = 0xFF;
-    public byte OBP1 = 0xFF;
+    public byte OBP0 = 0x00;
+    public byte OBP1 = 0x00;
     public byte WY = 0x00;
     public byte WX = 0x00;
-    public byte VBK;
-    public byte HDMA1;
-    public byte HDMA2;
-    public byte HDMA3;
-    public byte HDMA4;
-    public byte HDMA5;
-    public byte BCPS_BGPI;
-    public byte BCPD_BGPD;
-    public byte OCPS_OBPI;
-    public byte OCPD_OBPD;
+    public byte VBK = 0xFF;
+    public byte HDMA1 = 0xFF;
+    public byte HDMA2 = 0xFF;
+    public byte HDMA3 = 0xFF;
+    public byte HDMA4 = 0xFF;
+    public byte HDMA5 = 0xFF;
+    public byte BCPS_BGPI = 0xFF;
+    public byte BCPD_BGPD = 0xFF;
+    public byte OCPS_OBPI = 0xFF;
+    public byte OCPD_OBPD = 0xFF;
     public byte OPRI;
 
     // Other
-    public byte KEY1; // Prepare speed switch
-    public byte SVBK; // WRAM bank
-    public byte RP; // Infrared communications port
+    public byte KEY1 = 0xFF; // Prepare speed switch
+    public byte SVBK = 0xFF; // WRAM bank
+    public byte RP = 0xFF; // Infrared communications port
 
     public byte Read(ushort at)
     {
