@@ -6,10 +6,10 @@ using Raylib_cs;
 public class PPU
 {
     // Construct
-    private Memory Memory;
-    private IO IO;
-    CPU CPU;
-    private Color[] ColorMap = new Color[4] {Color.WHITE, Color.GRAY, Color.DARKGRAY, Color.BLACK};
+    private readonly Memory Memory;
+    private readonly IO IO;
+    private readonly CPU CPU;
+    private readonly Color[] ColorMap = new Color[4] {Color.WHITE, Color.GRAY, Color.DARKGRAY, Color.BLACK};
 
     public PPU(IO _IO, Memory _Memory, CPU _CPU)
     {
@@ -19,8 +19,8 @@ public class PPU
     }
 
     // Handle binary
-    private bool ReadBit(byte data, byte pos) { return ((data >> pos) & 0x01) == 1; }
-    private void SetBit(ref byte data, byte pos) { data |= (byte)(1 << pos); }
+    private static bool ReadBit(byte data, byte pos) { return ((data >> pos) & 0x01) == 1; }
+    private static void SetBit(ref byte data, byte pos, bool set) { if (set) data |= (byte)(1 << pos); else data &= (byte)~(1 << pos); }
 
     // CONTROL
     private bool LCD_and_PPU_enable;
@@ -47,6 +47,10 @@ public class PPU
     private bool mode3;
 
     private short LastLy = -1;
+    public bool CompletedFrame;
+
+    // Cycles
+    private int LyCycles = 0;
 
     // Current LY Colors
     private Color[] CurrentLyColors = new Color[160];
@@ -72,113 +76,155 @@ public class PPU
         LYC_equal_LY = ReadBit(IO.STAT, 2);
         Mode_PPU = (byte)((IO.STAT) & 3);
 
+        int cycles = CPU.Cycles * 4;
+
         if (LCD_and_PPU_enable)
         {
-            if (ReadBit(IO.IF, 1))
+            LyCycles += cycles;
+
+            switch (Mode_PPU)
             {
-                SetBit(ref IO.IE, 1);
-                CPU.IME_scheduled = true;
+                // Horizontal blank
+                // ----------------
+                case 0:
+                    if (LyCycles >= 456)
+                    {
+                        //Console.WriteLine("Mode 0 : " + IO.LY);
+
+                        // Next mode (OAM scan / Vertical blank)
+                        if (IO.LY != 143)
+                        {
+                            IO.LY++;
+                            LyCompare();
+
+                            // Mode_PPU = 2
+                            IO.STAT = (byte)(IO.STAT & 0xFC | 2);
+
+                            if (Mode_2_int_select)
+                            SetBit(ref IO.IF, 1, true); // 1 = LCD
+                        }
+                        else
+                        {
+                            // Mode_PPU = 1
+                            IO.STAT = (byte)(IO.STAT & 0xFC | 1);
+
+                            if (Mode_1_int_select)
+                            SetBit(ref IO.IF, 0, true); // 0 = VBlank
+                        }
+                    }
+                break;
+
+                // Vertical blank
+                // --------------
+                case 1:
+                    if (LyCycles >= 456)
+                    {
+                        //Console.WriteLine("Mode 1");
+                        IO.LY++;
+                        LyCompare();
+                    }
+
+                    // Completed
+                    if (IO.LY == 153)
+                    {
+                        CompletedFrame = true;
+
+                        // Next mode (OAM scan)
+                        IO.STAT = (byte)(IO.STAT & 0xFC | 2); // Mode_PPU = 2
+
+                        if (Mode_2_int_select)
+                        SetBit(ref IO.IF, 1, true); // 1 = LCD
+
+                        IO.LY = 0;
+                    }
+                break;
+
+                // OAM scan
+                // --------
+                case 2:
+                    if(LyCycles >= 80)
+                    {
+                        //Console.WriteLine("Mode 2");
+                        // Next mode (Drawing pixel)
+                        IO.STAT = (byte)(IO.STAT & 0xFC | 3); // Mode_PPU = 3
+                    }
+                break;
+
+                // Drawing pixel
+                // -------------
+                case 3:
+                    if (LyCycles >= 252)
+                    {
+                        //Console.WriteLine("Mode 3");
+                        // Draw background
+                        Color[] backgroundData = Background();
+                        Array.Copy(backgroundData, (IO.LY + IO.SCY) * 256 + IO.SCX, CurrentLyColors, 0, 160);
+
+                        for (byte x = 0; x < 160; x++)
+                        Drawing.SetPixel(x, IO.LY, CurrentLyColors[x]);
+
+                        // Next mode (Horizontal blank)
+                        IO.STAT = (byte)(IO.STAT & 0xFC | 0); // Mode_PPU = 0
+
+                        if (Mode_0_int_select)
+                        SetBit(ref IO.IF, 1, true); // 1 = LCD
+                    }
+                break;
             }
 
-            IO.LY = (byte)Math.Floor(154 * (CPU.Cycles * 4) / 70224.0);
-            ushort CyclesLY = (ushort)Math.Floor(CPU.Cycles * 4 % 456.0);
-
-            if (LastLy != IO.LY)
-            {
-                mode0 = false;
-                mode1 = false;
-                mode2 = false;
-                mode3 = false;
-                IO.STAT = 0x00;
-            }
-
-            if (IO.LY == 154)
-            {
-                IO.LY = 0;
-                IO.STAT &= 0xFC;
-            }
-
-            if (IO.LY == IO.LYC)
-            SetBit(ref IO.STAT, 6);
-
-            // Mode 2
-            if (CyclesLY < 80 && !mode2)
-            {
-                SetBit(ref IO.STAT, 5);
-                OAMScan(IO.LY);
-                mode2 = true;
-            }
-            // Mode 3
-            else if (CyclesLY < 80 + 172 && IO.LY < 144 && !mode3)
-            {
-                DrawingPixels(IO.LY);
-                mode3 = true;
-            }
-            // Mode 0
-            else if (CyclesLY < 80 + 172 + 204 && !mode0)
-            {
-                SetBit(ref IO.STAT, 3);
-                HorizontalBlank();
-                mode0 = true;
-            }
-            // Mode 1
-            else if (IO.LY >= 144 && !mode1)
-            {
-                SetBit(ref IO.STAT, 4);
-                VerticalBlank();
-                mode1 = true;
-            }
+            if (LyCycles >= 456)
+            LyCycles = LyCycles - 456;
         }
-    }
-
-    // Execute modes
-    private void HorizontalBlank()
-    {
-        //Console.WriteLine("MODE 0");
-        if (ReadBit(IO.IF, 0))
+        else
         {
-            SetBit(ref IO.IE, 0);
-            CPU.IME_scheduled = true;
+            LyCycles += 16;
+
+            if(LyCycles >= 70224)
+            CompletedFrame = true;
         }
     }
 
-    private void VerticalBlank()
+    private void LyCompare()
     {
-        //Console.WriteLine("MODE 1");
-        if (ReadBit(IO.IF, 0))
+        if (IO.LY == IO.LYC)
         {
-            SetBit(ref IO.IE, 0);
-            CPU.IME_scheduled = true;
+            SetBit(ref IO.STAT, 2, true);
+
+/*            if (ReadBit(IO.IE, setInterrupt))
+            SetBit(ref IO.IF, setInterrupt, true);*/
         }
     }
 
-    private void OAMScan(byte LY)
+
+/*    private void OAMScan(byte LY)
     {
+        //Console.WriteLine("MODE 2");
+
         Color[] _Background = Background();
-        Color[] _Window = Window();
-        Color[] _Object = Object();
+        //Color[] _Window = Window();
+        //Color[] _Object = Object();
 
         for (byte x = 0; x < 160; x++)
         {
             Color PixelColorBackground = _Background[(IO.SCY + LY) * 160 + IO.SCX + x];
-            Color PixelColorWindow = _Window[(IO.WY + LY) * 160 + IO.WX + x];
-            Color PixelColorObject = _Object[(16 + LY) * 160 + 8 + x];
+*//*            Color PixelColorWindow = _Window[(IO.WY + LY) * 160 + IO.WX + x];
+            Color PixelColorObject = _Object[(16 + LY) * 160 + 8 + x];*//*
 
             CurrentLyColors[x] = PixelColorBackground;
-            if (!PixelColorWindow.Equals(PixelColorBackground))
+*//*            if (!PixelColorWindow.Equals(PixelColorBackground))
             CurrentLyColors[x] = PixelColorWindow;
             if (!PixelColorObject.Equals(PixelColorWindow))
-            CurrentLyColors[x] = PixelColorObject;
+            CurrentLyColors[x] = PixelColorObject;*//*
         }
     }
 
     private void DrawingPixels(byte LY)
     {
+        //Console.WriteLine("MODE 3");
+
         for (byte x = 0; x < 160; x++)
         Drawing.SetPixel(x, LY, CurrentLyColors[x]);
-
-        //Console.WriteLine("MODE 3");
-    }
+    }*/
 
     // Create tiles
     private Color[] Background()
@@ -187,19 +233,21 @@ public class PPU
 
         if (BG_and_Window_enable_priority)
         {
-            Color[] Pal = new Color[4] { ColorMap[(IO.BGP >> 6) & 3], ColorMap[(IO.BGP >> 4) & 3], ColorMap[(IO.BGP >> 2) & 3], ColorMap[IO.BGP & 3] };
-
-            ushort StartTileMapArea = (ushort)(BG_tile_map_area ? 0x1800 : 0x1C00);
-            ushort StartTileDataArea = (ushort)(BG_and_Window_tile_data_area ? 0x800 : 0x17FF);
+            Color[] Pal = new Color[4] { ColorMap[IO.BGP & 3], ColorMap[(IO.BGP >> 2) & 3], ColorMap[(IO.BGP >> 4) & 3], ColorMap[(IO.BGP >> 6) & 3] };
+            ushort StartTileMapArea = (ushort)(!BG_tile_map_area ? 0x1800 : 0x1C00);
 
             // Browse tiles
             for (byte ty = 0; ty < 32; ty++)
             {
                 for (byte tx = 0; tx < 32; tx++)
                 {
+
                     byte TileIndex = Memory.VideoRam_nn[Memory.selectedVideoBank][StartTileMapArea + (ty * 32 + tx)];
+                    ushort StartTileDataArea = (ushort)(BG_and_Window_tile_data_area ? 0 : TileIndex > 0x7F ? 800 : 1000);
+                    short STileIndex = BG_and_Window_tile_data_area ? unchecked((sbyte)TileIndex) : TileIndex;
+
                     byte[] TileData = new byte[16];
-                    Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], StartTileDataArea + TileIndex * 16, TileData, 0, 16);
+                    Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (StartTileDataArea + STileIndex) * 16, TileData, 0, 16);
 
                     // Draw tiles
                     for (byte y = 0; y < 8; y++)
@@ -210,7 +258,7 @@ public class PPU
                             byte highBit = (byte)((TileData[y * 2 + 1] >> (7 - x)) & 1);
                             byte pixelValue = (byte)((highBit << 1) | lowBit);
 
-                            TilesData[(ty * 8 + y) * 32 + tx * 8 + x] = Pal[pixelValue];
+                            TilesData[(256 * (ty * 8 + y)) + (tx * 8 + x)] = Pal[pixelValue];
                         }
                     }
                 }
@@ -226,7 +274,7 @@ public class PPU
 
         if (BG_and_Window_enable_priority && Window_enable)
         {
-            Color[] Pal = new Color[4] { ColorMap[(IO.BGP >> 6) & 3], ColorMap[(IO.BGP >> 4) & 3], ColorMap[(IO.BGP >> 2) & 3], ColorMap[IO.BGP & 3] };
+            Color[] Pal = new Color[4] { ColorMap[IO.BGP & 3], ColorMap[(IO.BGP >> 2) & 3], ColorMap[(IO.BGP >> 4) & 3], ColorMap[(IO.BGP >> 6) & 3] };
 
             ushort StartTileMapArea = (ushort)(Window_tile_map_area ? 0x1800 : 0x1C00);
             ushort StartTileDataArea = (ushort)(Window_tile_map_area ? 0x800 : 0x17FF);
