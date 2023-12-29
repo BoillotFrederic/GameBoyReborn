@@ -18,6 +18,8 @@ public static class Emulation
         if (romData != null && romData.Length != 0)
         {
             byte[] header = new byte[0x1C];
+
+            if (romData.Length > 0x0134)
             Array.Copy(romData, 0x0134, header, 0, 0x1C);
 
             IO = new IO();
@@ -29,15 +31,15 @@ public static class Emulation
             // Update ref
             Memory.CPU = CPU;
             CPU.IO = IO;
-            /*
-                Debug.Text(Cartridge.Title, Color.BLACK, 10000);
-                Debug.Text(Cartridge.ManufacturerCode, Color.BLACK, 10000);
-                Debug.Text(Cartridge.CGBDescription, Color.BLACK, 10000);
-                Debug.Text(Cartridge.Licensee, Color.BLACK, 10000);
-                Debug.Text(Cartridge.SGBDescription, Color.BLACK, 10000);
-                Debug.Text(Cartridge.TypeDescription, Color.BLACK, 10000);
-                Debug.Text(Cartridge.SizeDescription, Color.BLACK, 10000);
-            */
+/*
+            Debug.Text(Cartridge.Title, Color.RED, 10000);
+            Debug.Text(Cartridge.ManufacturerCode, Color.RED, 10000);
+            Debug.Text(Cartridge.CGBDescription, Color.RED, 10000);
+            Debug.Text(Cartridge.Licensee, Color.RED, 10000);
+            Debug.Text(Cartridge.SGBDescription, Color.RED, 10000);
+            Debug.Text(Cartridge.TypeDescription, Color.RED, 10000);
+            Debug.Text(Cartridge.SizeDescription, Color.RED, 10000);
+*/
         }
     }
 
@@ -53,13 +55,13 @@ public static class Emulation
     {
         if(CPU != null && PPU != null)
         {
-            while (CPU.Cycles * 4 <= 70224)
-            {
-                PPU.Execution();
-                CPU.Execution();
-            }
+            PPU.CompletedFrame = false;
 
-            CPU.Cycles = 0;
+            while (!PPU.CompletedFrame)
+            {
+                CPU.Execution();
+                PPU.Execution();
+            }
         }
     }
 
