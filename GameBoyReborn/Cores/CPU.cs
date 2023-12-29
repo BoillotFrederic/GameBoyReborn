@@ -4,18 +4,17 @@
 public class CPU
 {
     // Handle memory
-    public Memory Memory;
-    public IO? IO;
-    public delegate byte ReadDelegate(ushort at);
-    public ReadDelegate Read;
-    public delegate void WriteDelegate(ushort at, byte b);
-    public WriteDelegate Write;
+    private readonly Memory Memory;
+    private delegate byte ReadDelegate(ushort at);
+    private readonly ReadDelegate Read;
+    private delegate void WriteDelegate(ushort at, byte b);
+    private readonly WriteDelegate Write;
 
     // Cycles
     public byte Cycles;
 
     // Program counter
-    public ushort PC;
+    private ushort PC;
 
     // Stack pointer
     private ushort SP;
@@ -30,27 +29,15 @@ public class CPU
     private byte L;
 
     // Interrupt
-    private bool Stop = false;
+    public bool Stop = false;
     private bool Halt = false;
-    public bool IME = false;
-
-    // Timer
-    private ushort DivCycles = 0;
-    private int TacCycles = 0;
-    private readonly int[] ClockCPU = new int[4] { 4096, 262144, 65536, 16384 };
+    private bool IME = false;
 
     // Handle flags
     private bool FlagZ;
     private bool FlagN;
     private bool FlagH;
     private bool FlagC;
-
-    // Handle binary
-    private static byte Lsb(ushort u16) { return (byte)(u16 & 0xFF); } // Least significant bit
-    private static byte Msb(ushort u16) { return (byte)((u16 >> 8) & 0xFF); } // Most significant bit
-    private static ushort U16(byte lsb, byte msb) { return (ushort)((msb << 8) | lsb); } // Create unsigned 16
-    private static bool ReadBit(byte data, byte pos) { return ((data >> pos) & 0x01) == 1; } // From right to left
-    private static void SetBit(ref byte data, byte pos, bool set) { if(set) data |= (byte)(1 << pos); else data &= (byte)~(1 << pos); } // Set/unset bit
 
     /* 
     //
@@ -729,54 +716,6 @@ public class CPU
         }
     }
 
-    // Timer set
-    // ---------
-    private void Timer(int LastCycles)
-    {
-        if (IO != null)
-        {
-            // DIV
-            DivCycles += (ushort)(Cycles - LastCycles);
-
-            if (Cycles == 0 || Stop)
-            {
-                IO.DIV = 0;
-                DivCycles = 0;
-            }
-            else if (DivCycles >= 256)
-            {
-                IO.DIV++;
-                DivCycles -= 256;
-            }
-
-            // TIMA and TMA
-            TacCycles += Cycles - LastCycles;
-            byte ClockSelect = (byte)(IO.TAC & 3);
-
-            if (ReadBit(IO.TAC, 2))
-            {
-                if(TacCycles > ClockCPU[ClockSelect])
-                {
-                    ushort NewTima = (ushort)(IO.TIMA + 1);
-
-                    if (NewTima > 0xFF)
-                    {
-                        NewTima = 0;
-                        IO.TMA = 0;
-                        //IME_scheduled = true;
-                    }
-
-                    IO.TIMA = (byte)NewTima;
-
-                    //if (IO.TMA == 0xFF || (IO.TIMA % (0xFF - IO.TMA) == 0))
-                    //IME_scheduled = true;
-
-                    TacCycles -= ClockCPU[ClockSelect];
-                }
-            }
-        }
-    }
-
     private void InitRegisters()
     {
         if (Memory.booting)
@@ -843,7 +782,7 @@ public class CPU
     private void LD_Rw_HLn(ref byte Rw)
     {
         Cycles += 2;
-        Rw = Read(U16(L, H));
+        Rw = Read(Binary.U16(L, H));
     }
 
     //LD (HL), r: Load from register (indirect HL)
@@ -853,7 +792,7 @@ public class CPU
     private void LD_HLn_Rr(byte Rr)
     {
         Cycles += 2;
-        Write(U16(L, H), Rr);
+        Write(Binary.U16(L, H), Rr);
     }
 
     // LD (HL), n: Load from immediate data (indirect HL)
@@ -863,7 +802,7 @@ public class CPU
     private void LD_HLn_n()
     {
         Cycles += 3;
-        Write(U16(L, H), Read(PC++));
+        Write(Binary.U16(L, H), Read(PC++));
     }
 
     // LD A, (RR): Load accumulator (indirect BC)
@@ -873,7 +812,7 @@ public class CPU
     private void LD_A_RRn(byte Rmr, byte Rlr)
     {
         Cycles += 2;
-        A = Read(U16(Rlr, Rmr));
+        A = Read(Binary.U16(Rlr, Rmr));
     }
 
     // LD (RR), A: Load from accumulator (indirect BC)
@@ -883,7 +822,7 @@ public class CPU
     private void LD_RRn_A(byte Rmr, byte Rlr)
     {
         Cycles += 2;
-        Write(U16(Rlr, Rmr), A);
+        Write(Binary.U16(Rlr, Rmr), A);
     }
 
     // LD A, (nn): Load accumulator (direct)
@@ -893,7 +832,7 @@ public class CPU
     private void LD_A_nn()
     {
         Cycles += 4;
-        A = Read(U16(Read(PC++), Read(PC++)));
+        A = Read(Binary.U16(Read(PC++), Read(PC++)));
     }
 
     // LD (nn), A: Load from accumulator (direct)
@@ -903,7 +842,7 @@ public class CPU
     private void LD_nn_A()
     {
         Cycles += 4;
-        Write(U16(Read(PC++), Read(PC++)), A);
+        Write(Binary.U16(Read(PC++), Read(PC++)), A);
     }
 
     // LDH A, (C): Load accumulator (indirect 0xFF00+C)
@@ -915,7 +854,7 @@ public class CPU
     private void LDH_A_Cn()
     {
         Cycles += 2;
-        A = Read(U16(C, 0xFF));
+        A = Read(Binary.U16(C, 0xFF));
     }
 
     // LDH (C), A: Load from accumulator (indirect 0xFF00+C)
@@ -927,7 +866,7 @@ public class CPU
     private void LDH_Cn_A()
     {
         Cycles += 2;
-        Write(U16(C, 0xFF), A);
+        Write(Binary.U16(C, 0xFF), A);
     }
 
     // LDH A, (n): Load accumulator (direct 0xFF00+n)
@@ -939,7 +878,7 @@ public class CPU
     private void LDH_A_Nn()
     {
         Cycles += 3;
-        A = Read(U16(Read(PC++), 0xFF));
+        A = Read(Binary.U16(Read(PC++), 0xFF));
     }
 
     // LDH (n), A: Load from accumulator (direct 0xFF00+n)
@@ -951,7 +890,7 @@ public class CPU
     private void LDH_Nn_A()
     {
         Cycles += 3;
-        Write(U16(Read(PC++), 0xFF), A);
+        Write(Binary.U16(Read(PC++), 0xFF), A);
     }
 
     // LD A, (HL-): Load accumulator (indirect HL, decrement)
@@ -962,11 +901,11 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
 
         A = Read(HL--);
-        H = Msb(HL);
-        L = Lsb(HL);
+        H = Binary.Msb(HL);
+        L = Binary.Lsb(HL);
     }
 
     // LD (HL-), A: Load from accumulator (indirect HL, decrement)
@@ -977,11 +916,11 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
 
         Write(HL--, A);
-        H = Msb(HL);
-        L = Lsb(HL);
+        H = Binary.Msb(HL);
+        L = Binary.Lsb(HL);
     }
 
     // LD A, (HL+): Load accumulator (indirect HL, increment)
@@ -992,11 +931,11 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
 
         A = Read(HL++);
-        H = Msb(HL);
-        L = Lsb(HL);
+        H = Binary.Msb(HL);
+        L = Binary.Lsb(HL);
     }
 
     // LD (HL+), A: Load from accumulator (indirect HL, increment)
@@ -1007,11 +946,11 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
 
         Write(HL++, A);
-        H = Msb(HL);
-        L = Lsb(HL);
+        H = Binary.Msb(HL);
+        L = Binary.Lsb(HL);
     }
 
     // LD rr, nn: Load 16-bit register / register pair
@@ -1028,7 +967,7 @@ public class CPU
     {
         Cycles += 3;
 
-        RRw = U16(Read(PC++), Read(PC++));
+        RRw = Binary.U16(Read(PC++), Read(PC++));
     }
 
     // LD (nn), SP: Load from stack pointer (direct)
@@ -1038,10 +977,10 @@ public class CPU
     {
         Cycles += 5;
 
-        ushort nn = U16(Read(PC++), Read(PC++));
+        ushort nn = Binary.U16(Read(PC++), Read(PC++));
 
-        Write(nn, Lsb(SP));
-        Write(++nn, Msb(SP));
+        Write(nn, Binary.Lsb(SP));
+        Write(++nn, Binary.Msb(SP));
     }
 
     // LD SP, HL: Load stack pointer from HL
@@ -1050,7 +989,7 @@ public class CPU
     private void LD_SP_HL()
     {
         Cycles += 2;
-        SP = U16(L, H);
+        SP = Binary.U16(L, H);
     }
 
     // LD HL, SP e
@@ -1063,8 +1002,8 @@ public class CPU
 
         ushort _SP = (ushort)(SP + e);
 
-        H = Msb(_SP);
-        L = Lsb(_SP);
+        H = Binary.Msb(_SP);
+        L = Binary.Lsb(_SP);
 
         FlagZ = false;
         FlagN = false;
@@ -1088,10 +1027,10 @@ public class CPU
 
         byte F = 0;
 
-        if (FlagZ) SetBit(ref F, 7, true);
-        if (FlagN) SetBit(ref F, 6, true);
-        if (FlagH) SetBit(ref F, 5, true);
-        if (FlagC) SetBit(ref F, 4, true);
+        if (FlagZ) Binary.SetBit(ref F, 7, true);
+        if (FlagN) Binary.SetBit(ref F, 6, true);
+        if (FlagH) Binary.SetBit(ref F, 5, true);
+        if (FlagC) Binary.SetBit(ref F, 4, true);
 
         Write(--SP, F);
         Write(--SP, A);
@@ -1116,10 +1055,10 @@ public class CPU
 
         byte F = Read(SP++);
 
-        FlagZ = ReadBit(F, 7);
-        FlagN = ReadBit(F, 6);
-        FlagH = ReadBit(F, 5);
-        FlagC = ReadBit(F, 4);
+        FlagZ = Binary.ReadBit(F, 7);
+        FlagN = Binary.ReadBit(F, 6);
+        FlagH = Binary.ReadBit(F, 5);
+        FlagC = Binary.ReadBit(F, 4);
 
         A = Read(SP++);
     }
@@ -1148,7 +1087,7 @@ public class CPU
     {
         Cycles += 2;
 
-        A += Read(U16(L, H));
+        A += Read(Binary.U16(L, H));
 
         FlagZ = A == 0;
         FlagN = false;
@@ -1196,22 +1135,22 @@ public class CPU
     private void ADD_HL_RRr(byte Rmr, byte Rlr)
     {
         Cycles += 2;
-        ushort HL = (ushort)(U16(L, H) + U16(Rlr, Rmr));
+        ushort HL = (ushort)(Binary.U16(L, H) + Binary.U16(Rlr, Rmr));
 
-        H = Msb(HL);
-        L = Lsb(HL);
+        H = Binary.Msb(HL);
+        L = Binary.Lsb(HL);
 
         FlagN = false;
-        FlagH = ((HL & 0xFFF) + (U16(Rlr, Rmr) & 0xFFF)) > 0xFFF;
+        FlagH = ((HL & 0xFFF) + (Binary.U16(Rlr, Rmr) & 0xFFF)) > 0xFFF;
         FlagC = (HL & 0x10000) != 0;
     }
     private void ADD_HL_SP()
     {
         Cycles += 2;
-        ushort HL = (ushort)(U16(L, H) + SP);
+        ushort HL = (ushort)(Binary.U16(L, H) + SP);
 
-        H = Msb(HL);
-        L = Lsb(HL);
+        H = Binary.Msb(HL);
+        L = Binary.Lsb(HL);
 
         FlagN = false;
         FlagH = ((HL & 0xFFF) + (SP & 0xFFF)) > 0xFFF;
@@ -1243,7 +1182,7 @@ public class CPU
     {
         Cycles += 2;
 
-        A += (byte)((FlagC ? 1 : 0) + Read(U16(L, H)));
+        A += (byte)((FlagC ? 1 : 0) + Read(Binary.U16(L, H)));
 
         FlagZ = A == 0;
         FlagN = false;
@@ -1294,7 +1233,7 @@ public class CPU
     {
         Cycles += 2;
 
-        byte HL = Read(U16(L, H));
+        byte HL = Read(Binary.U16(L, H));
         ushort result = (ushort)(A - HL);
         bool borrowFromBit4 = (result & 0x10) != 0;
 
@@ -1353,7 +1292,7 @@ public class CPU
     {
         Cycles += 2;
 
-        byte HL = Read(U16(L, H));
+        byte HL = Read(Binary.U16(L, H));
         ushort result = (ushort)(A - (HL + (FlagC ? 1 : 0)));
         bool borrowFromBit4 = (result & 0x10) != 0;
 
@@ -1410,7 +1349,7 @@ public class CPU
     {
         Cycles += 2;
 
-        byte HL = Read(U16(L, H));
+        byte HL = Read(Binary.U16(L, H));
         ushort result = (ushort)(A - HL);
 
         FlagZ = result == 0;
@@ -1458,8 +1397,8 @@ public class CPU
     {
         Cycles += 3;
 
-        ushort HL = U16(L, H);
-        byte data = Read(U16(L, H));
+        ushort HL = Binary.U16(L, H);
+        byte data = Read(Binary.U16(L, H));
         bool carryPerBit = ((data + 1) & 0x08) != 0;
         Write(HL, ++data);
 
@@ -1475,10 +1414,10 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort RR = (ushort)(U16(Rlw, Rmw) + 1);
+        ushort RR = (ushort)(Binary.U16(Rlw, Rmw) + 1);
 
-        Rmw = Msb(RR);
-        Rlw = Lsb(RR);
+        Rmw = Binary.Msb(RR);
+        Rlw = Binary.Lsb(RR);
     }
     private void INC_RRw(ref ushort RRw)
     {
@@ -1508,11 +1447,11 @@ public class CPU
     {
         Cycles += 3;
 
-        byte HLn = Read(U16(L, H));
+        byte HLn = Read(Binary.U16(L, H));
         bool borrowFromBit4 = (HLn & 0x10) != 0;
 
         byte data = (byte)(HLn - 1);
-        Write(U16(L, H), data);
+        Write(Binary.U16(L, H), data);
 
         FlagZ = data == 0;
         FlagN = true;
@@ -1526,10 +1465,10 @@ public class CPU
     {
         Cycles += 2;
 
-        ushort RR = (ushort)(U16(Rlw, Rmw) - 1);
+        ushort RR = (ushort)(Binary.U16(Rlw, Rmw) - 1);
 
-        Rmw = Msb(RR);
-        Rlw = Lsb(RR);
+        Rmw = Binary.Msb(RR);
+        Rlw = Binary.Lsb(RR);
     }
     private void DEC_RRw(ref ushort RRw)
     {
@@ -1561,7 +1500,7 @@ public class CPU
     {
         Cycles += 2;
 
-        A &= Read(U16(L, H));
+        A &= Read(Binary.U16(L, H));
 
         FlagZ = A == 0;
         FlagN = false;
@@ -1609,7 +1548,7 @@ public class CPU
     {
         Cycles += 2;
 
-        A |= Read(U16(L, H));
+        A |= Read(Binary.U16(L, H));
 
         FlagZ = A == 0;
         FlagN = false;
@@ -1657,7 +1596,7 @@ public class CPU
     {
         Cycles += 2;
 
-        A ^= Read(U16(L, H));
+        A ^= Read(Binary.U16(L, H));
 
         FlagZ = A == 0;
         FlagN = false;
@@ -1755,7 +1694,7 @@ public class CPU
     private void JP_nn()
     {
         Cycles += 4;
-        PC = U16(Lsb(Read(PC++)), Msb(Read(PC++)));
+        PC = Binary.U16(Binary.Lsb(Read(PC++)), Binary.Msb(Read(PC++)));
     }
 
     // JP HL: Jump to HL
@@ -1764,7 +1703,7 @@ public class CPU
     private void JP_HL()
     {
         Cycles++;
-        PC = U16(L, H);
+        PC = Binary.U16(L, H);
     }
 
     // JP cc, nn: Jump (conditional)
@@ -1774,7 +1713,7 @@ public class CPU
     private void JP_CC_nn(bool CC)
     {
         Cycles += (byte)(CC ? 4 : 3);
-        ushort nn = U16(Read(PC++), Read(PC++));
+        ushort nn = Binary.U16(Read(PC++), Read(PC++));
 
         if (CC)
         PC = nn;
@@ -1810,10 +1749,10 @@ public class CPU
     {
         Cycles += 6;
 
-        ushort nn = U16(Read(PC++), Read(PC++));
+        ushort nn = Binary.U16(Read(PC++), Read(PC++));
 
-        Write(--SP, Msb(PC));
-        Write(--SP, Lsb(PC));
+        Write(--SP, Binary.Msb(PC));
+        Write(--SP, Binary.Lsb(PC));
         PC = nn;
     }
 
@@ -1830,10 +1769,10 @@ public class CPU
 
         if (CC)
         {
-            Write(--SP, Msb(PC));
-            Write(--SP, Lsb(PC));
+            Write(--SP, Binary.Msb(PC));
+            Write(--SP, Binary.Lsb(PC));
 
-            PC = U16(lsb, msb);
+            PC = Binary.U16(lsb, msb);
         }
     }
 
@@ -1843,7 +1782,7 @@ public class CPU
     private void RET()
     {
         Cycles += 4;
-        PC = U16(Read(SP++), Read(SP++));
+        PC = Binary.U16(Read(SP++), Read(SP++));
     }
 
     // RET cc: Return from function (conditional)
@@ -1854,7 +1793,7 @@ public class CPU
         Cycles += (byte)(CC ? 5 : 2);
 
         if (CC)
-        PC = U16(Read(SP++), Read(SP++));
+        PC = Binary.U16(Read(SP++), Read(SP++));
     }
 
     // RETI: Return from interrupt handler
@@ -1864,7 +1803,7 @@ public class CPU
     {
         Cycles += 4;
 
-        PC = U16(Read(SP++), Read(SP++));
+        PC = Binary.U16(Read(SP++), Read(SP++));
         IME = true;
     }
 
@@ -1877,10 +1816,10 @@ public class CPU
 
         byte n = Read(PC);
 
-        Write(--SP, Msb(PC));
-        Write(--SP, Lsb(PC));
+        Write(--SP, Binary.Msb(PC));
+        Write(--SP, Binary.Lsb(PC));
 
-        PC = U16(n, at);
+        PC = Binary.U16(n, at);
     }
 
     // HALT: Halt system clock
@@ -1962,7 +1901,7 @@ public class CPU
         FlagZ = false;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_A, 7);
+        FlagC = Binary.ReadBit(_A, 7);
     }
 
     // RLA
@@ -1975,12 +1914,12 @@ public class CPU
         byte _A = A;
         A <<= 1;
 
-        SetBit(ref A, 0, FlagC);
+        Binary.SetBit(ref A, 0, FlagC);
 
         FlagZ = false;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_A, 7);
+        FlagC = Binary.ReadBit(_A, 7);
     }
 
     // RRCA
@@ -1996,7 +1935,7 @@ public class CPU
         FlagZ = false;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_A, 0);
+        FlagC = Binary.ReadBit(_A, 0);
     }
 
     // RRA
@@ -2009,12 +1948,12 @@ public class CPU
         byte _A = A;
         A >>= 1;
 
-        SetBit(ref A, 7, FlagC);
+        Binary.SetBit(ref A, 7, FlagC);
 
         FlagZ = false;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_A, 0);
+        FlagC = Binary.ReadBit(_A, 0);
     }
 
     // CB operation
@@ -2042,7 +1981,7 @@ public class CPU
         FlagZ = Rw == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_R, 7);
+        FlagC = Binary.ReadBit(_R, 7);
     }
 
     // RLC (HL)
@@ -2052,7 +1991,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)((data << 1) | (data >> 7));
         Write(HL, newData);
@@ -2060,7 +1999,7 @@ public class CPU
         FlagZ = newData == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(data, 7);
+        FlagC = Binary.ReadBit(data, 7);
     }
 
     // RRC r
@@ -2076,7 +2015,7 @@ public class CPU
         FlagZ = Rw == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_R, 0);
+        FlagC = Binary.ReadBit(_R, 0);
     }
 
     // RRC (HL)
@@ -2086,7 +2025,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)((data >> 1) | ((data & 0x01) << 7));
         Write(HL, newData);
@@ -2094,7 +2033,7 @@ public class CPU
         FlagZ = newData == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(data, 0);
+        FlagC = Binary.ReadBit(data, 0);
     }
 
     // RL r
@@ -2107,12 +2046,12 @@ public class CPU
         byte _R = Rw;
         Rw <<= 1;
 
-        SetBit(ref Rw, 0, FlagC);
+        Binary.SetBit(ref Rw, 0, FlagC);
 
         FlagZ = Rw == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_R, 7);
+        FlagC = Binary.ReadBit(_R, 7);
     }
 
     // RL (HL)
@@ -2122,17 +2061,17 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)(data << 1);
 
-        SetBit(ref newData, 0, FlagC);
+        Binary.SetBit(ref newData, 0, FlagC);
         Write(HL, newData);
 
         FlagZ = newData == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(data, 7);
+        FlagC = Binary.ReadBit(data, 7);
     }
 
     // RR r
@@ -2145,12 +2084,12 @@ public class CPU
         byte _R = Rw;
         Rw >>= 1;
 
-        SetBit(ref Rw, 7, FlagC);
+        Binary.SetBit(ref Rw, 7, FlagC);
 
         FlagZ = Rw == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_R, 0);
+        FlagC = Binary.ReadBit(_R, 0);
     }
 
     // RR (HL)
@@ -2160,17 +2099,17 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)(data >> 1);
 
-        SetBit(ref newData, 7, FlagC);
+        Binary.SetBit(ref newData, 7, FlagC);
         Write(HL, newData);
 
         FlagZ = newData == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(data, 0);
+        FlagC = Binary.ReadBit(data, 0);
     }
 
     // SLA r
@@ -2186,7 +2125,7 @@ public class CPU
         FlagZ = Rw == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_R, 7);
+        FlagC = Binary.ReadBit(_R, 7);
     }
 
     // SLA (HL)
@@ -2196,7 +2135,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)(data << 1);
         Write(HL, newData);
@@ -2204,7 +2143,7 @@ public class CPU
         FlagZ = newData == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(data, 7);
+        FlagC = Binary.ReadBit(data, 7);
     }
 
     // SRA r
@@ -2220,7 +2159,7 @@ public class CPU
         FlagZ = Rw == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_R, 0);
+        FlagC = Binary.ReadBit(_R, 0);
     }
 
     // SRA (HL)
@@ -2230,7 +2169,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)((data >> 1) | (data & 0x80));
         Write(HL, newData);
@@ -2238,7 +2177,7 @@ public class CPU
         FlagZ = newData == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(data, 0);
+        FlagC = Binary.ReadBit(data, 0);
     }
 
     // SWAP r
@@ -2263,7 +2202,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)(((data & 0x0F) << 4) | ((data & 0xF0) >> 4));
         Write(HL, newData);
@@ -2287,7 +2226,7 @@ public class CPU
         FlagZ = Rw == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(_R, 0);
+        FlagC = Binary.ReadBit(_R, 0);
     }
 
     // SRL (HL)
@@ -2297,7 +2236,7 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
         byte data = Read(HL);
         byte newData = (byte)(data >> 1);
         Write(HL, newData);
@@ -2305,7 +2244,7 @@ public class CPU
         FlagZ = newData == 0;
         FlagN = false;
         FlagH = false;
-        FlagC = ReadBit(data, 0);
+        FlagC = Binary.ReadBit(data, 0);
     }
 
     // BIT n,r
@@ -2315,7 +2254,7 @@ public class CPU
     {
         Cycles += 2;
 
-        FlagZ = !ReadBit(Rr, n);
+        FlagZ = !Binary.ReadBit(Rr, n);
         FlagN = false;
         FlagH = true;
     }
@@ -2327,7 +2266,7 @@ public class CPU
     {
         Cycles += 3;
 
-        FlagZ = !ReadBit(Read(U16(L, H)), n);
+        FlagZ = !Binary.ReadBit(Read(Binary.U16(L, H)), n);
         FlagN = false;
         FlagH = true;
     }
@@ -2338,7 +2277,7 @@ public class CPU
     private void SET_n_r(byte n, ref byte Rw)
     {
         Cycles += 2;
-        SetBit(ref Rw, n, true);
+        Binary.SetBit(ref Rw, n, true);
     }
 
     // SET n,(HL)
@@ -2348,9 +2287,9 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
         byte data = Read(HL);
-        SetBit(ref data, n, true);
+        Binary.SetBit(ref data, n, true);
         Write(HL, data);
     }
 
@@ -2360,7 +2299,7 @@ public class CPU
     private void RES_n_r(byte n, ref byte Rw)
     {
         Cycles += 2;
-        SetBit(ref Rw, n, false);
+        Binary.SetBit(ref Rw, n, false);
     }
 
     // RES n,(HL)
@@ -2370,9 +2309,9 @@ public class CPU
     {
         Cycles += 4;
 
-        ushort HL = U16(L, H);
+        ushort HL = Binary.U16(L, H);
         byte data = Read(HL);
-        SetBit(ref data, n, false);
+        Binary.SetBit(ref data, n, false);
         Write(HL, data);
     }
 }
