@@ -1,65 +1,69 @@
 ﻿// -----
 // Timer
 // -----
-public class Timer
+
+namespace GameBoyReborn
 {
-    // Construct
-    private readonly IO IO;
-    private readonly CPU CPU;
-
-    public Timer(IO _IO, CPU _CPU)
+    public class Timer
     {
-        IO = _IO;
-        CPU = _CPU;
-    }
+        // Construct
+        private readonly IO IO;
+        private readonly CPU CPU;
 
-    // Cycles
-    private ushort DivCycles = 0;
-    private int TacCycles = 0;
-    private readonly int[] ClockCPU = new int[4] { 4096, 262144, 65536, 16384 };
-
-    // Execution
-    public void Execution()
-    {
-        if (IO != null)
+        public Timer(IO _IO, CPU _CPU)
         {
-            // DIV
-            DivCycles += CPU.Cycles;
+            IO = _IO;
+            CPU = _CPU;
+        }
 
-            if (CPU.Cycles == 0 || CPU.Stop)
-            {
-                IO.DIV = 0;
-                DivCycles = 0;
-            }
-            else if (DivCycles >= 256)
-            {
-                IO.DIV++;
-                DivCycles -= 256;
-            }
+        // Cycles
+        private ushort DivCycles = 0;
+        private int TacCycles = 0;
+        private readonly int[] ClockCPU = new int[4] { 4096, 262144, 65536, 16384 };
 
-            // TIMA and TMA
-            TacCycles += CPU.Cycles;
-            byte ClockSelect = (byte)(IO.TAC & 3);
-
-            if (Binary.ReadBit(IO.TAC, 2))
+        // Execution
+        public void Execution()
+        {
+            if (IO != null)
             {
-                if (TacCycles > ClockCPU[ClockSelect])
+                // DIV
+                DivCycles += CPU.Cycles;
+
+                if (CPU.Cycles == 0 || CPU.Stop)
                 {
-                    ushort NewTima = (ushort)(IO.TIMA + 1);
+                    IO.DIV = 0;
+                    DivCycles = 0;
+                }
+                else if (DivCycles >= 256)
+                {
+                    IO.DIV++;
+                    DivCycles -= 256;
+                }
 
-                    if (NewTima > 0xFF)
+                // TIMA and TMA
+                TacCycles += CPU.Cycles;
+                byte ClockSelect = (byte)(IO.TAC & 3);
+
+                if (Binary.ReadBit(IO.TAC, 2))
+                {
+                    if (TacCycles > ClockCPU[ClockSelect])
                     {
-                        NewTima = 0;
-                        IO.TMA = 0;
+                        ushort NewTima = (ushort)(IO.TIMA + 1);
+
+                        if (NewTima > 0xFF)
+                        {
+                            NewTima = 0;
+                            IO.TMA = 0;
+                            //IME = true;
+                        }
+
+                        IO.TIMA = (byte)NewTima;
+
+                        //if (IO.TMA == 0xFF || (IO.TIMA % (0xFF - IO.TMA) == 0))
                         //IME = true;
+
+                        TacCycles -= ClockCPU[ClockSelect];
                     }
-
-                    IO.TIMA = (byte)NewTima;
-
-                    //if (IO.TMA == 0xFF || (IO.TIMA % (0xFF - IO.TMA) == 0))
-                    //IME = true;
-
-                    TacCycles -= ClockCPU[ClockSelect];
                 }
             }
         }

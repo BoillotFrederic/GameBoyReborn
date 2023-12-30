@@ -1,52 +1,55 @@
 ﻿// ---
 // CPU
 // ---
-public class CPU
+
+namespace GameBoyReborn
 {
-    // Handle memory
-    private readonly Memory Memory;
-    private delegate byte ReadDelegate(ushort at);
-    private readonly ReadDelegate Read;
-    private delegate void WriteDelegate(ushort at, byte b);
-    private readonly WriteDelegate Write;
-
-    // Cycles
-    public byte Cycles;
-
-    // Program counter
-    private ushort PC;
-
-    // Stack pointer
-    private ushort SP;
-
-    // Registers
-    private byte A;
-    private byte B;
-    private byte C;
-    private byte D;
-    private byte E;
-    private byte H;
-    private byte L;
-
-    // Interrupt
-    public bool Stop = false;
-    private bool Halt = false;
-    private bool IME = false;
-
-    // Handle flags
-    private bool FlagZ;
-    private bool FlagN;
-    private bool FlagH;
-    private bool FlagC;
-
-    /* 
-    //
-    // Debug mode --------------------------------------------
-    //
-    */
-
-    private readonly string[] InstructionsName = new string[]
+    public class CPU
     {
+        // Handle memory
+        private readonly Memory Memory;
+        private delegate byte ReadDelegate(ushort at);
+        private readonly ReadDelegate Read;
+        private delegate void WriteDelegate(ushort at, byte b);
+        private readonly WriteDelegate Write;
+
+        // Cycles
+        public byte Cycles;
+
+        // Program counter
+        private ushort PC;
+
+        // Stack pointer
+        private ushort SP;
+
+        // Registers
+        private byte A;
+        private byte B;
+        private byte C;
+        private byte D;
+        private byte E;
+        private byte H;
+        private byte L;
+
+        // Interrupt
+        public bool Stop = false;
+        private bool Halt = false;
+        private bool IME = false;
+
+        // Handle flags
+        private bool FlagZ;
+        private bool FlagN;
+        private bool FlagH;
+        private bool FlagC;
+
+        /* 
+        //
+        // Debug mode --------------------------------------------
+        //
+        */
+
+        private readonly string[] InstructionsName = new string[]
+        {
         "NOP()",
         "LD_RRw_nn(ref B, ref C)",
         "LD_RRn_A(B, C)",
@@ -303,10 +306,10 @@ public class CPU
         "unknown()",
         "CP_n()",
         "RST_n(0x38)"
-    };
+        };
 
-    private readonly string[] CBInstructionsName = new string[]
-    {
+        private readonly string[] CBInstructionsName = new string[]
+        {
 
         "RLC_Rw(ref B)",
         "RLC_Rw(ref C)",
@@ -564,101 +567,101 @@ public class CPU
         "SET_n_r(7, ref L)",
         "SET_n_HLn(7)",
         "SET_n_r(7, ref A)"
-    };
-    private void ShowStat(byte opcode)
-    {
-        Console.WriteLine("PC = " + (PC - 1).ToString("X4") + " ("+ (PC - 1) + ")");
-        Console.WriteLine("SP = " + SP.ToString("X4") + " (" + SP + ")");
-        Console.WriteLine("A = " + A.ToString("X2") + " (" + A + ")");
-        Console.WriteLine("B = " + B.ToString("X2") + " (" + B + ")");
-        Console.WriteLine("C = " + C.ToString("X2") + " (" + C + ")");
-        Console.WriteLine("D = " + D.ToString("X2") + " (" + D + ")");
-        Console.WriteLine("E = " + E.ToString("X2") + " (" + E + ")");
-        Console.WriteLine("H = " + H.ToString("X2") + " (" + H + ")");
-        Console.WriteLine("L = " + L.ToString("X2") + " (" + L + ")");
-        Console.WriteLine("FLAGS = Z("+ (FlagZ ? 1 : 0) + "), N(" + (FlagN ? 1 : 0) + "), H(" + (FlagH ? 1 : 0) + "), C(" + (FlagC ? 1 : 0) + ")");
-        Console.WriteLine("Interrupts = Stop(" + (Stop ? 1 : 0) + "), Halt(" + (Halt ? 1 : 0) + "), IME(" + (IME ? 1 : 0) + ")");
-
-        string InstructionName = opcode != 0xCB ? InstructionsName[opcode] : (Read(PC).ToString("X2") + " : " + CBInstructionsName[Read(PC)]);
-        Console.WriteLine("Op = " + opcode.ToString("X2") + ", " + InstructionName + " : Next ushort = " + Read(opcode != 0xCB ? PC : (ushort)(PC + 1)).ToString("X2") + Read((ushort)(opcode != 0xCB ? PC + 1 : PC + 2)).ToString("X2"));
-        Console.ReadKey();
-        Console.WriteLine("----------------------------------------");
-        //Console.WriteLine(Memory.VideoRam_nn[0][10].ToString("X2") +" : "+ Memory.VideoRam_nn[0][11].ToString("X2") + " : " + Memory.VideoRam_nn[0][12].ToString("X2") + " : " + Memory.VideoRam_nn[0][13].ToString("X2"));
-        Console.WriteLine();
-    }
-
-    private List<string> OpcodeUsed = new List<string>();
-
-    private void ShowOpcodeUsed(byte opcode)
-    {
-        string InstructionName = opcode != 0xCB
-            ? (opcode.ToString("X2") + " : " + InstructionsName[opcode])
-            : (opcode.ToString("X2") + Read(PC).ToString("X2") + " : " + CBInstructionsName[Read(PC)]);
-
-        if (!OpcodeUsed.Contains(InstructionName))
+        };
+        private void ShowStat(byte opcode)
         {
-            OpcodeUsed.Add(InstructionName);
+            Console.WriteLine("PC = " + (PC - 1).ToString("X4") + " (" + (PC - 1) + ")");
+            Console.WriteLine("SP = " + SP.ToString("X4") + " (" + SP + ")");
+            Console.WriteLine("A = " + A.ToString("X2") + " (" + A + ")");
+            Console.WriteLine("B = " + B.ToString("X2") + " (" + B + ")");
+            Console.WriteLine("C = " + C.ToString("X2") + " (" + C + ")");
+            Console.WriteLine("D = " + D.ToString("X2") + " (" + D + ")");
+            Console.WriteLine("E = " + E.ToString("X2") + " (" + E + ")");
+            Console.WriteLine("H = " + H.ToString("X2") + " (" + H + ")");
+            Console.WriteLine("L = " + L.ToString("X2") + " (" + L + ")");
+            Console.WriteLine("FLAGS = Z(" + (FlagZ ? 1 : 0) + "), N(" + (FlagN ? 1 : 0) + "), H(" + (FlagH ? 1 : 0) + "), C(" + (FlagC ? 1 : 0) + ")");
+            Console.WriteLine("Interrupts = Stop(" + (Stop ? 1 : 0) + "), Halt(" + (Halt ? 1 : 0) + "), IME(" + (IME ? 1 : 0) + ")");
 
-            using (StreamWriter sw = File.AppendText("opcodes.txt"))
+            string InstructionName = opcode != 0xCB ? InstructionsName[opcode] : (Read(PC).ToString("X2") + " : " + CBInstructionsName[Read(PC)]);
+            Console.WriteLine("Op = " + opcode.ToString("X2") + ", " + InstructionName + " : Next ushort = " + Read(opcode != 0xCB ? PC : (ushort)(PC + 1)).ToString("X2") + Read((ushort)(opcode != 0xCB ? PC + 1 : PC + 2)).ToString("X2"));
+            Console.ReadKey();
+            Console.WriteLine("----------------------------------------");
+            //Console.WriteLine(Memory.VideoRam_nn[0][10].ToString("X2") +" : "+ Memory.VideoRam_nn[0][11].ToString("X2") + " : " + Memory.VideoRam_nn[0][12].ToString("X2") + " : " + Memory.VideoRam_nn[0][13].ToString("X2"));
+            Console.WriteLine();
+        }
+
+        private List<string> OpcodeUsed = new List<string>();
+
+        private void ShowOpcodeUsed(byte opcode)
+        {
+            string InstructionName = opcode != 0xCB
+                ? (opcode.ToString("X2") + " : " + InstructionsName[opcode])
+                : (opcode.ToString("X2") + Read(PC).ToString("X2") + " : " + CBInstructionsName[Read(PC)]);
+
+            if (!OpcodeUsed.Contains(InstructionName))
             {
-                sw.WriteLine(InstructionName);
+                OpcodeUsed.Add(InstructionName);
+
+                using (StreamWriter sw = File.AppendText("opcodes.txt"))
+                {
+                    sw.WriteLine(InstructionName);
+                }
             }
         }
-    }
 
-    // -------------------------------------------------------
+        // -------------------------------------------------------
 
-    // Execution
-    // ---------
-    //int foo = 0;
-    public void Execution()
-    {
-        Cycles = 0;
-        //int LastCycles = Cycles;
-
-        if (!Halt && !Stop)
+        // Execution
+        // ---------
+        //int foo = 0;
+        public void Execution()
         {
-            byte opcode = Read(PC++);
+            Cycles = 0;
+            //int LastCycles = Cycles;
 
-            //if(foo > 56000)
-            //ShowStat(opcode);
-            //ShowOpcodeUsed(opcode);
-            Instructions[opcode]?.Invoke();
+            if (!Halt && !Stop)
+            {
+                byte opcode = Read(PC++);
+
+                //if(foo > 56000)
+                //ShowStat(opcode);
+                //ShowOpcodeUsed(opcode);
+                Instructions[opcode]?.Invoke();
+            }
+            else
+            {
+                PC++;
+                Cycles++;
+            }
+
+            // Set timer
+            //Timer(LastCycles);
+
+            // Interrupts handle
+            if (IME) CPUWakeUp();
+
+            //foo += Cycles - LastCycles;
         }
-        else
+
+        // Init and instructions
+        // ---------------------
+        private delegate void InstructionDelegate();
+        private InstructionDelegate[] Instructions;
+        private InstructionDelegate[] CB_Instructions;
+
+        public CPU(Memory _Memory)
         {
-            PC++;
-            Cycles++;
-        }
+            // Init memory
+            Memory = _Memory;
+            Read = Memory.Read;
+            Write = Memory.Write;
 
-        // Set timer
-        //Timer(LastCycles);
+            // Init registers
+            InitRegisters();
 
-        // Interrupts handle
-        if (IME) CPUWakeUp();
-
-        //foo += Cycles - LastCycles;
-    }
-
-    // Init and instructions
-    // ---------------------
-    private delegate void InstructionDelegate();
-    private InstructionDelegate[] Instructions;
-    private InstructionDelegate[] CB_Instructions;
-
-    public CPU(Memory _Memory)
-    {
-        // Init memory
-        Memory = _Memory;
-        Read = Memory.Read;
-        Write = Memory.Write;
-
-        // Init registers
-        InitRegisters();
-
-        // Instructions
-        Instructions = new InstructionDelegate[]
-        {   /*          [0]                           [1]                             [2]                           [3]                           [4]                             [5]                        [6]                      [7]                        [8]                          [9]                                  [A]                          [B]                           [C]                            [D]                        [E]                      [F]      */
+            // Instructions
+            Instructions = new InstructionDelegate[]
+            {   /*          [0]                           [1]                             [2]                           [3]                           [4]                             [5]                        [6]                      [7]                        [8]                          [9]                                  [A]                          [B]                           [C]                            [D]                        [E]                      [F]      */
             /* [0] */   ()=> NOP(),                   ()=> LD_RRw_nn(ref B, ref C),   ()=> LD_RRn_A(B, C),          ()=> INC_RRw(ref B, ref C),   ()=> INC_Rw(ref B),             ()=> DEC_Rw(ref B),        ()=> LD_Rw_n(ref B),     ()=> RLCA(),               ()=> LD_Nnn_SP(),            ()=> ADD_HL_RRr(B, C),               ()=> LD_A_RRn(B, C),         ()=> DEC_RRw(ref B, ref C),   ()=> INC_Rw(ref C),            ()=> DEC_Rw(ref C),        ()=> LD_Rw_n(ref C),     ()=> RRCA(),
             /* [1] */   ()=> STOP(),                  ()=> LD_RRw_nn(ref D, ref E),   ()=> LD_RRn_A(D, E),          ()=> INC_RRw(ref D, ref E),   ()=> INC_Rw(ref D),             ()=> DEC_Rw(ref D),        ()=> LD_Rw_n(ref D),     ()=> RLA(),                ()=> JR_en(),                ()=> ADD_HL_RRr(D, E),               ()=> LD_A_RRn(D, E),         ()=> DEC_RRw(ref D, ref E),   ()=> INC_Rw(ref E),            ()=> DEC_Rw(ref E),        ()=> LD_Rw_n(ref E),     ()=> RRA(),
             /* [2] */   ()=> JR_CC_en(!FlagZ),        ()=> LD_RRw_nn(ref H, ref L),   ()=> LD_HLnp_A(),             ()=> INC_RRw(ref H, ref L),   ()=> INC_Rw(ref H),             ()=> DEC_Rw(ref H),        ()=> LD_Rw_n(ref H),     ()=> DAA(),                ()=> JR_CC_en(FlagZ),        ()=> ADD_HL_RRr(H, L),               ()=> LD_A_HLnp(),            ()=> DEC_RRw(ref H, ref L),   ()=> INC_Rw(ref L),            ()=> DEC_Rw(ref L),        ()=> LD_Rw_n(ref L),     ()=> CPL(),
@@ -675,12 +678,12 @@ public class CPU
             /* [D] */   ()=> RET_CC(!FlagC),          ()=> POP_RR(ref D, ref E),      ()=> JP_CC_nn(!FlagC),        ()=> unknown(),               ()=> CALL_CC_nn(!FlagC),        ()=> PUSH_RR(D, E),        ()=> SUB_n(),            ()=> RST_n(0x10),          ()=> RET_CC(FlagC),          ()=> RETI(),                         ()=> JP_CC_nn(FlagC),        ()=> unknown(),               ()=> CALL_CC_nn(FlagC),        ()=> unknown(),            ()=> SBC_n(),            ()=> RST_n(0x18),
             /* [E] */   ()=> LDH_Nn_A(),              ()=> POP_RR(ref H, ref L),      ()=> LDH_Cn_A(),              ()=> unknown(),               ()=> unknown(),                 ()=> PUSH_RR(H, L),        ()=> AND_n(),            ()=> RST_n(0x20),          ()=> ADD_SP_en(),            ()=> JP_HL(),                        ()=> LD_nn_A(),              ()=> unknown(),               ()=> unknown(),                ()=> unknown(),            ()=> XOR_n(),            ()=> RST_n(0x28),
             /* [F] */   ()=> LDH_A_Nn(),              ()=> POP_AF(),                  ()=> LDH_A_Cn(),              ()=> DI(),                    ()=> unknown(),                 ()=> PUSH_AF(),            ()=> OR_n(),             ()=> RST_n(0x30),          ()=> LD_HL_SP_en(),          ()=> LD_SP_HL(),                     ()=> LD_A_nn(),              ()=> EI(),                    ()=> unknown(),                ()=> unknown(),            ()=> CP_n(),             ()=> RST_n(0x38)
-        };
+            };
 
 
-        // CB Instructions
-        CB_Instructions = new InstructionDelegate[]
-        {
+            // CB Instructions
+            CB_Instructions = new InstructionDelegate[]
+            {
             /*          [0]                       [1]                       [2]                       [3]                       [4]                       [5]                       [6]                  [7]                       [8]                       [9]                       [A]                       [B]                       [C]                       [D]                       [E]                    [F]             */
             /* [0] */   ()=> RLC_Rw(ref B),       ()=> RLC_Rw(ref C),       ()=> RLC_Rw(ref D),       ()=> RLC_Rw(ref E),       ()=> RLC_Rw(ref H),       ()=> RLC_Rw(ref L),       ()=> RLC_HLn(),      ()=> RLC_Rw(ref A),       ()=> RRC_Rw(ref B),       ()=> RRC_Rw(ref C),       ()=> RRC_Rw(ref D),       ()=> RRC_Rw(ref E),       ()=> RRC_Rw(ref H),       ()=> RRC_Rw(ref L),       ()=> RRC_HLn(),        ()=> RRC_Rw(ref A),
             /* [1] */   ()=> RL_Rw(ref B),        ()=> RL_Rw(ref C),        ()=> RL_Rw(ref D),        ()=> RL_Rw(ref E),        ()=> RL_Rw(ref H),        ()=> RL_Rw(ref L),        ()=> RL_HLn(),       ()=> RL_Rw(ref A),        ()=> RR_Rw(ref B),        ()=> RR_Rw(ref C),        ()=> RR_Rw(ref D),        ()=> RR_Rw(ref E),        ()=> RR_Rw(ref H),        ()=> RR_Rw(ref L),        ()=> RR_HLn(),         ()=> RR_Rw(ref A),
@@ -698,1620 +701,1621 @@ public class CPU
             /* [D] */   ()=> SET_n_r(2, ref B),   ()=> SET_n_r(2, ref C),   ()=> SET_n_r(2, ref D),   ()=> SET_n_r(2, ref E),   ()=> SET_n_r(2, ref H),   ()=> SET_n_r(2, ref L),   ()=> SET_n_HLn(2),   ()=> SET_n_r(2, ref A),   ()=> SET_n_r(3, ref B),   ()=> SET_n_r(3, ref C),   ()=> SET_n_r(3, ref D),   ()=> SET_n_r(3, ref E),   ()=> SET_n_r(3, ref H),   ()=> SET_n_r(3, ref L),   ()=> SET_n_HLn(3),     ()=> SET_n_r(3, ref A),
             /* [E] */   ()=> SET_n_r(4, ref B),   ()=> SET_n_r(4, ref C),   ()=> SET_n_r(4, ref D),   ()=> SET_n_r(4, ref E),   ()=> SET_n_r(4, ref H),   ()=> SET_n_r(4, ref L),   ()=> SET_n_HLn(4),   ()=> SET_n_r(4, ref A),   ()=> SET_n_r(5, ref B),   ()=> SET_n_r(5, ref C),   ()=> SET_n_r(5, ref D),   ()=> SET_n_r(5, ref E),   ()=> SET_n_r(5, ref H),   ()=> SET_n_r(5, ref L),   ()=> SET_n_HLn(5),     ()=> SET_n_r(5, ref A),
             /* [F] */   ()=> SET_n_r(6, ref B),   ()=> SET_n_r(6, ref C),   ()=> SET_n_r(6, ref D),   ()=> SET_n_r(6, ref E),   ()=> SET_n_r(6, ref H),   ()=> SET_n_r(6, ref L),   ()=> SET_n_HLn(6),   ()=> SET_n_r(6, ref A),   ()=> SET_n_r(7, ref B),   ()=> SET_n_r(7, ref C),   ()=> SET_n_r(7, ref D),   ()=> SET_n_r(7, ref E),   ()=> SET_n_r(7, ref H),   ()=> SET_n_r(7, ref L),   ()=> SET_n_HLn(7),     ()=> SET_n_r(7, ref A),
-        };
-    }
-
-    // Interrupts handle
-    // -----------------
-    private void CPUWakeUp()
-    {
-        if (Memory.Read(0xFFFF) != 0)
-        {
-            // HaltBug
-            if (Halt) PC--;
-
-            Halt = false;
-            Stop = false;
-            IME = false;
+            };
         }
-    }
 
-    private void InitRegisters()
-    {
-        if (Memory.booting)
+        // Interrupts handle
+        // -----------------
+        private void CPUWakeUp()
         {
-            PC = 0x0000;
-            SP = 0xFFFE;
-            A = 0x01;
-            B = 0x00;
-            C = 0x13;
-            D = 0x00;
-            E = 0xD8;
-            H = 0x01;
-            L = 0x4D;
-            FlagZ = true;
+            if (Memory.Read(0xFFFF) != 0)
+            {
+                // HaltBug
+                if (Halt) PC--;
+
+                Halt = false;
+                Stop = false;
+                IME = false;
+            }
+        }
+
+        private void InitRegisters()
+        {
+            if (Memory.booting)
+            {
+                PC = 0x0000;
+                SP = 0xFFFE;
+                A = 0x01;
+                B = 0x00;
+                C = 0x13;
+                D = 0x00;
+                E = 0xD8;
+                H = 0x01;
+                L = 0x4D;
+                FlagZ = true;
+                FlagN = false;
+                FlagH = false;
+                FlagC = false;
+            }
+            else
+            {
+                PC = 0x0100;
+                SP = 0xFFFE;
+                A = 0x01;
+                B = 0x00;
+                C = 0x13;
+                D = 0x00;
+                E = 0xD8;
+                H = 0x01;
+                L = 0x4D;
+                FlagZ = true;
+                FlagN = false;
+                FlagH = true;
+                FlagC = true;
+            }
+        }
+
+        // ####################
+        // # Instructions set #
+        // ####################
+
+        // LD r, r’: Load register (register)
+        // ----------------------------------
+        // 8-bit load instructions transfer one byte of data between two 8-bit registers,
+        // or between one 8-bit register and location in memory.
+        private void LD_Rw_Rr(ref byte Rw, byte Rr)
+        {
+            Cycles++;
+            Rw = Rr;
+        }
+
+        // LD r, n: Load register (immediate)
+        // ----------------------------------
+        // Load to the 8-bit register r, the immediate data n.
+        private void LD_Rw_n(ref byte Rw)
+        {
+            Cycles += 2;
+            Rw = Read(PC++);
+        }
+
+        // LD r, (HL): Load register (indirect HL)
+        // ---------------------------------------
+        // Load to the 8-bit register r, data from the absolute address specified by the
+        // 16-bit register HL
+        private void LD_Rw_HLn(ref byte Rw)
+        {
+            Cycles += 2;
+            Rw = Read(Binary.U16(L, H));
+        }
+
+        //LD (HL), r: Load from register (indirect HL)
+        //--------------------------------------------
+        //Load to the absolute address specified by the 16-bit register HL, data from
+        //the 8-bit register r.
+        private void LD_HLn_Rr(byte Rr)
+        {
+            Cycles += 2;
+            Write(Binary.U16(L, H), Rr);
+        }
+
+        // LD (HL), n: Load from immediate data (indirect HL)
+        // --------------------------------------------------
+        // Load to the absolute address specified by the 16-bit register HL,
+        // the immediate data n.
+        private void LD_HLn_n()
+        {
+            Cycles += 3;
+            Write(Binary.U16(L, H), Read(PC++));
+        }
+
+        // LD A, (RR): Load accumulator (indirect BC)
+        // ------------------------------------------
+        // Load to the 8-bit A register, data from the absolute address specified by
+        // the 16-bit register BC.
+        private void LD_A_RRn(byte Rmr, byte Rlr)
+        {
+            Cycles += 2;
+            A = Read(Binary.U16(Rlr, Rmr));
+        }
+
+        // LD (RR), A: Load from accumulator (indirect BC)
+        // -----------------------------------------------
+        // Load to the absolute address specified by the 16-bit register BC, data
+        // from the 8-bit A register
+        private void LD_RRn_A(byte Rmr, byte Rlr)
+        {
+            Cycles += 2;
+            Write(Binary.U16(Rlr, Rmr), A);
+        }
+
+        // LD A, (nn): Load accumulator (direct)
+        // -------------------------------------
+        // Load to the 8-bit A register, data from the absolute address
+        // specified by the 16-bit operand nn.
+        private void LD_A_nn()
+        {
+            Cycles += 4;
+            A = Read(Binary.U16(Read(PC++), Read(PC++)));
+        }
+
+        // LD (nn), A: Load from accumulator (direct)
+        // ------------------------------------------
+        // Load to the absolute address specified by the 16-bit operand nn, data
+        // from the 8-bit A register.
+        private void LD_nn_A()
+        {
+            Cycles += 4;
+            Write(Binary.U16(Read(PC++), Read(PC++)), A);
+        }
+
+        // LDH A, (C): Load accumulator (indirect 0xFF00+C)
+        // ------------------------------------------------
+        // Load to the 8-bit A register, data from the address specified by the 8-bit C
+        // register. The full 16-bit absolute address is obtained by setting the most
+        // significant byte to 0xFF and the least significant byte to the value of C,
+        // so the possible range is 0xFF00-0xFFFF.
+        private void LDH_A_Cn()
+        {
+            Cycles += 2;
+            A = Read(Binary.U16(C, 0xFF));
+        }
+
+        // LDH (C), A: Load from accumulator (indirect 0xFF00+C)
+        // -----------------------------------------------------
+        // Load to the address specified by the 8-bit C register, data from the 8-bit
+        // A register. The full 16-bit absolute address is obtained by setting the most
+        // significant byte to 0xFF and the least significant byte to the value of C,
+        // so the possible range is 0xFF00-0xFFFF.
+        private void LDH_Cn_A()
+        {
+            Cycles += 2;
+            Write(Binary.U16(C, 0xFF), A);
+        }
+
+        // LDH A, (n): Load accumulator (direct 0xFF00+n)
+        // ----------------------------------------------
+        // Load to the 8-bit A register, data from the address specified by the 8-bit
+        // immediate data n. The full 16-bit absolute address is obtained by setting
+        // the most significant byte to 0xFF and the least significant byte to the
+        // value of n, so the possible range is 0xFF00-0xFFFF.
+        private void LDH_A_Nn()
+        {
+            Cycles += 3;
+            A = Read(Binary.U16(Read(PC++), 0xFF));
+        }
+
+        // LDH (n), A: Load from accumulator (direct 0xFF00+n)
+        // ----------------------------------------------------
+        // Load to the address specified by the 8-bit immediate data n, data from the
+        // 8-bit A register. The full 16-bit absolute address is obtained by
+        // the setting the most significant byte to 0xFF and the least significant byte
+        // to value of n, so the possible range is 0xFF00-0xFFFF.
+        private void LDH_Nn_A()
+        {
+            Cycles += 3;
+            Write(Binary.U16(Read(PC++), 0xFF), A);
+        }
+
+        // LD A, (HL-): Load accumulator (indirect HL, decrement)
+        // ------------------------------------------------------
+        // Load to the 8-bit A register, data from the absolute address specified by the
+        // 16-bit register HL. The value of HL is decremented after the memory read.
+        private void LD_A_HLnm()
+        {
+            Cycles += 2;
+
+            ushort HL = Binary.U16(L, H);
+
+            A = Read(HL--);
+            H = Binary.Msb(HL);
+            L = Binary.Lsb(HL);
+        }
+
+        // LD (HL-), A: Load from accumulator (indirect HL, decrement)
+        // ------------------------------------------------------------
+        // Load to the absolute address specified by the 16-bit register HL, data from
+        // the 8-bit A register. The value ofHL is decremented after the memory write.
+        private void LD_HLnm_A()
+        {
+            Cycles += 2;
+
+            ushort HL = Binary.U16(L, H);
+
+            Write(HL--, A);
+            H = Binary.Msb(HL);
+            L = Binary.Lsb(HL);
+        }
+
+        // LD A, (HL+): Load accumulator (indirect HL, increment)
+        // --------------------------------------------------------
+        // Load to the 8-bit A register, data from the absolute address specified by
+        // the 16-bit register HL. The value of HL is incremented after the memory read.
+        private void LD_A_HLnp()
+        {
+            Cycles += 2;
+
+            ushort HL = Binary.U16(L, H);
+
+            A = Read(HL++);
+            H = Binary.Msb(HL);
+            L = Binary.Lsb(HL);
+        }
+
+        // LD (HL+), A: Load from accumulator (indirect HL, increment)
+        // -----------------------------------------------------------
+        // Load to the absolute address specified by the 16-bit register HL, data from
+        // the 8-bit A register. The value of HL is incremented after the memory write.
+        private void LD_HLnp_A()
+        {
+            Cycles += 2;
+
+            ushort HL = Binary.U16(L, H);
+
+            Write(HL++, A);
+            H = Binary.Msb(HL);
+            L = Binary.Lsb(HL);
+        }
+
+        // LD rr, nn: Load 16-bit register / register pair
+        // ------------------------------------------------
+        // Load to the 16-bit register rr, the immediate 16-bit data nn.
+        private void LD_RRw_nn(ref byte Rmw, ref byte Rlw)
+        {
+            Cycles += 3;
+
+            Rlw = Read(PC++);
+            Rmw = Read(PC++);
+        }
+        private void LD_RRw_nn(ref ushort RRw)
+        {
+            Cycles += 3;
+
+            RRw = Binary.U16(Read(PC++), Read(PC++));
+        }
+
+        // LD (nn), SP: Load from stack pointer (direct)
+        // ---------------------------------------------
+        // Load to the absolute address specified by the 16-bit operand nn, data from the 16-bit SP register.
+        private void LD_Nnn_SP()
+        {
+            Cycles += 5;
+
+            ushort nn = Binary.U16(Read(PC++), Read(PC++));
+
+            Write(nn, Binary.Lsb(SP));
+            Write(++nn, Binary.Msb(SP));
+        }
+
+        // LD SP, HL: Load stack pointer from HL
+        // -------------------------------------
+        // Load to the 16-bit SP register, data from the 16-bit HL register.
+        private void LD_SP_HL()
+        {
+            Cycles += 2;
+            SP = Binary.U16(L, H);
+        }
+
+        // LD HL, SP e
+        // -----------
+        // Add the signed value e8 to SP and store the result in HL.
+        private void LD_HL_SP_en()
+        {
+            Cycles += 3;
+            sbyte e = unchecked((sbyte)Read(PC++));
+
+            ushort _SP = (ushort)(SP + e);
+
+            H = Binary.Msb(_SP);
+            L = Binary.Lsb(_SP);
+
+            FlagZ = false;
+            FlagN = false;
+            FlagH = (_SP & 0x08) != 0;
+            FlagC = (_SP & 0x80) != 0;
+        }
+
+        // PUSH rr: Push to stack
+        // ----------------------
+        // Push to the stack memory, data from the 16-bit register rr.
+        private void PUSH_RR(byte Rmr, byte Rlr)
+        {
+            Cycles += 4;
+
+            Write(--SP, Rmr);
+            Write(--SP, Rlr);
+        }
+        private void PUSH_AF()
+        {
+            Cycles += 4;
+
+            byte F = 0;
+
+            if (FlagZ) Binary.SetBit(ref F, 7, true);
+            if (FlagN) Binary.SetBit(ref F, 6, true);
+            if (FlagH) Binary.SetBit(ref F, 5, true);
+            if (FlagC) Binary.SetBit(ref F, 4, true);
+
+            Write(--SP, F);
+            Write(--SP, A);
+        }
+
+        // POP rr: Pop from stack
+        // ----------------------
+        // Pops to the 16-bit register rr, data from the stack memory.This instruction
+        // does not do calculations that affect flags, but POP AF completely replaces the
+        // F register value, so all flags are changed based on the 8-bit data that is read
+        // from memory.
+        private void POP_RR(ref byte Rmw, ref byte Rlw)
+        {
+            Cycles += 3;
+
+            Rlw = Read(SP++);
+            Rmw = Read(SP++);
+        }
+        private void POP_AF()
+        {
+            Cycles += 3;
+
+            byte F = Read(SP++);
+
+            FlagZ = Binary.ReadBit(F, 7);
+            FlagN = Binary.ReadBit(F, 6);
+            FlagH = Binary.ReadBit(F, 5);
+            FlagC = Binary.ReadBit(F, 4);
+
+            A = Read(SP++);
+        }
+
+        // ADD r: Add (register)
+        // ---------------------
+        // Adds to the 8-bit A register, the 8-bit register r, and stores the result
+        // back into the A register.
+        private void ADD_Rr(byte Rr)
+        {
+            Cycles++;
+
+            A += Rr;
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = (A & 0x08) != 0;
+            FlagC = (A & 0x80) != 0;
+        }
+
+        // ADD (HL): Add (indirect HL)
+        // ---------------------------
+        // Adds to the 8-bit A register, data from the absolute address specified by the
+        // 16-bit register HL, and stores the result back into the A register.
+        private void ADD_HLn()
+        {
+            Cycles += 2;
+
+            A += Read(Binary.U16(L, H));
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = (A & 0x08) != 0;
+            FlagC = (A & 0x80) != 0;
+        }
+
+        // ADD n: Add (immediate)
+        // ----------------------
+        // Adds to the 8-bit A register, the immediate data n, and stores the result
+        // back into the A register
+        private void ADD_n()
+        {
+            Cycles += 2;
+
+            A += Read(PC++);
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = (A & 0x08) != 0;
+            FlagC = (A & 0x80) != 0;
+        }
+
+        // ADD SP e
+        // --------
+        // Add the signed value e8 to SP.
+        private void ADD_SP_en()
+        {
+            Cycles += 4;
+
+            sbyte e = unchecked((sbyte)Read(PC++));
+            int result = SP + e;
+
+            SP = (ushort)result;
+
+            FlagZ = false;
+            FlagN = false;
+            FlagH = (SP & 0x08) != 0;
+            FlagC = (SP & 0x80) != 0;
+        }
+
+        // ADD HL rr
+        // ---------
+        // Add the value in r16 to HL.
+        private void ADD_HL_RRr(byte Rmr, byte Rlr)
+        {
+            Cycles += 2;
+            ushort HL = (ushort)(Binary.U16(L, H) + Binary.U16(Rlr, Rmr));
+
+            H = Binary.Msb(HL);
+            L = Binary.Lsb(HL);
+
+            FlagN = false;
+            FlagH = ((HL & 0xFFF) + (Binary.U16(Rlr, Rmr) & 0xFFF)) > 0xFFF;
+            FlagC = (HL & 0x10000) != 0;
+        }
+        private void ADD_HL_SP()
+        {
+            Cycles += 2;
+            ushort HL = (ushort)(Binary.U16(L, H) + SP);
+
+            H = Binary.Msb(HL);
+            L = Binary.Lsb(HL);
+
+            FlagN = false;
+            FlagH = ((HL & 0xFFF) + (SP & 0xFFF)) > 0xFFF;
+            FlagC = (HL & 0x10000) != 0;
+        }
+
+        // ADC r: Add with carry (register)
+        // --------------------------------
+        // Adds to the 8-bit A register, the carry flag and the 8-bit register r, and
+        // stores the result back into the A register.
+        private void ADC_Rr(byte Rr)
+        {
+            Cycles++;
+
+            A += (byte)((FlagC ? 1 : 0) + Rr);
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = (A & 0x08) != 0;
+            FlagC = (A & 0x80) != 0;
+        }
+
+        // ADC (HL): Add with carry (indirect HL)
+        // --------------------------------------
+        // Adds to the 8-bit A register, the carry flag and data from the absolute address 
+        // specified by the 16-bit register HL, and stores the result back into the A register
+
+        private void ADC_HLn()
+        {
+            Cycles += 2;
+
+            A += (byte)((FlagC ? 1 : 0) + Read(Binary.U16(L, H)));
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = (A & 0x08) != 0;
+            FlagC = (A & 0x80) != 0;
+        }
+
+        // ADC n: Add with carry (immediate)
+        // ---------------------------------
+        // Adds to the 8-bit A register, the carry flag and the immediate data n, and
+        // stores the result back into the A register.
+        private void ADC_n()
+        {
+            Cycles += 2;
+
+            A += (byte)((FlagC ? 1 : 0) + Read(PC++));
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = (A & 0x08) != 0;
+            FlagC = (A & 0x80) != 0;
+        }
+
+        // SUB r: Subtract (register)
+        // --------------------------
+        // Subtracts from the 8-bit A register, the 8-bit register r, and stores the
+        // result back into the A register.
+        private void SUB_Rr(byte Rr)
+        {
+            Cycles++;
+
+            ushort result = (ushort)(A - Rr);
+            bool borrowFromBit4 = (result & 0x10) != 0;
+
+            A = (byte)result;
+
+            FlagZ = A == 0;
+            FlagN = true;
+            FlagH = borrowFromBit4;
+            FlagC = Rr > A;
+        }
+
+        // SUB (HL): Subtract (indirect HL)
+        // --------------------------------
+        // Subtracts from the 8-bit A register, data from the absolute address specified
+        // by the 16-bit register HL, and stores the result back into the A register.
+        private void SUB_HLn()
+        {
+            Cycles += 2;
+
+            byte HL = Read(Binary.U16(L, H));
+            ushort result = (ushort)(A - HL);
+            bool borrowFromBit4 = (result & 0x10) != 0;
+
+            A = (byte)result;
+
+            FlagZ = A == 0;
+            FlagN = true;
+            FlagH = borrowFromBit4;
+            FlagC = HL > A;
+        }
+
+        // SUB n: Subtract (immediate)
+        // ---------------------------
+        // Subtracts from the 8-bit A register, the immediate data n, and stores the result
+        // back into the A register.
+        private void SUB_n()
+        {
+            Cycles += 2;
+
+            byte n = Read(PC++);
+            ushort result = (ushort)(A - n);
+            bool borrowFromBit4 = (result & 0x10) != 0;
+
+            A = (byte)result;
+
+            FlagZ = A == 0;
+            FlagN = true;
+            FlagH = borrowFromBit4;
+            FlagC = n > A;
+        }
+
+        // SBC r: Subtract with carry (register)
+        // -------------------------------------
+        // Subtracts from the 8-bit A register, the carry flag and the 8-bit register r, and stores
+        // the result back into the A register.
+        private void SBC_Rr(byte Rr)
+        {
+            Cycles++;
+
+            ushort result = (ushort)(A - (Rr + (FlagC ? 1 : 0)));
+            bool borrowFromBit4 = (result & 0x10) != 0;
+
+            A = (byte)result;
+
+            FlagZ = A == 0;
+            FlagN = true;
+            FlagH = borrowFromBit4;
+            FlagC = Rr + (FlagC ? 1 : 0) > A;
+        }
+
+        // SBC (HL): Subtract with carry (indirect HL)
+        // -------------------------------------------
+        // Subtracts from the 8-bit A register, the carry flag and data from the absolute address
+        // specified by the 16-bit register HL, and stores the result back into the A register.
+        private void SBC_HLn()
+        {
+            Cycles += 2;
+
+            byte HL = Read(Binary.U16(L, H));
+            ushort result = (ushort)(A - (HL + (FlagC ? 1 : 0)));
+            bool borrowFromBit4 = (result & 0x10) != 0;
+
+            A = (byte)result;
+
+            FlagZ = A == 0;
+            FlagN = true;
+            FlagH = borrowFromBit4;
+            FlagC = HL + (FlagC ? 1 : 0) > A;
+        }
+
+        // SBC n: Subtract with carry (immediate)
+        // --------------------------------------
+        // Subtracts from the 8-bit A register, the carry flag and the immediate data n, and stores
+        // the result back into the A register.
+        private void SBC_n()
+        {
+            Cycles += 2;
+
+            byte n = Read(PC++);
+            ushort result = (ushort)(A - (n + (FlagC ? 1 : 0)));
+            bool borrowFromBit4 = (result & 0x10) != 0;
+
+            A = (byte)result;
+
+            FlagZ = A == 0;
+            FlagN = true;
+            FlagH = borrowFromBit4;
+            FlagC = n + (FlagC ? 1 : 0) > A;
+        }
+
+        // CP r: Compare (register)
+        // ------------------------
+        // Subtracts from the 8-bit A register, the 8-bit register r, and updates flags based on
+        // the result. This instruction is basically identical to SUB r, but does not update the A register.
+        private void CP_Rr(byte Rr)
+        {
+            Cycles++;
+
+            ushort result = (ushort)(A - Rr);
+
+            FlagZ = result == 0;
+            FlagN = true;
+            FlagH = (result & 0x10) != 0;
+            FlagC = Rr > A;
+        }
+
+        // CP (HL): Compare (indirect HL)
+        // ------------------------------
+        // Subtracts from the 8-bit A register, data from the absolute address specified by the 16-bit
+        // register HL, and updates flags based on the result.This instruction is basically identical to SUB
+        // (HL), but does not update the A register.
+        private void CP_HLn()
+        {
+            Cycles += 2;
+
+            byte HL = Read(Binary.U16(L, H));
+            ushort result = (ushort)(A - HL);
+
+            FlagZ = result == 0;
+            FlagN = true;
+            FlagH = (result & 0x10) != 0;
+            FlagC = HL > A;
+        }
+
+        // CP n: Compare (immediate)
+        // -------------------------
+        // Subtracts from the 8-bit A register, the immediate data n, and updates flags based on the result. This
+        // instruction is basically identical to SUB n, but does not update the A register.
+        private void CP_n()
+        {
+            Cycles += 2;
+
+            byte n = Read(PC++);
+            ushort result = (ushort)(A - n);
+
+            FlagZ = result == 0;
+            FlagN = true;
+            FlagH = (result & 0x10) != 0;
+            FlagC = n > A;
+        }
+
+        // INC r: Increment (register)
+        // ---------------------------
+        // Increments data in the 8-bit register r.
+        private void INC_Rw(ref byte Rw)
+        {
+            Cycles++;
+
+            bool carryPerBit = ((Rw + 1) & 0x08) != 0;
+            Rw++;
+
+            FlagZ = Rw == 0;
+            FlagN = false;
+            FlagH = carryPerBit;
+        }
+
+        // INC (HL): Increment (indirect HL)
+        // ---------------------------------
+        // Increments data at the absolute address specified by the 16-bit register HL.
+        private void INC_HLn()
+        {
+            Cycles += 3;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(Binary.U16(L, H));
+            bool carryPerBit = ((data + 1) & 0x08) != 0;
+            Write(HL, ++data);
+
+            FlagZ = data == 0;
+            FlagN = false;
+            FlagH = carryPerBit;
+        }
+
+        // INC rr
+        // ------
+        // Increment value in register RR by 1.
+        private void INC_RRw(ref byte Rmw, ref byte Rlw)
+        {
+            Cycles += 2;
+
+            ushort RR = (ushort)(Binary.U16(Rlw, Rmw) + 1);
+
+            Rmw = Binary.Msb(RR);
+            Rlw = Binary.Lsb(RR);
+        }
+        private void INC_RRw(ref ushort RRw)
+        {
+            Cycles += 2;
+            RRw++;
+        }
+
+        // DEC r: Decrement (register)
+        // ---------------------------
+        // Decrements data in the 8-bit register r.
+        private void DEC_Rw(ref byte Rw)
+        {
+            Cycles++;
+
+            bool borrowFromBit4 = (Rw & 0x10) != 0;
+            Rw--;
+
+            FlagZ = Rw == 0;
+            FlagN = true;
+            FlagH = borrowFromBit4;
+        }
+
+        // DEC (HL): Decrement (indirect HL)
+        // ---------------------------------
+        // Decrements data at the absolute address specified by the 16-bit register HL.
+        private void DEC_HLn()
+        {
+            Cycles += 3;
+
+            byte HLn = Read(Binary.U16(L, H));
+            bool borrowFromBit4 = (HLn & 0x10) != 0;
+
+            byte data = (byte)(HLn - 1);
+            Write(Binary.U16(L, H), data);
+
+            FlagZ = data == 0;
+            FlagN = true;
+            FlagH = borrowFromBit4;
+        }
+
+        // DEC rr
+        // ------
+        // Decrement value in register rr by 1.
+        private void DEC_RRw(ref byte Rmw, ref byte Rlw)
+        {
+            Cycles += 2;
+
+            ushort RR = (ushort)(Binary.U16(Rlw, Rmw) - 1);
+
+            Rmw = Binary.Msb(RR);
+            Rlw = Binary.Lsb(RR);
+        }
+        private void DEC_RRw(ref ushort RRw)
+        {
+            Cycles += 2;
+            RRw--;
+        }
+
+        // AND r: Bitwise AND (register)
+        // -----------------------------
+        // Performs a bitwise AND operation between the 8-bit A register and the 8-bit register r,
+        // and stores the result back into the A register.
+        private void AND_Rr(byte Rr)
+        {
+            Cycles++;
+
+            A &= Rr;
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = true;
+            FlagC = false;
+        }
+
+        // AND (HL): Bitwise AND (indirect HL)
+        // -----------------------------------
+        // Performs a bitwise AND operation between the 8-bit A register and data from the absolute
+        // address specified by the 16-bit register HL, and stores the result back into the A register.
+        private void AND_HLn()
+        {
+            Cycles += 2;
+
+            A &= Read(Binary.U16(L, H));
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = true;
+            FlagC = false;
+        }
+
+        // AND n: Bitwise AND (immediate)
+        // ------------------------------
+        // Performs a bitwise AND operation between the 8-bit A register and immediate data n, and stores
+        // the result back into the A register.
+        private void AND_n()
+        {
+            Cycles += 2;
+
+            A &= Read(PC++);
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = true;
+            FlagC = false;
+        }
+
+        // OR r: Bitwise OR (register)
+        // ---------------------------
+        // Performs a bitwise OR operation between the 8-bit A register and the 8-bit register r, and
+        // stores the result back into the A register
+        private void OR_Rr(byte Rr)
+        {
+            Cycles++;
+
+            A |= Rr;
+
+            FlagZ = A == 0;
             FlagN = false;
             FlagH = false;
             FlagC = false;
         }
-        else
+
+        // OR (HL): Bitwise OR (indirect HL)
+        // ---------------------------------
+        // Performs a bitwise AND operation between the 8-bit A register and data from the absolute
+        // address specified by the 16-bit register HL, and stores the result back into the A register.
+        private void OR_HLn()
         {
-            PC = 0x0100;
-            SP = 0xFFFE;
-            A = 0x01;
-            B = 0x00;
-            C = 0x13;
-            D = 0x00;
-            E = 0xD8;
-            H = 0x01;
-            L = 0x4D;
-            FlagZ = true;
+            Cycles += 2;
+
+            A |= Read(Binary.U16(L, H));
+
+            FlagZ = A == 0;
             FlagN = false;
+            FlagH = false;
+            FlagC = false;
+        }
+
+        // OR n: Bitwise OR (immediate)
+        // ----------------------------
+        // Performs a bitwise OR operation between the 8-bit A register and immediate data n, and stores
+        // the result back into the A register.
+        private void OR_n()
+        {
+            Cycles += 2;
+
+            A |= Read(PC++);
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = false;
+        }
+
+        // XOR r: Bitwise XOR (register)
+        // -----------------------------
+        // Performs a bitwise XOR operation between the 8-bit A register and the 8-bit register r, and
+        // stores the result back into the A register
+        private void XOR_Rr(byte Rr)
+        {
+            Cycles++;
+
+            A ^= Rr;
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = false;
+        }
+
+        // XOR (HL): Bitwise XOR (indirect HL)
+        // -----------------------------------
+        // Performs a bitwise XOR operation between the 8-bit A register and data from the absolute
+        // address specified by the 16-bit register HL, and stores the result back into the A register.
+        private void XOR_HLn()
+        {
+            Cycles += 2;
+
+            A ^= Read(Binary.U16(L, H));
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = false;
+        }
+
+        // XOR n: Bitwise XOR (immediate)
+        // ------------------------------
+        // Performs a bitwise XOR operation between the 8-bit A register and immediate data n, and stores
+        // the result back into the A register.
+        private void XOR_n()
+        {
+            Cycles += 2;
+
+            A ^= Read(PC++);
+
+            FlagZ = A == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = false;
+        }
+
+        // CCF: Complement carry flag
+        // --------------------------
+        // Flips the carry flag, and clears the N and H flags.
+        private void CCF()
+        {
+            Cycles++;
+
+            FlagN = false;
+            FlagH = false;
+            FlagC = !FlagC;
+        }
+
+        // SCF: Set carry flag
+        // -------------------
+        // Sets the carry flag, and clears the N and H flags.
+        private void SCF()
+        {
+            Cycles++;
+
+            FlagN = false;
+            FlagH = false;
+            FlagC = true;
+        }
+
+        // DAA: Decimal adjust accumulator
+        // -------------------------------
+        // Decimal Adjust Accumulator to get a correct BCD representation after an arithmetic instruction.
+        private void DAA()
+        {
+            Cycles++;
+
+            byte lsb = (byte)(A & 0x0F);
+            byte msb = (byte)(A >> 4);
+
+            if (FlagN)
+            {
+                if (FlagH || (lsb > 9))
+                lsb -= 6;
+            }
+            else
+            {
+                if ((lsb > 9) || FlagH)
+                lsb += 6;
+            }
+
+            if (FlagC || (msb > 9))
+            {
+                msb += 6;
+                FlagC = true;
+            }
+            else
+            FlagC = false;
+
+            A = (byte)((msb << 4) | (lsb & 0x0F));
+        }
+
+        // CPL: Complement accumulator
+        // ---------------------------
+        // Flips all the bits in the 8-bit A register, and sets the N and H flags.
+        private void CPL()
+        {
+            Cycles++;
+            A = (byte)~A;
+
+            FlagN = true;
             FlagH = true;
-            FlagC = true;
-        }
-    }
-
-    // ####################
-    // # Instructions set #
-    // ####################
-
-    // LD r, r’: Load register (register)
-    // ----------------------------------
-    // 8-bit load instructions transfer one byte of data between two 8-bit registers,
-    // or between one 8-bit register and location in memory.
-    private void LD_Rw_Rr(ref byte Rw, byte Rr)
-    {
-        Cycles++;
-        Rw = Rr;
-    }
-
-    // LD r, n: Load register (immediate)
-    // ----------------------------------
-    // Load to the 8-bit register r, the immediate data n.
-    private void LD_Rw_n(ref byte Rw)
-    {
-        Cycles += 2;
-        Rw = Read(PC++);
-    }
-
-    // LD r, (HL): Load register (indirect HL)
-    // ---------------------------------------
-    // Load to the 8-bit register r, data from the absolute address specified by the
-    // 16-bit register HL
-    private void LD_Rw_HLn(ref byte Rw)
-    {
-        Cycles += 2;
-        Rw = Read(Binary.U16(L, H));
-    }
-
-    //LD (HL), r: Load from register (indirect HL)
-    //--------------------------------------------
-    //Load to the absolute address specified by the 16-bit register HL, data from
-    //the 8-bit register r.
-    private void LD_HLn_Rr(byte Rr)
-    {
-        Cycles += 2;
-        Write(Binary.U16(L, H), Rr);
-    }
-
-    // LD (HL), n: Load from immediate data (indirect HL)
-    // --------------------------------------------------
-    // Load to the absolute address specified by the 16-bit register HL,
-    // the immediate data n.
-    private void LD_HLn_n()
-    {
-        Cycles += 3;
-        Write(Binary.U16(L, H), Read(PC++));
-    }
-
-    // LD A, (RR): Load accumulator (indirect BC)
-    // ------------------------------------------
-    // Load to the 8-bit A register, data from the absolute address specified by
-    // the 16-bit register BC.
-    private void LD_A_RRn(byte Rmr, byte Rlr)
-    {
-        Cycles += 2;
-        A = Read(Binary.U16(Rlr, Rmr));
-    }
-
-    // LD (RR), A: Load from accumulator (indirect BC)
-    // -----------------------------------------------
-    // Load to the absolute address specified by the 16-bit register BC, data
-    // from the 8-bit A register
-    private void LD_RRn_A(byte Rmr, byte Rlr)
-    {
-        Cycles += 2;
-        Write(Binary.U16(Rlr, Rmr), A);
-    }
-
-    // LD A, (nn): Load accumulator (direct)
-    // -------------------------------------
-    // Load to the 8-bit A register, data from the absolute address
-    // specified by the 16-bit operand nn.
-    private void LD_A_nn()
-    {
-        Cycles += 4;
-        A = Read(Binary.U16(Read(PC++), Read(PC++)));
-    }
-
-    // LD (nn), A: Load from accumulator (direct)
-    // ------------------------------------------
-    // Load to the absolute address specified by the 16-bit operand nn, data
-    // from the 8-bit A register.
-    private void LD_nn_A()
-    {
-        Cycles += 4;
-        Write(Binary.U16(Read(PC++), Read(PC++)), A);
-    }
-
-    // LDH A, (C): Load accumulator (indirect 0xFF00+C)
-    // ------------------------------------------------
-    // Load to the 8-bit A register, data from the address specified by the 8-bit C
-    // register. The full 16-bit absolute address is obtained by setting the most
-    // significant byte to 0xFF and the least significant byte to the value of C,
-    // so the possible range is 0xFF00-0xFFFF.
-    private void LDH_A_Cn()
-    {
-        Cycles += 2;
-        A = Read(Binary.U16(C, 0xFF));
-    }
-
-    // LDH (C), A: Load from accumulator (indirect 0xFF00+C)
-    // -----------------------------------------------------
-    // Load to the address specified by the 8-bit C register, data from the 8-bit
-    // A register. The full 16-bit absolute address is obtained by setting the most
-    // significant byte to 0xFF and the least significant byte to the value of C,
-    // so the possible range is 0xFF00-0xFFFF.
-    private void LDH_Cn_A()
-    {
-        Cycles += 2;
-        Write(Binary.U16(C, 0xFF), A);
-    }
-
-    // LDH A, (n): Load accumulator (direct 0xFF00+n)
-    // ----------------------------------------------
-    // Load to the 8-bit A register, data from the address specified by the 8-bit
-    // immediate data n. The full 16-bit absolute address is obtained by setting
-    // the most significant byte to 0xFF and the least significant byte to the
-    // value of n, so the possible range is 0xFF00-0xFFFF.
-    private void LDH_A_Nn()
-    {
-        Cycles += 3;
-        A = Read(Binary.U16(Read(PC++), 0xFF));
-    }
-
-    // LDH (n), A: Load from accumulator (direct 0xFF00+n)
-    // ----------------------------------------------------
-    // Load to the address specified by the 8-bit immediate data n, data from the
-    // 8-bit A register. The full 16-bit absolute address is obtained by
-    // the setting the most significant byte to 0xFF and the least significant byte
-    // to value of n, so the possible range is 0xFF00-0xFFFF.
-    private void LDH_Nn_A()
-    {
-        Cycles += 3;
-        Write(Binary.U16(Read(PC++), 0xFF), A);
-    }
-
-    // LD A, (HL-): Load accumulator (indirect HL, decrement)
-    // ------------------------------------------------------
-    // Load to the 8-bit A register, data from the absolute address specified by the
-    // 16-bit register HL. The value of HL is decremented after the memory read.
-    private void LD_A_HLnm()
-    {
-        Cycles += 2;
-
-        ushort HL = Binary.U16(L, H);
-
-        A = Read(HL--);
-        H = Binary.Msb(HL);
-        L = Binary.Lsb(HL);
-    }
-
-    // LD (HL-), A: Load from accumulator (indirect HL, decrement)
-    // ------------------------------------------------------------
-    // Load to the absolute address specified by the 16-bit register HL, data from
-    // the 8-bit A register. The value ofHL is decremented after the memory write.
-    private void LD_HLnm_A()
-    {
-        Cycles += 2;
-
-        ushort HL = Binary.U16(L, H);
-
-        Write(HL--, A);
-        H = Binary.Msb(HL);
-        L = Binary.Lsb(HL);
-    }
-
-    // LD A, (HL+): Load accumulator (indirect HL, increment)
-    // --------------------------------------------------------
-    // Load to the 8-bit A register, data from the absolute address specified by
-    // the 16-bit register HL. The value of HL is incremented after the memory read.
-    private void LD_A_HLnp()
-    {
-        Cycles += 2;
-
-        ushort HL = Binary.U16(L, H);
-
-        A = Read(HL++);
-        H = Binary.Msb(HL);
-        L = Binary.Lsb(HL);
-    }
-
-    // LD (HL+), A: Load from accumulator (indirect HL, increment)
-    // -----------------------------------------------------------
-    // Load to the absolute address specified by the 16-bit register HL, data from
-    // the 8-bit A register. The value of HL is incremented after the memory write.
-    private void LD_HLnp_A()
-    {
-        Cycles += 2;
-
-        ushort HL = Binary.U16(L, H);
-
-        Write(HL++, A);
-        H = Binary.Msb(HL);
-        L = Binary.Lsb(HL);
-    }
-
-    // LD rr, nn: Load 16-bit register / register pair
-    // ------------------------------------------------
-    // Load to the 16-bit register rr, the immediate 16-bit data nn.
-    private void LD_RRw_nn(ref byte Rmw, ref byte Rlw)
-    {
-        Cycles += 3;
-
-        Rlw = Read(PC++);
-        Rmw = Read(PC++);
-    }
-    private void LD_RRw_nn(ref ushort RRw)
-    {
-        Cycles += 3;
-
-        RRw = Binary.U16(Read(PC++), Read(PC++));
-    }
-
-    // LD (nn), SP: Load from stack pointer (direct)
-    // ---------------------------------------------
-    // Load to the absolute address specified by the 16-bit operand nn, data from the 16-bit SP register.
-    private void LD_Nnn_SP()
-    {
-        Cycles += 5;
-
-        ushort nn = Binary.U16(Read(PC++), Read(PC++));
-
-        Write(nn, Binary.Lsb(SP));
-        Write(++nn, Binary.Msb(SP));
-    }
-
-    // LD SP, HL: Load stack pointer from HL
-    // -------------------------------------
-    // Load to the 16-bit SP register, data from the 16-bit HL register.
-    private void LD_SP_HL()
-    {
-        Cycles += 2;
-        SP = Binary.U16(L, H);
-    }
-
-    // LD HL, SP e
-    // -----------
-    // Add the signed value e8 to SP and store the result in HL.
-    private void LD_HL_SP_en()
-    {
-        Cycles += 3;
-        sbyte e = unchecked((sbyte)Read(PC++));
-
-        ushort _SP = (ushort)(SP + e);
-
-        H = Binary.Msb(_SP);
-        L = Binary.Lsb(_SP);
-
-        FlagZ = false;
-        FlagN = false;
-        FlagH = (_SP & 0x08) != 0;
-        FlagC = (_SP & 0x80) != 0;
-    }
-
-    // PUSH rr: Push to stack
-    // ----------------------
-    // Push to the stack memory, data from the 16-bit register rr.
-    private void PUSH_RR(byte Rmr, byte Rlr)
-    {
-        Cycles += 4;
-
-        Write(--SP, Rmr);
-        Write(--SP, Rlr);
-    }
-    private void PUSH_AF()
-    {
-        Cycles += 4;
-
-        byte F = 0;
-
-        if (FlagZ) Binary.SetBit(ref F, 7, true);
-        if (FlagN) Binary.SetBit(ref F, 6, true);
-        if (FlagH) Binary.SetBit(ref F, 5, true);
-        if (FlagC) Binary.SetBit(ref F, 4, true);
-
-        Write(--SP, F);
-        Write(--SP, A);
-    }
-
-    // POP rr: Pop from stack
-    // ----------------------
-    // Pops to the 16-bit register rr, data from the stack memory.This instruction
-    // does not do calculations that affect flags, but POP AF completely replaces the
-    // F register value, so all flags are changed based on the 8-bit data that is read
-    // from memory.
-    private void POP_RR(ref byte Rmw, ref byte Rlw)
-    {
-        Cycles += 3;
-
-        Rlw = Read(SP++);
-        Rmw = Read(SP++);
-    }
-    private void POP_AF()
-    {
-        Cycles += 3;
-
-        byte F = Read(SP++);
-
-        FlagZ = Binary.ReadBit(F, 7);
-        FlagN = Binary.ReadBit(F, 6);
-        FlagH = Binary.ReadBit(F, 5);
-        FlagC = Binary.ReadBit(F, 4);
-
-        A = Read(SP++);
-    }
-
-    // ADD r: Add (register)
-    // ---------------------
-    // Adds to the 8-bit A register, the 8-bit register r, and stores the result
-    // back into the A register.
-    private void ADD_Rr(byte Rr)
-    {
-        Cycles++;
-
-        A += Rr;
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = (A & 0x08) != 0;
-        FlagC = (A & 0x80) != 0;
-    }
-
-    // ADD (HL): Add (indirect HL)
-    // ---------------------------
-    // Adds to the 8-bit A register, data from the absolute address specified by the
-    // 16-bit register HL, and stores the result back into the A register.
-    private void ADD_HLn()
-    {
-        Cycles += 2;
-
-        A += Read(Binary.U16(L, H));
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = (A & 0x08) != 0;
-        FlagC = (A & 0x80) != 0;
-    }
-
-    // ADD n: Add (immediate)
-    // ----------------------
-    // Adds to the 8-bit A register, the immediate data n, and stores the result
-    // back into the A register
-    private void ADD_n()
-    {
-        Cycles += 2;
-
-        A += Read(PC++);
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = (A & 0x08) != 0;
-        FlagC = (A & 0x80) != 0;
-    }
-
-    // ADD SP e
-    // --------
-    // Add the signed value e8 to SP.
-    private void ADD_SP_en()
-    {
-        Cycles += 4;
-
-        sbyte e = unchecked((sbyte)Read(PC++));
-        int result = SP + e;
-
-        SP = (ushort)result;
-
-        FlagZ = false;
-        FlagN = false;
-        FlagH = (SP & 0x08) != 0;
-        FlagC = (SP & 0x80) != 0;
-    }
-
-    // ADD HL rr
-    // ---------
-    // Add the value in r16 to HL.
-    private void ADD_HL_RRr(byte Rmr, byte Rlr)
-    {
-        Cycles += 2;
-        ushort HL = (ushort)(Binary.U16(L, H) + Binary.U16(Rlr, Rmr));
-
-        H = Binary.Msb(HL);
-        L = Binary.Lsb(HL);
-
-        FlagN = false;
-        FlagH = ((HL & 0xFFF) + (Binary.U16(Rlr, Rmr) & 0xFFF)) > 0xFFF;
-        FlagC = (HL & 0x10000) != 0;
-    }
-    private void ADD_HL_SP()
-    {
-        Cycles += 2;
-        ushort HL = (ushort)(Binary.U16(L, H) + SP);
-
-        H = Binary.Msb(HL);
-        L = Binary.Lsb(HL);
-
-        FlagN = false;
-        FlagH = ((HL & 0xFFF) + (SP & 0xFFF)) > 0xFFF;
-        FlagC = (HL & 0x10000) != 0;
-    }
-
-    // ADC r: Add with carry (register)
-    // --------------------------------
-    // Adds to the 8-bit A register, the carry flag and the 8-bit register r, and
-    // stores the result back into the A register.
-    private void ADC_Rr(byte Rr)
-    {
-        Cycles++;
-
-        A += (byte)((FlagC ? 1 : 0) + Rr);
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = (A & 0x08) != 0;
-        FlagC = (A & 0x80) != 0;
-    }
-
-    // ADC (HL): Add with carry (indirect HL)
-    // --------------------------------------
-    // Adds to the 8-bit A register, the carry flag and data from the absolute address 
-    // specified by the 16-bit register HL, and stores the result back into the A register
-
-    private void ADC_HLn()
-    {
-        Cycles += 2;
-
-        A += (byte)((FlagC ? 1 : 0) + Read(Binary.U16(L, H)));
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = (A & 0x08) != 0;
-        FlagC = (A & 0x80) != 0;
-    }
-
-    // ADC n: Add with carry (immediate)
-    // ---------------------------------
-    // Adds to the 8-bit A register, the carry flag and the immediate data n, and
-    // stores the result back into the A register.
-    private void ADC_n()
-    {
-        Cycles += 2;
-
-        A += (byte)((FlagC ? 1 : 0) + Read(PC++));
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = (A & 0x08) != 0;
-        FlagC = (A & 0x80) != 0;
-    }
-
-    // SUB r: Subtract (register)
-    // --------------------------
-    // Subtracts from the 8-bit A register, the 8-bit register r, and stores the
-    // result back into the A register.
-    private void SUB_Rr(byte Rr)
-    {
-        Cycles++;
-
-        ushort result = (ushort)(A - Rr);
-        bool borrowFromBit4 = (result & 0x10) != 0;
-
-        A = (byte)result;
-
-        FlagZ = A == 0;
-        FlagN = true;
-        FlagH = borrowFromBit4;
-        FlagC = Rr > A;
-    }
-
-    // SUB (HL): Subtract (indirect HL)
-    // --------------------------------
-    // Subtracts from the 8-bit A register, data from the absolute address specified
-    // by the 16-bit register HL, and stores the result back into the A register.
-    private void SUB_HLn()
-    {
-        Cycles += 2;
-
-        byte HL = Read(Binary.U16(L, H));
-        ushort result = (ushort)(A - HL);
-        bool borrowFromBit4 = (result & 0x10) != 0;
-
-        A = (byte)result;
-
-        FlagZ = A == 0;
-        FlagN = true;
-        FlagH = borrowFromBit4;
-        FlagC = HL > A;
-    }
-
-    // SUB n: Subtract (immediate)
-    // ---------------------------
-    // Subtracts from the 8-bit A register, the immediate data n, and stores the result
-    // back into the A register.
-    private void SUB_n()
-    {
-        Cycles += 2;
-
-        byte n = Read(PC++);
-        ushort result = (ushort)(A - n);
-        bool borrowFromBit4 = (result & 0x10) != 0;
-
-        A = (byte)result;
-
-        FlagZ = A == 0;
-        FlagN = true;
-        FlagH = borrowFromBit4;
-        FlagC = n > A;
-    }
-
-    // SBC r: Subtract with carry (register)
-    // -------------------------------------
-    // Subtracts from the 8-bit A register, the carry flag and the 8-bit register r, and stores
-    // the result back into the A register.
-    private void SBC_Rr(byte Rr)
-    {
-        Cycles++;
-
-        ushort result = (ushort)(A - (Rr + (FlagC ? 1 : 0)));
-        bool borrowFromBit4 = (result & 0x10) != 0;
-
-        A = (byte)result;
-
-        FlagZ = A == 0;
-        FlagN = true;
-        FlagH = borrowFromBit4;
-        FlagC = Rr + (FlagC ? 1 : 0) > A;
-    }
-
-    // SBC (HL): Subtract with carry (indirect HL)
-    // -------------------------------------------
-    // Subtracts from the 8-bit A register, the carry flag and data from the absolute address
-    // specified by the 16-bit register HL, and stores the result back into the A register.
-    private void SBC_HLn()
-    {
-        Cycles += 2;
-
-        byte HL = Read(Binary.U16(L, H));
-        ushort result = (ushort)(A - (HL + (FlagC ? 1 : 0)));
-        bool borrowFromBit4 = (result & 0x10) != 0;
-
-        A = (byte)result;
-
-        FlagZ = A == 0;
-        FlagN = true;
-        FlagH = borrowFromBit4;
-        FlagC = HL + (FlagC ? 1 : 0) > A;
-    }
-
-    // SBC n: Subtract with carry (immediate)
-    // --------------------------------------
-    // Subtracts from the 8-bit A register, the carry flag and the immediate data n, and stores
-    // the result back into the A register.
-    private void SBC_n()
-    {
-        Cycles += 2;
-
-        byte n = Read(PC++);
-        ushort result = (ushort)(A - (n + (FlagC ? 1 : 0)));
-        bool borrowFromBit4 = (result & 0x10) != 0;
-
-        A = (byte)result;
-
-        FlagZ = A == 0;
-        FlagN = true;
-        FlagH = borrowFromBit4;
-        FlagC = n + (FlagC ? 1 : 0) > A;
-    }
-
-    // CP r: Compare (register)
-    // ------------------------
-    // Subtracts from the 8-bit A register, the 8-bit register r, and updates flags based on
-    // the result. This instruction is basically identical to SUB r, but does not update the A register.
-    private void CP_Rr(byte Rr)
-    {
-        Cycles++;
-
-        ushort result = (ushort)(A - Rr);
-
-        FlagZ = result == 0;
-        FlagN = true;
-        FlagH = (result & 0x10) != 0;
-        FlagC = Rr > A;
-    }
-
-    // CP (HL): Compare (indirect HL)
-    // ------------------------------
-    // Subtracts from the 8-bit A register, data from the absolute address specified by the 16-bit
-    // register HL, and updates flags based on the result.This instruction is basically identical to SUB
-    // (HL), but does not update the A register.
-    private void CP_HLn()
-    {
-        Cycles += 2;
-
-        byte HL = Read(Binary.U16(L, H));
-        ushort result = (ushort)(A - HL);
-
-        FlagZ = result == 0;
-        FlagN = true;
-        FlagH = (result & 0x10) != 0;
-        FlagC = HL > A;
-    }
-
-    // CP n: Compare (immediate)
-    // -------------------------
-    // Subtracts from the 8-bit A register, the immediate data n, and updates flags based on the result. This
-    // instruction is basically identical to SUB n, but does not update the A register.
-    private void CP_n()
-    {
-        Cycles += 2;
-
-        byte n = Read(PC++);
-        ushort result = (ushort)(A - n);
-
-        FlagZ = result == 0;
-        FlagN = true;
-        FlagH = (result & 0x10) != 0;
-        FlagC = n > A;
-    }
-
-    // INC r: Increment (register)
-    // ---------------------------
-    // Increments data in the 8-bit register r.
-    private void INC_Rw(ref byte Rw)
-    {
-        Cycles++;
-
-        bool carryPerBit = ((Rw + 1) & 0x08) != 0;
-        Rw++;
-
-        FlagZ = Rw == 0;
-        FlagN = false;
-        FlagH = carryPerBit;
-    }
-
-    // INC (HL): Increment (indirect HL)
-    // ---------------------------------
-    // Increments data at the absolute address specified by the 16-bit register HL.
-    private void INC_HLn()
-    {
-        Cycles += 3;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(Binary.U16(L, H));
-        bool carryPerBit = ((data + 1) & 0x08) != 0;
-        Write(HL, ++data);
-
-        FlagZ = data == 0;
-        FlagN = false;
-        FlagH = carryPerBit;
-    }
-
-    // INC rr
-    // ------
-    // Increment value in register RR by 1.
-    private void INC_RRw(ref byte Rmw, ref byte Rlw)
-    {
-        Cycles += 2;
-
-        ushort RR = (ushort)(Binary.U16(Rlw, Rmw) + 1);
-
-        Rmw = Binary.Msb(RR);
-        Rlw = Binary.Lsb(RR);
-    }
-    private void INC_RRw(ref ushort RRw)
-    {
-        Cycles += 2;
-        RRw++;
-    }
-
-    // DEC r: Decrement (register)
-    // ---------------------------
-    // Decrements data in the 8-bit register r.
-    private void DEC_Rw(ref byte Rw)
-    {
-        Cycles++;
-
-        bool borrowFromBit4 = (Rw & 0x10) != 0;
-        Rw--;
-
-        FlagZ = Rw == 0;
-        FlagN = true;
-        FlagH = borrowFromBit4;
-    }
-
-    // DEC (HL): Decrement (indirect HL)
-    // ---------------------------------
-    // Decrements data at the absolute address specified by the 16-bit register HL.
-    private void DEC_HLn()
-    {
-        Cycles += 3;
-
-        byte HLn = Read(Binary.U16(L, H));
-        bool borrowFromBit4 = (HLn & 0x10) != 0;
-
-        byte data = (byte)(HLn - 1);
-        Write(Binary.U16(L, H), data);
-
-        FlagZ = data == 0;
-        FlagN = true;
-        FlagH = borrowFromBit4;
-    }
-
-    // DEC rr
-    // ------
-    // Decrement value in register rr by 1.
-    private void DEC_RRw(ref byte Rmw, ref byte Rlw)
-    {
-        Cycles += 2;
-
-        ushort RR = (ushort)(Binary.U16(Rlw, Rmw) - 1);
-
-        Rmw = Binary.Msb(RR);
-        Rlw = Binary.Lsb(RR);
-    }
-    private void DEC_RRw(ref ushort RRw)
-    {
-        Cycles += 2;
-        RRw--;
-    }
-
-    // AND r: Bitwise AND (register)
-    // -----------------------------
-    // Performs a bitwise AND operation between the 8-bit A register and the 8-bit register r,
-    // and stores the result back into the A register.
-    private void AND_Rr(byte Rr)
-    {
-        Cycles++;
-
-        A &= Rr;
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = true;
-        FlagC = false;
-    }
-
-    // AND (HL): Bitwise AND (indirect HL)
-    // -----------------------------------
-    // Performs a bitwise AND operation between the 8-bit A register and data from the absolute
-    // address specified by the 16-bit register HL, and stores the result back into the A register.
-    private void AND_HLn()
-    {
-        Cycles += 2;
-
-        A &= Read(Binary.U16(L, H));
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = true;
-        FlagC = false;
-    }
-
-    // AND n: Bitwise AND (immediate)
-    // ------------------------------
-    // Performs a bitwise AND operation between the 8-bit A register and immediate data n, and stores
-    // the result back into the A register.
-    private void AND_n()
-    {
-        Cycles += 2;
-
-        A &= Read(PC++);
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = true;
-        FlagC = false;
-    }
-
-    // OR r: Bitwise OR (register)
-    // ---------------------------
-    // Performs a bitwise OR operation between the 8-bit A register and the 8-bit register r, and
-    // stores the result back into the A register
-    private void OR_Rr(byte Rr)
-    {
-        Cycles++;
-
-        A |= Rr;
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = false;
-    }
-
-    // OR (HL): Bitwise OR (indirect HL)
-    // ---------------------------------
-    // Performs a bitwise AND operation between the 8-bit A register and data from the absolute
-    // address specified by the 16-bit register HL, and stores the result back into the A register.
-    private void OR_HLn()
-    {
-        Cycles += 2;
-
-        A |= Read(Binary.U16(L, H));
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = false;
-    }
-
-    // OR n: Bitwise OR (immediate)
-    // ----------------------------
-    // Performs a bitwise OR operation between the 8-bit A register and immediate data n, and stores
-    // the result back into the A register.
-    private void OR_n()
-    {
-        Cycles += 2;
-
-        A |= Read(PC++);
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = false;
-    }
-
-    // XOR r: Bitwise XOR (register)
-    // -----------------------------
-    // Performs a bitwise XOR operation between the 8-bit A register and the 8-bit register r, and
-    // stores the result back into the A register
-    private void XOR_Rr(byte Rr)
-    {
-        Cycles++;
-
-        A ^= Rr;
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = false;
-    }
-
-    // XOR (HL): Bitwise XOR (indirect HL)
-    // -----------------------------------
-    // Performs a bitwise XOR operation between the 8-bit A register and data from the absolute
-    // address specified by the 16-bit register HL, and stores the result back into the A register.
-    private void XOR_HLn()
-    {
-        Cycles += 2;
-
-        A ^= Read(Binary.U16(L, H));
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = false;
-    }
-
-    // XOR n: Bitwise XOR (immediate)
-    // ------------------------------
-    // Performs a bitwise XOR operation between the 8-bit A register and immediate data n, and stores
-    // the result back into the A register.
-    private void XOR_n()
-    {
-        Cycles += 2;
-
-        A ^= Read(PC++);
-
-        FlagZ = A == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = false;
-    }
-
-    // CCF: Complement carry flag
-    // --------------------------
-    // Flips the carry flag, and clears the N and H flags.
-    private void CCF()
-    {
-        Cycles++;
-
-        FlagN = false;
-        FlagH = false;
-        FlagC = !FlagC;
-    }
-
-    // SCF: Set carry flag
-    // -------------------
-    // Sets the carry flag, and clears the N and H flags.
-    private void SCF()
-    {
-        Cycles++;
-
-        FlagN = false;
-        FlagH = false;
-        FlagC = true;
-    }
-
-    // DAA: Decimal adjust accumulator
-    // -------------------------------
-    // Decimal Adjust Accumulator to get a correct BCD representation after an arithmetic instruction.
-    private void DAA()
-    {
-        Cycles++;
-
-        byte lsb = (byte)(A & 0x0F);
-        byte msb = (byte)(A >> 4);
-
-        if (FlagN)
-        {
-            if (FlagH || (lsb > 9))
-            lsb -= 6;
-        }
-        else
-        {
-            if ((lsb > 9) || FlagH)
-            lsb += 6;
         }
 
-        if (FlagC || (msb > 9))
+        // JP nn: Jump
+        // -----------
+        // Unconditional jump to the absolute address specified by the 16-bit operand nn.
+        private void JP_nn()
         {
-            msb += 6;
-            FlagC = true;
+            Cycles += 4;
+            PC = Binary.U16(Binary.Lsb(Read(PC++)), Binary.Msb(Read(PC++)));
         }
-        else
-        FlagC = false;
 
-        A = (byte)((msb << 4) | (lsb & 0x0F));
-    }
-
-    // CPL: Complement accumulator
-    // ---------------------------
-    // Flips all the bits in the 8-bit A register, and sets the N and H flags.
-    private void CPL()
-    {
-        Cycles++;
-        A = (byte)~A;
-
-        FlagN = true;
-        FlagH = true;
-    }
-
-    // JP nn: Jump
-    // -----------
-    // Unconditional jump to the absolute address specified by the 16-bit operand nn.
-    private void JP_nn()
-    {
-        Cycles += 4;
-        PC = Binary.U16(Binary.Lsb(Read(PC++)), Binary.Msb(Read(PC++)));
-    }
-
-    // JP HL: Jump to HL
-    // -----------------
-    // Unconditional jump to the absolute address specified by the 16-bit register HL.
-    private void JP_HL()
-    {
-        Cycles++;
-        PC = Binary.U16(L, H);
-    }
-
-    // JP cc, nn: Jump (conditional)
-    // -----------------------------
-    // Conditional jump to the absolute address specified by the 16-bit operand nn, depending on the
-    // condition cc. Note that the operand(absolute address) is read even when the condition is false!
-    private void JP_CC_nn(bool CC)
-    {
-        Cycles += (byte)(CC ? 4 : 3);
-        ushort nn = Binary.U16(Read(PC++), Read(PC++));
-
-        if (CC)
-        PC = nn;
-    }
-
-    // JR e: Relative jump
-    // -------------------
-    // Unconditional jump to the relative address specified by the signed 8-bit operand e.
-    private void JR_en()
-    {
-        Cycles += 3;
-        sbyte e = unchecked((sbyte)Read(PC++));
-        PC = (ushort)(PC + e);
-    }
-
-    // JR cc, e: Relative jump (conditional)
-    // -------------------------------------
-    // Conditional jump to the relative address specified by the signed 8-bit operand e, depending on the condition cc.
-    // Note that the operand(relative address offset) is read even when the condition is false!
-    private void JR_CC_en(bool CC)
-    {
-        Cycles += (byte)(CC ? 3 : 2);
-        sbyte e = unchecked((sbyte)Read(PC++));
-
-        if (CC)
-        PC = (ushort)(PC + e);
-    }
-
-    // CALL nn: Call function
-    // ----------------------
-    // Unconditional function call to the absolute address specified by the 16-bit operand nn.
-    private void CALL_nn()
-    {
-        Cycles += 6;
-
-        ushort nn = Binary.U16(Read(PC++), Read(PC++));
-
-        Write(--SP, Binary.Msb(PC));
-        Write(--SP, Binary.Lsb(PC));
-        PC = nn;
-    }
-
-    // CALL cc, nn: Call function (conditional)
-    // ----------------------------------------
-    // Conditional function call to the absolute address specified by the 16-bit operand nn,
-    // depending on the condition cc. Note that the operand(absolute address) is read even when the
-    // condition is false!
-    private void CALL_CC_nn(bool CC)
-    {
-        Cycles += (byte)(CC ? 6 : 3);
-        byte lsb = Read(PC++);
-        byte msb = Read(PC++);
-
-        if (CC)
+        // JP HL: Jump to HL
+        // -----------------
+        // Unconditional jump to the absolute address specified by the 16-bit register HL.
+        private void JP_HL()
         {
+            Cycles++;
+            PC = Binary.U16(L, H);
+        }
+
+        // JP cc, nn: Jump (conditional)
+        // -----------------------------
+        // Conditional jump to the absolute address specified by the 16-bit operand nn, depending on the
+        // condition cc. Note that the operand(absolute address) is read even when the condition is false!
+        private void JP_CC_nn(bool CC)
+        {
+            Cycles += (byte)(CC ? 4 : 3);
+            ushort nn = Binary.U16(Read(PC++), Read(PC++));
+
+            if (CC)
+            PC = nn;
+        }
+
+        // JR e: Relative jump
+        // -------------------
+        // Unconditional jump to the relative address specified by the signed 8-bit operand e.
+        private void JR_en()
+        {
+            Cycles += 3;
+            sbyte e = unchecked((sbyte)Read(PC++));
+            PC = (ushort)(PC + e);
+        }
+
+        // JR cc, e: Relative jump (conditional)
+        // -------------------------------------
+        // Conditional jump to the relative address specified by the signed 8-bit operand e, depending on the condition cc.
+        // Note that the operand(relative address offset) is read even when the condition is false!
+        private void JR_CC_en(bool CC)
+        {
+            Cycles += (byte)(CC ? 3 : 2);
+            sbyte e = unchecked((sbyte)Read(PC++));
+
+            if (CC)
+            PC = (ushort)(PC + e);
+        }
+
+        // CALL nn: Call function
+        // ----------------------
+        // Unconditional function call to the absolute address specified by the 16-bit operand nn.
+        private void CALL_nn()
+        {
+            Cycles += 6;
+
+            ushort nn = Binary.U16(Read(PC++), Read(PC++));
+
+            Write(--SP, Binary.Msb(PC));
+            Write(--SP, Binary.Lsb(PC));
+            PC = nn;
+        }
+
+        // CALL cc, nn: Call function (conditional)
+        // ----------------------------------------
+        // Conditional function call to the absolute address specified by the 16-bit operand nn,
+        // depending on the condition cc. Note that the operand(absolute address) is read even when the
+        // condition is false!
+        private void CALL_CC_nn(bool CC)
+        {
+            Cycles += (byte)(CC ? 6 : 3);
+            byte lsb = Read(PC++);
+            byte msb = Read(PC++);
+
+            if (CC)
+            {
+                Write(--SP, Binary.Msb(PC));
+                Write(--SP, Binary.Lsb(PC));
+
+                PC = Binary.U16(lsb, msb);
+            }
+        }
+
+        // RET: Return from function
+        // -------------------------
+        // Unconditional return from a function.
+        private void RET()
+        {
+            Cycles += 4;
+            PC = Binary.U16(Read(SP++), Read(SP++));
+        }
+
+        // RET cc: Return from function (conditional)
+        // ------------------------------------------
+        // Conditional return from a function, depending on the condition cc.
+        private void RET_CC(bool CC)
+        {
+            Cycles += (byte)(CC ? 5 : 2);
+
+            if (CC)
+            PC = Binary.U16(Read(SP++), Read(SP++));
+        }
+
+        // RETI: Return from interrupt handler
+        // -----------------------------------
+        // Unconditional return from a function. Also enables interrupts by setting IME=1.
+        private void RETI()
+        {
+            Cycles += 4;
+
+            PC = Binary.U16(Read(SP++), Read(SP++));
+            IME = true;
+        }
+
+        // RST n: Restart / Call function (implied)
+        // ----------------------------------------
+        // Unconditional function call to the absolute fixed address defined by the opcode.
+        private void RST_n(byte at)
+        {
+            Cycles += 4;
+
+            byte n = Read(PC);
+
             Write(--SP, Binary.Msb(PC));
             Write(--SP, Binary.Lsb(PC));
 
-            PC = Binary.U16(lsb, msb);
+            PC = Binary.U16(n, at);
         }
-    }
 
-    // RET: Return from function
-    // -------------------------
-    // Unconditional return from a function.
-    private void RET()
-    {
-        Cycles += 4;
-        PC = Binary.U16(Read(SP++), Read(SP++));
-    }
-
-    // RET cc: Return from function (conditional)
-    // ------------------------------------------
-    // Conditional return from a function, depending on the condition cc.
-    private void RET_CC(bool CC)
-    {
-        Cycles += (byte)(CC ? 5 : 2);
-
-        if (CC)
-        PC = Binary.U16(Read(SP++), Read(SP++));
-    }
-
-    // RETI: Return from interrupt handler
-    // -----------------------------------
-    // Unconditional return from a function. Also enables interrupts by setting IME=1.
-    private void RETI()
-    {
-        Cycles += 4;
-
-        PC = Binary.U16(Read(SP++), Read(SP++));
-        IME = true;
-    }
-
-    // RST n: Restart / Call function (implied)
-    // ----------------------------------------
-    // Unconditional function call to the absolute fixed address defined by the opcode.
-    private void RST_n(byte at)
-    {
-        Cycles += 4;
-
-        byte n = Read(PC);
-
-        Write(--SP, Binary.Msb(PC));
-        Write(--SP, Binary.Lsb(PC));
-
-        PC = Binary.U16(n, at);
-    }
-
-    // HALT: Halt system clock
-    // -----------------------
-    // Enter CPU low-power consumption mode until an interrupt occurs. The exact behavior of
-    // this instruction depends on the state of the IME flag.
-    private void HALT()
-    {
-        Halt = true;
-
-        if (IME)
+        // HALT: Halt system clock
+        // -----------------------
+        // Enter CPU low-power consumption mode until an interrupt occurs. The exact behavior of
+        // this instruction depends on the state of the IME flag.
+        private void HALT()
         {
-            if (Memory.Read(0xFF0F) != 0)
-            Halt = false;
-            else
+            Halt = true;
+
+            if (IME)
             {
-                
+                if (Memory.Read(0xFF0F) != 0)
+                Halt = false;
+                else
+                {
+
+                }
             }
+            else
+            Halt = false;
         }
-        else
-        Halt = false;
-    }
-
-    // STOP: Stop system and main clocks
-    // ---------------------------------
-    // -
-    private void STOP()
-    {
-        Stop = true;
-    }
-
-    // DI: Disable interrupts
-    // ----------------------
-    // Disables interrupt handling by setting IME=0 and cancelling any scheduled effects of
-    // the EI instruction if any.
-    private void DI()
-    {
-        Cycles++;
-        IME = false;
-        //IME_scheduled = false;
-    }
-
-    // EI: Enable interrupts
-    // ---------------------
-    // Schedules interrupt handling to be enabled after the next machine cycle.
-    private void EI()
-    {
-        Cycles += 1;
-        IME = true;
-        //IME_scheduled = true;
-    }
-
-    // NOP: No operation
-    // -----------------
-    // No operation. This instruction doesn’t do anything, but can be used to add a delay of one
-    // machine cycle and increment PC by one.
-    private void NOP()
-    {
-        Cycles++;
-    }
-
-    // Unknown
-    // -------
-    // -
-    private void unknown()
-    {
-    }
-
-    // RLCA
-    // ----
-    // Rotate Left through Carry Accumulator : 000c rotate akku left
-    private void RLCA()
-    {
-        Cycles++;
-
-        byte _A = A;
-        A = (byte)((A << 1) | (A >> 7));
-
-        FlagZ = false;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_A, 7);
-    }
-
-    // RLA
-    // ---
-    // Rotate Left through Accumulator : 000c rotate akku left through carry
-    private void RLA()
-    {
-        Cycles++;
-
-        byte _A = A;
-        A <<= 1;
-
-        Binary.SetBit(ref A, 0, FlagC);
-
-        FlagZ = false;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_A, 7);
-    }
-
-    // RRCA
-    // ----
-    // Rotate Right through Carry Accumulator : 000c rotate akku right
-    private void RRCA()
-    {
-        Cycles++;
-
-        byte _A = A;
-        A = (byte)((A >> 1) | ((A & 0x01) << 7));
-
-        FlagZ = false;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_A, 0);
-    }
-
-    // RRA
-    // ----
-    // Rotate Right through Accumulator : 000c rotate akku right through carry
-    private void RRA()
-    {
-        Cycles++;
-
-        byte _A = A;
-        A >>= 1;
-
-        Binary.SetBit(ref A, 7, FlagC);
-
-        FlagZ = false;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_A, 0);
-    }
-
-    // CB operation
-    // ------------
-    // Execute opcode with CB prefix
-    private void CB_op()
-    {
-        CB_Instructions[Read(PC++)]?.Invoke();
-    }
-
-    // ###############################
-    // # Instructions set prefix CB  #
-    // ###############################
-
-    // RLC r
-    // -----
-    // Rotate Left through Carry
-    private void RLC_Rw(ref byte Rw)
-    {
-        Cycles += 2;
-
-        byte _R = Rw;
-        Rw = (byte)((Rw << 1) | (Rw >> 7));
-
-        FlagZ = Rw == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_R, 7);
-    }
-
-    // RLC (HL)
-    // --------
-    // Rotate Left through Carry with direct memory at HL
-    private void RLC_HLn()
-    {
-        Cycles += 4;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(HL);
-        byte newData = (byte)((data << 1) | (data >> 7));
-        Write(HL, newData);
-
-        FlagZ = newData == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(data, 7);
-    }
-
-    // RRC r
-    // -----
-    // Rotate Right through Carry
-    private void RRC_Rw(ref byte Rw)
-    {
-        Cycles += 2;
-
-        byte _R = Rw;
-        Rw = (byte)((Rw >> 1) | ((Rw & 0x01) << 7));
-
-        FlagZ = Rw == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_R, 0);
-    }
-
-    // RRC (HL)
-    // --------
-    // Rotate Right through Carry with direct memory at HL
-    private void RRC_HLn()
-    {
-        Cycles += 4;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(HL);
-        byte newData = (byte)((data >> 1) | ((data & 0x01) << 7));
-        Write(HL, newData);
-
-        FlagZ = newData == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(data, 0);
-    }
-
-    // RL r
-    // ----
-    // Rotate Left through
-    private void RL_Rw(ref byte Rw)
-    {
-        Cycles += 2;
-
-        byte _R = Rw;
-        Rw <<= 1;
-
-        Binary.SetBit(ref Rw, 0, FlagC);
-
-        FlagZ = Rw == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_R, 7);
-    }
-
-    // RL (HL)
-    // -------
-    // Rotate Left through with direct memory at HL
-    private void RL_HLn()
-    {
-        Cycles += 4;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(HL);
-        byte newData = (byte)(data << 1);
-
-        Binary.SetBit(ref newData, 0, FlagC);
-        Write(HL, newData);
-
-        FlagZ = newData == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(data, 7);
-    }
-
-    // RR r
-    // -----
-    // Rotate Right through
-    private void RR_Rw(ref byte Rw)
-    {
-        Cycles += 2;
-
-        byte _R = Rw;
-        Rw >>= 1;
-
-        Binary.SetBit(ref Rw, 7, FlagC);
-
-        FlagZ = Rw == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_R, 0);
-    }
-
-    // RR (HL)
-    // -------
-    // Rotate Right through with direct memory at HL
-    private void RR_HLn()
-    {
-        Cycles += 4;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(HL);
-        byte newData = (byte)(data >> 1);
-
-        Binary.SetBit(ref newData, 7, FlagC);
-        Write(HL, newData);
-
-        FlagZ = newData == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(data, 0);
-    }
-
-    // SLA r
-    // -----
-    // Shift Left Arithmetic
-    private void SLA_Rw(ref byte Rw)
-    {
-        Cycles += 2;
-
-        byte _R = Rw;
-        Rw = (byte)(Rw << 1);
-
-        FlagZ = Rw == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_R, 7);
-    }
-
-    // SLA (HL)
-    // --------
-    // Shift Left Arithmetic with direct memory at HL
-    private void SLA_HLn()
-    {
-        Cycles += 4;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(HL);
-        byte newData = (byte)(data << 1);
-        Write(HL, newData);
-
-        FlagZ = newData == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(data, 7);
-    }
-
-    // SRA r
-    // -----
-    // Shift Right Arithmetic
-    private void SRA_Rw(ref byte Rw)
-    {
-        Cycles += 2;
-
-        byte _R = Rw;
-        Rw = (byte)((Rw >> 1) | (Rw & 0x80));
-
-        FlagZ = Rw == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_R, 0);
-    }
-
-    // SRA (HL)
-    // --------
-    // Shift Right Arithmetic with direct memory at HL
-    private void SRA_HLn()
-    {
-        Cycles += 4;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(HL);
-        byte newData = (byte)((data >> 1) | (data & 0x80));
-        Write(HL, newData);
-
-        FlagZ = newData == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(data, 0);
-    }
-
-    // SWAP r
-    // ------
-    // Exchange low/hi-nibble
-    private void SWAP_Rw(ref byte Rw)
-    {
-        Cycles += 2;
-
-        Rw = (byte)(((Rw & 0x0F) << 4) | ((Rw & 0xF0) >> 4));
-
-        FlagZ = Rw == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = false;
-    }
-
-    // SWAP (HL)
-    // ---------
-    // Exchange low/hi-nibble with direct memory at HL
-    private void SWAP_HLn()
-    {
-        Cycles += 4;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(HL);
-        byte newData = (byte)(((data & 0x0F) << 4) | ((data & 0xF0) >> 4));
-        Write(HL, newData);
-
-        FlagZ = newData == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = false;
-    }
-
-    // SRL r
-    // -----
-    // Shift right logical
-    private void SRL_Rw(ref byte Rw)
-    {
-        Cycles += 2;
-
-        byte _R = Rw;
-        Rw = (byte)(Rw >> 1);
-
-        FlagZ = Rw == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(_R, 0);
-    }
-
-    // SRL (HL)
-    // --------
-    // Shift right logical with direct memory at HL
-    private void SRL_HLn()
-    {
-        Cycles += 4;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(HL);
-        byte newData = (byte)(data >> 1);
-        Write(HL, newData);
-
-        FlagZ = newData == 0;
-        FlagN = false;
-        FlagH = false;
-        FlagC = Binary.ReadBit(data, 0);
-    }
-
-    // BIT n,r
-    // -------
-    // Test bit n
-    private void BIT_n_r(byte n, byte Rr)
-    {
-        Cycles += 2;
-
-        FlagZ = !Binary.ReadBit(Rr, n);
-        FlagN = false;
-        FlagH = true;
-    }
-
-    // BIT n,(HL)
-    // ----------
-    // Test bit n with direct memory at HL
-    private void BIT_n_HLn(byte n)
-    {
-        Cycles += 3;
-
-        FlagZ = !Binary.ReadBit(Read(Binary.U16(L, H)), n);
-        FlagN = false;
-        FlagH = true;
-    }
-
-    // SET n,r
-    // -------
-    // Set bit n
-    private void SET_n_r(byte n, ref byte Rw)
-    {
-        Cycles += 2;
-        Binary.SetBit(ref Rw, n, true);
-    }
-
-    // SET n,(HL)
-    // ----------
-    // Set bit n with direct memory at HL
-    private void SET_n_HLn(byte n)
-    {
-        Cycles += 4;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(HL);
-        Binary.SetBit(ref data, n, true);
-        Write(HL, data);
-    }
-
-    // RES n,r
-    // -------
-    // Set bit n
-    private void RES_n_r(byte n, ref byte Rw)
-    {
-        Cycles += 2;
-        Binary.SetBit(ref Rw, n, false);
-    }
-
-    // RES n,(HL)
-    // ----------
-    // Set bit n with direct memory at HL
-    private void RES_n_HLn(byte n)
-    {
-        Cycles += 4;
-
-        ushort HL = Binary.U16(L, H);
-        byte data = Read(HL);
-        Binary.SetBit(ref data, n, false);
-        Write(HL, data);
+
+        // STOP: Stop system and main clocks
+        // ---------------------------------
+        // -
+        private void STOP()
+        {
+            Stop = true;
+        }
+
+        // DI: Disable interrupts
+        // ----------------------
+        // Disables interrupt handling by setting IME=0 and cancelling any scheduled effects of
+        // the EI instruction if any.
+        private void DI()
+        {
+            Cycles++;
+            IME = false;
+            //IME_scheduled = false;
+        }
+
+        // EI: Enable interrupts
+        // ---------------------
+        // Schedules interrupt handling to be enabled after the next machine cycle.
+        private void EI()
+        {
+            Cycles += 1;
+            IME = true;
+            //IME_scheduled = true;
+        }
+
+        // NOP: No operation
+        // -----------------
+        // No operation. This instruction doesn’t do anything, but can be used to add a delay of one
+        // machine cycle and increment PC by one.
+        private void NOP()
+        {
+            Cycles++;
+        }
+
+        // Unknown
+        // -------
+        // -
+        private void unknown()
+        {
+        }
+
+        // RLCA
+        // ----
+        // Rotate Left through Carry Accumulator : 000c rotate akku left
+        private void RLCA()
+        {
+            Cycles++;
+
+            byte _A = A;
+            A = (byte)((A << 1) | (A >> 7));
+
+            FlagZ = false;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_A, 7);
+        }
+
+        // RLA
+        // ---
+        // Rotate Left through Accumulator : 000c rotate akku left through carry
+        private void RLA()
+        {
+            Cycles++;
+
+            byte _A = A;
+            A <<= 1;
+
+            Binary.SetBit(ref A, 0, FlagC);
+
+            FlagZ = false;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_A, 7);
+        }
+
+        // RRCA
+        // ----
+        // Rotate Right through Carry Accumulator : 000c rotate akku right
+        private void RRCA()
+        {
+            Cycles++;
+
+            byte _A = A;
+            A = (byte)((A >> 1) | ((A & 0x01) << 7));
+
+            FlagZ = false;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_A, 0);
+        }
+
+        // RRA
+        // ----
+        // Rotate Right through Accumulator : 000c rotate akku right through carry
+        private void RRA()
+        {
+            Cycles++;
+
+            byte _A = A;
+            A >>= 1;
+
+            Binary.SetBit(ref A, 7, FlagC);
+
+            FlagZ = false;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_A, 0);
+        }
+
+        // CB operation
+        // ------------
+        // Execute opcode with CB prefix
+        private void CB_op()
+        {
+            CB_Instructions[Read(PC++)]?.Invoke();
+        }
+
+        // ###############################
+        // # Instructions set prefix CB  #
+        // ###############################
+
+        // RLC r
+        // -----
+        // Rotate Left through Carry
+        private void RLC_Rw(ref byte Rw)
+        {
+            Cycles += 2;
+
+            byte _R = Rw;
+            Rw = (byte)((Rw << 1) | (Rw >> 7));
+
+            FlagZ = Rw == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_R, 7);
+        }
+
+        // RLC (HL)
+        // --------
+        // Rotate Left through Carry with direct memory at HL
+        private void RLC_HLn()
+        {
+            Cycles += 4;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(HL);
+            byte newData = (byte)((data << 1) | (data >> 7));
+            Write(HL, newData);
+
+            FlagZ = newData == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(data, 7);
+        }
+
+        // RRC r
+        // -----
+        // Rotate Right through Carry
+        private void RRC_Rw(ref byte Rw)
+        {
+            Cycles += 2;
+
+            byte _R = Rw;
+            Rw = (byte)((Rw >> 1) | ((Rw & 0x01) << 7));
+
+            FlagZ = Rw == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_R, 0);
+        }
+
+        // RRC (HL)
+        // --------
+        // Rotate Right through Carry with direct memory at HL
+        private void RRC_HLn()
+        {
+            Cycles += 4;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(HL);
+            byte newData = (byte)((data >> 1) | ((data & 0x01) << 7));
+            Write(HL, newData);
+
+            FlagZ = newData == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(data, 0);
+        }
+
+        // RL r
+        // ----
+        // Rotate Left through
+        private void RL_Rw(ref byte Rw)
+        {
+            Cycles += 2;
+
+            byte _R = Rw;
+            Rw <<= 1;
+
+            Binary.SetBit(ref Rw, 0, FlagC);
+
+            FlagZ = Rw == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_R, 7);
+        }
+
+        // RL (HL)
+        // -------
+        // Rotate Left through with direct memory at HL
+        private void RL_HLn()
+        {
+            Cycles += 4;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(HL);
+            byte newData = (byte)(data << 1);
+
+            Binary.SetBit(ref newData, 0, FlagC);
+            Write(HL, newData);
+
+            FlagZ = newData == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(data, 7);
+        }
+
+        // RR r
+        // -----
+        // Rotate Right through
+        private void RR_Rw(ref byte Rw)
+        {
+            Cycles += 2;
+
+            byte _R = Rw;
+            Rw >>= 1;
+
+            Binary.SetBit(ref Rw, 7, FlagC);
+
+            FlagZ = Rw == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_R, 0);
+        }
+
+        // RR (HL)
+        // -------
+        // Rotate Right through with direct memory at HL
+        private void RR_HLn()
+        {
+            Cycles += 4;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(HL);
+            byte newData = (byte)(data >> 1);
+
+            Binary.SetBit(ref newData, 7, FlagC);
+            Write(HL, newData);
+
+            FlagZ = newData == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(data, 0);
+        }
+
+        // SLA r
+        // -----
+        // Shift Left Arithmetic
+        private void SLA_Rw(ref byte Rw)
+        {
+            Cycles += 2;
+
+            byte _R = Rw;
+            Rw = (byte)(Rw << 1);
+
+            FlagZ = Rw == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_R, 7);
+        }
+
+        // SLA (HL)
+        // --------
+        // Shift Left Arithmetic with direct memory at HL
+        private void SLA_HLn()
+        {
+            Cycles += 4;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(HL);
+            byte newData = (byte)(data << 1);
+            Write(HL, newData);
+
+            FlagZ = newData == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(data, 7);
+        }
+
+        // SRA r
+        // -----
+        // Shift Right Arithmetic
+        private void SRA_Rw(ref byte Rw)
+        {
+            Cycles += 2;
+
+            byte _R = Rw;
+            Rw = (byte)((Rw >> 1) | (Rw & 0x80));
+
+            FlagZ = Rw == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_R, 0);
+        }
+
+        // SRA (HL)
+        // --------
+        // Shift Right Arithmetic with direct memory at HL
+        private void SRA_HLn()
+        {
+            Cycles += 4;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(HL);
+            byte newData = (byte)((data >> 1) | (data & 0x80));
+            Write(HL, newData);
+
+            FlagZ = newData == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(data, 0);
+        }
+
+        // SWAP r
+        // ------
+        // Exchange low/hi-nibble
+        private void SWAP_Rw(ref byte Rw)
+        {
+            Cycles += 2;
+
+            Rw = (byte)(((Rw & 0x0F) << 4) | ((Rw & 0xF0) >> 4));
+
+            FlagZ = Rw == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = false;
+        }
+
+        // SWAP (HL)
+        // ---------
+        // Exchange low/hi-nibble with direct memory at HL
+        private void SWAP_HLn()
+        {
+            Cycles += 4;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(HL);
+            byte newData = (byte)(((data & 0x0F) << 4) | ((data & 0xF0) >> 4));
+            Write(HL, newData);
+
+            FlagZ = newData == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = false;
+        }
+
+        // SRL r
+        // -----
+        // Shift right logical
+        private void SRL_Rw(ref byte Rw)
+        {
+            Cycles += 2;
+
+            byte _R = Rw;
+            Rw = (byte)(Rw >> 1);
+
+            FlagZ = Rw == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(_R, 0);
+        }
+
+        // SRL (HL)
+        // --------
+        // Shift right logical with direct memory at HL
+        private void SRL_HLn()
+        {
+            Cycles += 4;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(HL);
+            byte newData = (byte)(data >> 1);
+            Write(HL, newData);
+
+            FlagZ = newData == 0;
+            FlagN = false;
+            FlagH = false;
+            FlagC = Binary.ReadBit(data, 0);
+        }
+
+        // BIT n,r
+        // -------
+        // Test bit n
+        private void BIT_n_r(byte n, byte Rr)
+        {
+            Cycles += 2;
+
+            FlagZ = !Binary.ReadBit(Rr, n);
+            FlagN = false;
+            FlagH = true;
+        }
+
+        // BIT n,(HL)
+        // ----------
+        // Test bit n with direct memory at HL
+        private void BIT_n_HLn(byte n)
+        {
+            Cycles += 3;
+
+            FlagZ = !Binary.ReadBit(Read(Binary.U16(L, H)), n);
+            FlagN = false;
+            FlagH = true;
+        }
+
+        // SET n,r
+        // -------
+        // Set bit n
+        private void SET_n_r(byte n, ref byte Rw)
+        {
+            Cycles += 2;
+            Binary.SetBit(ref Rw, n, true);
+        }
+
+        // SET n,(HL)
+        // ----------
+        // Set bit n with direct memory at HL
+        private void SET_n_HLn(byte n)
+        {
+            Cycles += 4;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(HL);
+            Binary.SetBit(ref data, n, true);
+            Write(HL, data);
+        }
+
+        // RES n,r
+        // -------
+        // Set bit n
+        private void RES_n_r(byte n, ref byte Rw)
+        {
+            Cycles += 2;
+            Binary.SetBit(ref Rw, n, false);
+        }
+
+        // RES n,(HL)
+        // ----------
+        // Set bit n with direct memory at HL
+        private void RES_n_HLn(byte n)
+        {
+            Cycles += 4;
+
+            ushort HL = Binary.U16(L, H);
+            byte data = Read(HL);
+            Binary.SetBit(ref data, n, false);
+            Write(HL, data);
+        }
     }
 }

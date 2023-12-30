@@ -3,78 +3,86 @@
 // ---------
 using Raylib_cs;
 
-public static class Emulation
+namespace GameBoyReborn
 {
-    private static byte[]? romData;
-    private static Cartridge? Cartridge;
-    private static IO? IO;
-    private static Memory? Memory;
-    private static CPU? CPU;
-    private static PPU? PPU;
-    private static Timer? Timer;
-
-    // All cores init
-    public static void Init()
+    public static class Emulation
     {
-        if (romData != null && romData.Length != 0)
+        private static byte[]? romData;
+        private static Cartridge? Cartridge;
+        private static IO? IO;
+        private static Memory? Memory;
+        private static CPU? CPU;
+        private static PPU? PPU;
+        private static Timer? Timer;
+
+        // All cores init
+        public static void Init()
         {
-            byte[] header = new byte[0x1C];
-
-            if (romData.Length > 0x0134)
-            Array.Copy(romData, 0x0134, header, 0, 0x1C);
-
-            IO = new IO();
-            Cartridge = new Cartridge(header);
-            Memory = new Memory(Cartridge, IO, romData);
-            CPU = new CPU(Memory);
-            PPU = new PPU(IO, Memory, CPU);
-            Timer = new Timer(IO, CPU);
-
-            // Update ref
-            Memory.CPU = CPU;
-/*
-            Debug.Text(Cartridge.Title, Color.RED, 10000);
-            Debug.Text(Cartridge.ManufacturerCode, Color.RED, 10000);
-            Debug.Text(Cartridge.CGBDescription, Color.RED, 10000);
-            Debug.Text(Cartridge.Licensee, Color.RED, 10000);
-            Debug.Text(Cartridge.SGBDescription, Color.RED, 10000);
-            Debug.Text(Cartridge.TypeDescription, Color.RED, 10000);
-            Debug.Text(Cartridge.SizeDescription, Color.RED, 10000);
-*/
-        }
-    }
-
-    // Load rom
-    public static void Load(string path)
-    {
-        if (File.Exists(path))
-        romData = File.ReadAllBytes(path);
-    }
-
-    // Emulation loop
-    public static void Loop()
-    {
-        if(CPU != null && PPU != null && Timer != null)
-        {
-            PPU.CompletedFrame = false;
-
-            while (!PPU.CompletedFrame)
+            if (romData != null && romData.Length != 0)
             {
-                CPU.Execution();
-                PPU.Execution();
-                Timer.Execution();
+                byte[] header = new byte[0x1C];
+
+                if (romData.Length > 0x0134)
+                Array.Copy(romData, 0x0134, header, 0, 0x1C);
+
+                // Cores instance
+                IO = new IO();
+                Cartridge = new Cartridge(header);
+                Memory = new Memory(Cartridge, IO, romData);
+                CPU = new CPU(Memory);
+                PPU = new PPU(IO, Memory, CPU);
+                Timer = new Timer(IO, CPU);
+
+                // Update ref
+                Memory.CPU = CPU;
+
+                // Log rom loaded
+                Console.WriteLine("Load rom");
+                Console.WriteLine("--------");
+                Console.WriteLine();
+                Console.WriteLine("Title : " + Cartridge.Title);
+                Console.WriteLine("Manufacturer Code : " + Cartridge.ManufacturerCode);
+                Console.WriteLine("CGB Description : " + Cartridge.CGBDescription);
+                Console.WriteLine("Licensee : " + Cartridge.Licensee);
+                Console.WriteLine("SGB Description : " + Cartridge.SGBDescription);
+                Console.WriteLine("Type Description : " + Cartridge.TypeDescription);
+                Console.WriteLine("Size Description : " + Cartridge.SizeDescription);
+                Console.WriteLine();
             }
         }
-    }
 
-    // Stop emulation
-    public static void Stop()
-    {
-        IO = null;
-        Cartridge = null;
-        Memory = null;
-        CPU = null;
-        PPU = null;
-        Timer = null;
+        // Load rom
+        public static void Load(string path)
+        {
+            if (File.Exists(path))
+            romData = File.ReadAllBytes(path);
+        }
+
+        // Emulation loop
+        public static void Loop()
+        {
+            if (CPU != null && PPU != null && Timer != null)
+            {
+                PPU.CompletedFrame = false;
+
+                while (!PPU.CompletedFrame)
+                {
+                    CPU.Execution();
+                    PPU.Execution();
+                    Timer.Execution();
+                }
+            }
+        }
+
+        // Stop emulation
+        public static void Stop()
+        {
+            IO = null;
+            Cartridge = null;
+            Memory = null;
+            CPU = null;
+            PPU = null;
+            Timer = null;
+        }
     }
 }

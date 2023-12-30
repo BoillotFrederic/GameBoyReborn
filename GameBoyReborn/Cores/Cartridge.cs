@@ -4,59 +4,61 @@
 using System.Text;
 using Raylib_cs;
 
-public class Cartridge
+namespace GameBoyReborn
 {
-    // Attribute of Cartridge
-    public string Title;
-    public string ManufacturerCode;
-    public byte CGB_Flag;
-    public string CGBDescription;
-    public string Licensee;
-    public byte SGB_Flag;
-    public string SGBDescription;
-    public byte Type;
-    public string TypeDescription;
-    public string SizeDescription;
-    public SizeStruct Size;
-    public string RamSizeDescription;
-    public int RamSize;
-    public string DestinationCode;
-    public struct SizeStruct
+    public class Cartridge
     {
-        public int Byte { get; set; }
-        public ushort Bank { get; set; }
-    }
+        // Attribute of Cartridge
+        public string Title;
+        public string ManufacturerCode;
+        public byte CGB_Flag;
+        public string CGBDescription;
+        public string Licensee;
+        public byte SGB_Flag;
+        public string SGBDescription;
+        public byte Type;
+        public string TypeDescription;
+        public string SizeDescription;
+        public SizeStruct Size;
+        public string RamSizeDescription;
+        public int RamSize;
+        public string DestinationCode;
+        public struct SizeStruct
+        {
+            public int Byte { get; set; }
+            public ushort Bank { get; set; }
+        }
 
-    public Cartridge(byte[] header)
-    {
-        byte[] TitleRange = new byte[11];
-        byte[] ManufacturerCodeRange = new byte[4];
-        byte[] LicenseeRange = new byte[2];
- 
-        Array.Copy(header, 0, TitleRange, 0, 11);
-        Array.Copy(header, 0x0B, ManufacturerCodeRange, 0, 4);
-        Array.Copy(header, 0x0D, LicenseeRange, 0, 2);
+        public Cartridge(byte[] header)
+        {
+            byte[] TitleRange = new byte[11];
+            byte[] ManufacturerCodeRange = new byte[4];
+            byte[] LicenseeRange = new byte[2];
 
-        ManufacturerCode = Encoding.ASCII.GetString(ManufacturerCodeRange).TrimEnd('\0');
-        Title = Encoding.ASCII.GetString(TitleRange).TrimEnd('\0');
-        CGB_Flag = header[0x0C];
-        CGBDescription = GetCGBDescription(header[0x0C]);
-        Licensee = GetLicense(BitConverter.ToUInt16(LicenseeRange));
-        SGB_Flag = header[0x0F];
-        SGBDescription = GetSGBDescription(header[0x0F]);
-        Type = header[0x10];
-        TypeDescription = GetTypeDescription(header[0x10]);
-        SizeDescription = GetSizeDescription(header[0x11]);
-        RamSizeDescription = GetRamSizeDescription(header[0x12]);
-        RamSize = SetRamSize(header[0x12]);
-        DestinationCode = header[0x13] == 0x00 ? "Japanese" : "Non-Japanese";
+            Array.Copy(header, 0, TitleRange, 0, 11);
+            Array.Copy(header, 0x0B, ManufacturerCodeRange, 0, 4);
+            Array.Copy(header, 0x0D, LicenseeRange, 0, 2);
 
-        SetSize(header[0x11], header[0x10]);
-    }
+            ManufacturerCode = Encoding.ASCII.GetString(ManufacturerCodeRange).TrimEnd('\0');
+            Title = Encoding.ASCII.GetString(TitleRange).TrimEnd('\0');
+            CGB_Flag = header[0x0C];
+            CGBDescription = GetCGBDescription(header[0x0C]);
+            Licensee = GetLicense(BitConverter.ToUInt16(LicenseeRange));
+            SGB_Flag = header[0x0F];
+            SGBDescription = GetSGBDescription(header[0x0F]);
+            Type = header[0x10];
+            TypeDescription = GetTypeDescription(header[0x10]);
+            SizeDescription = GetSizeDescription(header[0x11]);
+            RamSizeDescription = GetRamSizeDescription(header[0x12]);
+            RamSize = SetRamSize(header[0x12]);
+            DestinationCode = header[0x13] == 0x00 ? "Japanese" : "Non-Japanese";
 
-    private string GetLicense(ushort hex)
-    {
-        Dictionary<ushort, string> licences = new Dictionary<ushort, string>
+            SetSize(header[0x11], header[0x10]);
+        }
+
+        private static string GetLicense(ushort hex)
+        {
+            Dictionary<ushort, string> licences = new Dictionary<ushort, string>
         {
             { 0x00, "none" },
             { 0x01, "Nintendo R&D1" },
@@ -121,12 +123,12 @@ public class Cartridge
             { 0xA4, "Konami (Yu-Gi-Oh!)" }
         };
 
-        return licences[hex];
-    }
+            return licences[hex];
+        }
 
-    private string GetTypeDescription(byte hex)
-    {
-        Dictionary<byte, string> types = new Dictionary<byte, string>
+        private static string GetTypeDescription(byte hex)
+        {
+            Dictionary<byte, string> types = new Dictionary<byte, string>
         {
             { 0x00, "ROM ONLY" },
             { 0x01, "MBC1" },
@@ -155,36 +157,36 @@ public class Cartridge
             { 0xFF, "HuC1+RAM+BATTERY" }
         };
 
-        return types[hex];
-    }
+            return types[hex];
+        }
 
 
-    private string GetCGBDescription(byte hex)
-    {
-        Dictionary<byte, string> CGB = new Dictionary<byte, string>
+        private static string GetCGBDescription(byte hex)
+        {
+            Dictionary<byte, string> CGB = new Dictionary<byte, string>
         {
             { 0x80, "Game supports CGB functions, but works on old gameboys also." },
             { 0xC0, "Game works on CGB only." },
             { 0x00, "No CGB and no CGB functions supported" }
         };
 
-        return CGB[hex];
-    }
+            return CGB[hex];
+        }
 
-    private string GetSGBDescription(byte hex)
-    {
-        Dictionary<byte, string> SGB = new Dictionary<byte, string>
+        private static string GetSGBDescription(byte hex)
+        {
+            Dictionary<byte, string> SGB = new Dictionary<byte, string>
         {
             { 0x00, "No SGB functions (Normal Gameboy or CGB only game)" },
             { 0x03, "Game supports SGB functions" }
         };
 
-        return SGB[hex];
-    }
+            return SGB[hex];
+        }
 
-    private string GetRamSizeDescription(byte hex)
-    {
-        Dictionary<byte, string> ramSize = new Dictionary<byte, string>
+        private static string GetRamSizeDescription(byte hex)
+        {
+            Dictionary<byte, string> ramSize = new Dictionary<byte, string>
         {
             { 0x00, "None" },
             { 0x01, "2 KBytes" },
@@ -194,26 +196,26 @@ public class Cartridge
             { 0x05, "64 KBytes (8 banks of 8KBytes each)" }
         };
 
-        return ramSize[hex];
-    }
-
-    private int SetRamSize(byte hex)
-    {
-        switch (hex)
-        {
-            case 0x00: return 0;
-            case 0x01: return 2 * 1024;
-            case 0x02: return 8 * 1024;
-            case 0x03: return 32 * 1024;
-            case 0x04: return 128 * 1024;
-            case 0x05: return 64 * 1024;
-            default: return 0;
+            return ramSize[hex];
         }
-    }
 
-    private string GetSizeDescription(byte hex)
-    {
-        Dictionary<byte, string> sizes = new Dictionary<byte, string>
+        private static int SetRamSize(byte hex)
+        {
+            switch (hex)
+            {
+                case 0x00: return 0;
+                case 0x01: return 2 * 1024;
+                case 0x02: return 8 * 1024;
+                case 0x03: return 32 * 1024;
+                case 0x04: return 128 * 1024;
+                case 0x05: return 64 * 1024;
+                default: return 0;
+            }
+        }
+
+        private static string GetSizeDescription(byte hex)
+        {
+            Dictionary<byte, string> sizes = new Dictionary<byte, string>
         {
             { 0x00, "32KByte (no ROM banking)" },
             { 0x01, "64KByte (4 banks)" },
@@ -229,65 +231,66 @@ public class Cartridge
             { 0x54, "1.5MByte (96 banks)" }
         };
 
-        return sizes[hex];
-    }
+            return sizes[hex];
+        }
 
-    private void SetSize(byte hex, byte type)
-    {
-        switch (hex)
+        private void SetSize(byte hex, byte type)
         {
-            case 0x00:
-                Size.Byte = 32 * 1024;
-                Size.Bank = 1;
-            break;
-            case 0x01:
-                Size.Byte = 64 * 1024;
-                Size.Bank = 4;
-            break;
-            case 0x02:
-                Size.Byte = 128 * 1024;
-                Size.Bank = 8;
-            break;
-            case 0x03:
-                Size.Byte = 256 * 1024;
-                Size.Bank = 16;
-            break;
-            case 0x04:
-                Size.Byte = 512 * 1024;
-                Size.Bank = 32;
-            break;
-            case 0x05:
-                Size.Byte = 1 * 1024 * 1024;
-                Size.Bank = (ushort)((type == 0x01) ? 63 : 64);
-            break;
-            case 0x06:
-                Size.Byte = 2 * 1024 * 1024;
-                Size.Bank = (ushort)((type == 0x01) ? 125 : 128);
-            break;
-            case 0x07:
-                Size.Byte = 4 * 1024 * 1024;
-                Size.Bank = 256;
-            break;
-            case 0x08:
-                Size.Byte = 8 * 1024 * 1024;
-                Size.Bank = 512;
-            break;
-            case 0x52:
-                Size.Byte = 1_100_000;
-                Size.Bank = 72;
-            break;
-            case 0x53:
-                Size.Byte = 1_200_000;
-                Size.Bank = 80;
-            break;
-            case 0x54:
-                Size.Byte = 1_500_000;
-                Size.Bank = 96;
-            break;
-            default:
-                Size.Byte = 0;
-                Size.Bank = 0;
-            break;
+            switch (hex)
+            {
+                case 0x00:
+                    Size.Byte = 32 * 1024;
+                    Size.Bank = 1;
+                break;
+                case 0x01:
+                    Size.Byte = 64 * 1024;
+                    Size.Bank = 4;
+                break;
+                case 0x02:
+                    Size.Byte = 128 * 1024;
+                    Size.Bank = 8;
+                break;
+                case 0x03:
+                    Size.Byte = 256 * 1024;
+                    Size.Bank = 16;
+                break;
+                case 0x04:
+                    Size.Byte = 512 * 1024;
+                    Size.Bank = 32;
+                break;
+                case 0x05:
+                    Size.Byte = 1 * 1024 * 1024;
+                    Size.Bank = (ushort)((type == 0x01) ? 63 : 64);
+                break;
+                case 0x06:
+                    Size.Byte = 2 * 1024 * 1024;
+                    Size.Bank = (ushort)((type == 0x01) ? 125 : 128);
+                break;
+                case 0x07:
+                    Size.Byte = 4 * 1024 * 1024;
+                    Size.Bank = 256;
+                break;
+                case 0x08:
+                    Size.Byte = 8 * 1024 * 1024;
+                    Size.Bank = 512;
+                break;
+                case 0x52:
+                    Size.Byte = 1_100_000;
+                    Size.Bank = 72;
+                break;
+                case 0x53:
+                    Size.Byte = 1_200_000;
+                    Size.Bank = 80;
+                break;
+                case 0x54:
+                    Size.Byte = 1_500_000;
+                    Size.Bank = 96;
+                break;
+                default:
+                    Size.Byte = 0;
+                    Size.Bank = 0;
+                break;
+            }
         }
     }
 }
