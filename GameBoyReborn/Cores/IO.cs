@@ -79,161 +79,161 @@ namespace GameBoyReborn
         public byte SVBK = 0xFF; // WRAM bank
         public byte RP = 0xFF; // Infrared communications port
 
-        public byte Read(ushort at)
+        public byte Read(byte at)
         {
             //Console.WriteLine(at);
 
             //JOYP	Joypad
-            if (at == 0xFF00) return P1;
+            if (at == 0x00) return P1;
 
             // Serial transfer
-            else if (at == 0xFF00) return SB;
-            else if (at == 0xFF02) return SC;
+            else if (at == 0x00) return SB;
+            else if (at == 0x02) return SC;
 
             // Timer
-            else if (at == 0xFF04) return DIV;
-            else if (at == 0xFF05) return TIMA;
-            else if (at == 0xFF06) return TMA;
-            else if (at == 0xFF07) return TAC;
+            else if (at == 0x04) return DIV;
+            else if (at == 0x05) return TIMA;
+            else if (at == 0x06) return TMA;
+            else if (at == 0x07) return TAC;
 
             // Interrupt
-            else if (at == 0xFF0F) return IF;
-            else if (at == 0xFFFF) return IE;
+            else if (at == 0x0F) return IF;
+            else if (at == 0xFF) return IE;
 
             // Sound
-            else if (at == 0xFF10) return NR10;
-            else if (at == 0xFF11) return NR11;
-            else if (at == 0xFF12) return NR12;
-            else if (at == 0xFF13) return NR13;
-            else if (at == 0xFF14) return NR14;
-            else if (at == 0xFF16) return NR21;
-            else if (at == 0xFF17) return NR22;
-            else if (at == 0xFF18) return NR23;
-            else if (at == 0xFF19) return NR24;
-            else if (at == 0xFF1A) return NR30;
-            else if (at == 0xFF1B) return NR31;
-            else if (at == 0xFF1C) return NR32;
-            else if (at == 0xFF1D) return NR33;
-            else if (at == 0xFF1E) return NR34;
-            else if (at == 0xFF20) return NR41;
-            else if (at == 0xFF21) return NR42;
-            else if (at == 0xFF22) return NR43;
-            else if (at == 0xFF23) return NR44;
-            else if (at == 0xFF24) return NR50;
-            else if (at == 0xFF25) return NR51;
-            else if (at == 0xFF26) return NR52;
-            else if (at == 0xFF76) return PCM12;
-            else if (at == 0xFF77) return PCM34;
-            else if (at >= 0xFF30 && at <= 0xFF3F) return WaveRAM[at - 0xFF3F];
+            else if (at == 0x10) return NR10;
+            else if (at == 0x11) return NR11;
+            else if (at == 0x12) return NR12;
+            else if (at == 0x13) return NR13;
+            else if (at == 0x14) return NR14;
+            else if (at == 0x16) return NR21;
+            else if (at == 0x17) return NR22;
+            else if (at == 0x18) return NR23;
+            else if (at == 0x19) return NR24;
+            else if (at == 0x1A) return NR30;
+            else if (at == 0x1B) return NR31;
+            else if (at == 0x1C) return NR32;
+            else if (at == 0x1D) return NR33;
+            else if (at == 0x1E) return NR34;
+            else if (at == 0x20) return NR41;
+            else if (at == 0x21) return NR42;
+            else if (at == 0x22) return NR43;
+            else if (at == 0x23) return NR44;
+            else if (at == 0x24) return NR50;
+            else if (at == 0x25) return NR51;
+            else if (at == 0x26) return NR52;
+            else if (at == 0x76) return PCM12;
+            else if (at == 0x77) return PCM34;
+            else if (at >= 0x30 && at <= 0x3F) return WaveRAM[Binary.U16(at, 0xFF) - 0xFF3F];
 
             // Graphic
-            else if (at == 0xFF40) return LCDC;
-            else if (at == 0xFF41) return STAT;
-            else if (at == 0xFF42) return SCY;
-            else if (at == 0xFF43) return SCX;
-            else if (at == 0xFF44) return LY;
-            else if (at == 0xFF45) return LYC;
-            else if (at == 0xFF46) return DMA;
-            else if (at == 0xFF47) return BGP;
-            else if (at == 0xFF48) return OBP0;
-            else if (at == 0xFF49) return OBP1;
-            else if (at == 0xFF4A) return WY;
-            else if (at == 0xFF4B) return WX;
-            else if (at == 0xFF4F) return VBK;
-            else if (at == 0xFF51) return HDMA1;
-            else if (at == 0xFF52) return HDMA2;
-            else if (at == 0xFF53) return HDMA3;
-            else if (at == 0xFF54) return HDMA4;
-            else if (at == 0xFF55) return HDMA5;
-            else if (at == 0xFF68) return BCPS_BGPI;
-            else if (at == 0xFF69) return BCPD_BGPD;
-            else if (at == 0xFF6A) return OCPS_OBPI;
-            else if (at == 0xFF6B) return OCPD_OBPD;
-            else if (at == 0xFF6C) return OPRI;
+            else if (at == 0x40) return LCDC;
+            else if (at == 0x41) return STAT;
+            else if (at == 0x42) return SCY;
+            else if (at == 0x43) return SCX;
+            else if (at == 0x44) return LY;
+            else if (at == 0x45) return LYC;
+            else if (at == 0x46) return DMA;
+            else if (at == 0x47) return BGP;
+            else if (at == 0x48) return OBP0;
+            else if (at == 0x49) return OBP1;
+            else if (at == 0x4A) return WY;
+            else if (at == 0x4B) return WX;
+            else if (at == 0x4F) return VBK;
+            else if (at == 0x51) return HDMA1;
+            else if (at == 0x52) return HDMA2;
+            else if (at == 0x53) return HDMA3;
+            else if (at == 0x54) return HDMA4;
+            else if (at == 0x55) return HDMA5;
+            else if (at == 0x68) return BCPS_BGPI;
+            else if (at == 0x69) return BCPD_BGPD;
+            else if (at == 0x6A) return OCPS_OBPI;
+            else if (at == 0x6B) return OCPD_OBPD;
+            else if (at == 0x6C) return OPRI;
 
             // Other
-            else if (at == 0xFF4C) return KEY1;
-            else if (at == 0xFF56) return RP;
-            else if (at == 0xFF70) return SVBK;
+            else if (at == 0x4C) return KEY1;
+            else if (at == 0x56) return RP;
+            else if (at == 0x70) return SVBK;
 
             // None
             else return 0x00;
         }
 
-        public void Write(ushort at, byte b)
+        public void Write(byte at, byte b)
         {
             //JOYP	Joypad
-            if (at == 0xFF00) P1 = b;
+            if (at == 0x00) P1 = b;
 
             // Serial transfer
-            else if (at == 0xFF00) SB = b;
-            else if (at == 0xFF02) SC = b;
+            else if (at == 0x00) SB = b;
+            else if (at == 0x02) SC = b;
 
             // Timer
-            else if (at == 0xFF04) DIV = 0x00;
-            else if (at == 0xFF05) TIMA = b;
-            else if (at == 0xFF06) TMA = b;
-            else if (at == 0xFF07) TAC = b;
+            else if (at == 0x04) DIV = 0x00;
+            else if (at == 0x05) TIMA = b;
+            else if (at == 0x06) TMA = b;
+            else if (at == 0x07) TAC = b;
 
             // Interrupt
-            else if (at == 0xFF0F) IF = b;
-            else if (at == 0xFFFF) IE = b;
+            else if (at == 0x0F) IF = b;
+            else if (at == 0xFF) IE = b;
 
             // Sound
-            else if (at == 0xFF10) NR10 = b;
-            else if (at == 0xFF11) NR11 = b;
-            else if (at == 0xFF12) NR12 = b;
-            else if (at == 0xFF13) NR13 = b;
-            else if (at == 0xFF14) NR14 = b;
-            else if (at == 0xFF16) NR21 = b;
-            else if (at == 0xFF17) NR22 = b;
-            else if (at == 0xFF18) NR23 = b;
-            else if (at == 0xFF19) NR24 = b;
-            else if (at == 0xFF1A) NR30 = b;
-            else if (at == 0xFF1B) NR31 = b;
-            else if (at == 0xFF1C) NR32 = b;
-            else if (at == 0xFF1D) NR33 = b;
-            else if (at == 0xFF1E) NR34 = b;
-            else if (at == 0xFF20) NR41 = b;
-            else if (at == 0xFF21) NR42 = b;
-            else if (at == 0xFF22) NR43 = b;
-            else if (at == 0xFF23) NR44 = b;
-            else if (at == 0xFF24) NR50 = b;
-            else if (at == 0xFF25) NR51 = b;
-            else if (at == 0xFF26) NR52 = b;
-            else if (at == 0xFF76) PCM12 = b;
-            else if (at == 0xFF77) PCM34 = b;
-            else if (at >= 0xFF30 && at <= 0xFF3F) WaveRAM[at - 0xFF3F] = b;
+            else if (at == 0x10) NR10 = b;
+            else if (at == 0x11) NR11 = b;
+            else if (at == 0x12) NR12 = b;
+            else if (at == 0x13) NR13 = b;
+            else if (at == 0x14) NR14 = b;
+            else if (at == 0x16) NR21 = b;
+            else if (at == 0x17) NR22 = b;
+            else if (at == 0x18) NR23 = b;
+            else if (at == 0x19) NR24 = b;
+            else if (at == 0x1A) NR30 = b;
+            else if (at == 0x1B) NR31 = b;
+            else if (at == 0x1C) NR32 = b;
+            else if (at == 0x1D) NR33 = b;
+            else if (at == 0x1E) NR34 = b;
+            else if (at == 0x20) NR41 = b;
+            else if (at == 0x21) NR42 = b;
+            else if (at == 0x22) NR43 = b;
+            else if (at == 0x23) NR44 = b;
+            else if (at == 0x24) NR50 = b;
+            else if (at == 0x25) NR51 = b;
+            else if (at == 0x26) NR52 = b;
+            else if (at == 0x76) PCM12 = b;
+            else if (at == 0x77) PCM34 = b;
+            else if (at >= 0x30 && at <= 0x3F) WaveRAM[Binary.U16(at, 0xFF) - 0xFF3F] = b;
 
             // Graphic
-            else if (at == 0xFF40) LCDC = b;
-            else if (at == 0xFF41) STAT = b;
-            else if (at == 0xFF42) SCY = b;
-            else if (at == 0xFF43) SCX = b;
-            else if (at == 0xFF44) LY = b;
-            else if (at == 0xFF45) LYC = b;
-            //else if (at == 0xFF46) DMA = b;
-            else if (at == 0xFF47) BGP = b;
-            else if (at == 0xFF48) OBP0 = b;
-            else if (at == 0xFF49) OBP1 = b;
-            else if (at == 0xFF4A) WY = b;
-            else if (at == 0xFF4B) WX = b;
-            else if (at == 0xFF4F) VBK = b;
-            else if (at == 0xFF51) HDMA1 = b;
-            else if (at == 0xFF52) HDMA2 = b;
-            else if (at == 0xFF53) HDMA3 = b;
-            else if (at == 0xFF54) HDMA4 = b;
-            else if (at == 0xFF55) HDMA5 = b;
-            else if (at == 0xFF68) BCPS_BGPI = b;
-            else if (at == 0xFF69) BCPD_BGPD = b;
-            else if (at == 0xFF6A) OCPS_OBPI = b;
-            else if (at == 0xFF6B) OCPD_OBPD = b;
-            else if (at == 0xFF6C) OPRI = b;
+            else if (at == 0x40) LCDC = b;
+            else if (at == 0x41) STAT = b;
+            else if (at == 0x42) SCY = b;
+            else if (at == 0x43) SCX = b;
+            else if (at == 0x44) LY = b;
+            else if (at == 0x45) LYC = b;
+            //else if (at == 0x46) DMA = b;
+            else if (at == 0x47) BGP = b;
+            else if (at == 0x48) OBP0 = b;
+            else if (at == 0x49) OBP1 = b;
+            else if (at == 0x4A) WY = b;
+            else if (at == 0x4B) WX = b;
+            else if (at == 0x4F) VBK = b;
+            else if (at == 0x51) HDMA1 = b;
+            else if (at == 0x52) HDMA2 = b;
+            else if (at == 0x53) HDMA3 = b;
+            else if (at == 0x54) HDMA4 = b;
+            else if (at == 0x55) HDMA5 = b;
+            else if (at == 0x68) BCPS_BGPI = b;
+            else if (at == 0x69) BCPD_BGPD = b;
+            else if (at == 0x6A) OCPS_OBPI = b;
+            else if (at == 0x6B) OCPD_OBPD = b;
+            else if (at == 0x6C) OPRI = b;
 
             // Other
-            else if (at == 0xFF4C) KEY1 = b;
-            else if (at == 0xFF56) RP = b;
-            else if (at == 0xFF70) SVBK = b;
+            else if (at == 0x4C) KEY1 = b;
+            else if (at == 0x56) RP = b;
+            else if (at == 0x70) SVBK = b;
         }
     }
 }

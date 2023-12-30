@@ -118,7 +118,7 @@ namespace GameBoyReborn
 
             // I/O Registers
             else if (at >= 0xFF00 && at <= 0xFF7F || at == 0xFFFF)
-            return IO.Read((ushort)(at - 0xFF00));
+            return IO.Read((byte)(at - 0xFF00));
 
             // High RAM (HRAM)
             else if (at >= 0xFF80 && at <= 0xFFFE)
@@ -173,7 +173,7 @@ namespace GameBoyReborn
 
             // I/O Registers
             else if ((at >= 0xFF00 && at <= 0xFF7F || at == 0xFFFF) && at != 0xFF46)
-            IO.Write((ushort)(at - 0xFF00), b);
+            IO.Write((byte)(at - 0xFF00), b);
 
             // DMA transfer
             else if (at == 0xFF46)
