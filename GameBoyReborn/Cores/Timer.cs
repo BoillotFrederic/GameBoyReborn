@@ -18,8 +18,10 @@ namespace GameBoyReborn
 
         // Cycles
         private ushort DivCycles = 0;
-        private int TacCycles = 0;
-        private readonly int[] ClockCPU = new int[4] { 4096, 262144, 65536, 16384 };
+        private ushort TacCycles = 0;
+        private readonly ushort[] ClockCPU = new ushort[4] { 69, 4389, 1097, 274 };
+        private const int DivClockDMG = 274; // 16384 / 59.73 = 274.3
+        private const int DivClockSGB = 281; // 16779 / 59.73 = 280.9
 
         // Execution
         public void Execution()
@@ -34,10 +36,10 @@ namespace GameBoyReborn
                     IO.DIV = 0;
                     DivCycles = 0;
                 }
-                else if (DivCycles >= 256)
+                else if (DivCycles >= DivClockDMG)
                 {
                     IO.DIV++;
-                    DivCycles -= 256;
+                    DivCycles -= DivClockDMG;
                 }
 
                 // TIMA and TMA
@@ -54,17 +56,20 @@ namespace GameBoyReborn
                         {
                             NewTima = 0;
                             IO.TMA = 0;
-                            //IME = true;
+
+                            Binary.SetBit(ref IO.IE, 2, true);
                         }
 
                         IO.TIMA = (byte)NewTima;
 
-                        //if (IO.TMA == 0xFF || (IO.TIMA % (0xFF - IO.TMA) == 0))
-                        //IME = true;
+                        if (IO.TMA == 0xFF || (IO.TIMA % (0xFF - IO.TMA) == 0))
+                        Binary.SetBit(ref IO.IE, 2, true);
 
                         TacCycles -= ClockCPU[ClockSelect];
                     }
                 }
+                else
+                TacCycles = 0;
             }
         }
     }
