@@ -12,6 +12,7 @@ namespace GameBoyReborn
         private readonly IO IO;
         private readonly CPU CPU;
         private readonly Color[] ColorMap = new Color[4] { Color.WHITE, Color.GRAY, Color.DARKGRAY, Color.BLACK };
+        private readonly byte[] BG_WIN_TileData = new byte[16];
 
         public PPU(IO _IO, Memory _Memory, CPU _CPU)
         {
@@ -45,7 +46,7 @@ namespace GameBoyReborn
         private int LyCycles = 0;
 
         // Current LY Colors
-        private readonly Color[] CurrentLyColors = new Color[160];
+        // private readonly Color[] CurrentLyColors = new Color[160];
 
         // Execution
         public void Execution()
@@ -201,9 +202,6 @@ namespace GameBoyReborn
             byte WIN_PixelInTileY = 0;
             byte WIN_PixelInTileX = 0;
 
-            // Tile data
-            byte[] BG_WIN_TileData = new byte[16];
-
             // Last tiles
             sbyte BG_LastTileX = -1;
             sbyte WIN_LastTileX = -1;
@@ -223,15 +221,17 @@ namespace GameBoyReborn
                 // If enable, draw background
                 if (BG_and_Window_enable_priority)
                 {
+                    // Set X position and draw
                     BG_WIN_SetInedex(ref BG_TileX, ref BG_PixelInTileX, x, IO.SCX, 159);
-                    BG_WIN_UpdateTileData(ref BG_LastTileX, BG_TileX, BG_TileY, BG_StartTileMapArea, ref BG_WIN_TileData);
+                    BG_WIN_UpdateTileData(ref BG_LastTileX, BG_TileX, BG_TileY, BG_StartTileMapArea);
                     BG_WIN_DrawPixel(x, IO.LY, BG_WIN_Pal, BG_WIN_TileData[BG_PixelInTileY * 2], BG_WIN_TileData[BG_PixelInTileY * 2 + 1], BG_PixelInTileX);
 
                     // If enable, draw window
                     if (Window_enable)
                     {
+                        // Set X position and draw
                         BG_WIN_SetInedex(ref WIN_TileX, ref WIN_PixelInTileX, x, IO.WX, 159);
-                        BG_WIN_UpdateTileData(ref WIN_LastTileX, WIN_TileX, WIN_TileY, WIN_StartTileMapArea, ref BG_WIN_TileData);
+                        BG_WIN_UpdateTileData(ref WIN_LastTileX, WIN_TileX, WIN_TileY, WIN_StartTileMapArea);
                         BG_WIN_DrawPixel(x, IO.LY, BG_WIN_Pal, BG_WIN_TileData[BG_PixelInTileY * 2], BG_WIN_TileData[WIN_PixelInTileY * 2 + 1], WIN_PixelInTileX);
                     }
                 }
@@ -244,18 +244,13 @@ namespace GameBoyReborn
         // Set all index background and window
         private static void BG_WIN_SetInedex(ref byte Tile, ref byte PixelInTile, byte pos, byte ShiftPixel, byte Overflow)
         {
-            // Backgroud and window pixel index in screen (256 x 256)
-            byte Pixel = (byte)(pos + ShiftPixel > 255 ? (ShiftPixel + Overflow) % 256 : pos + ShiftPixel);
-
-            // Backgroud and window tile index in tile map (32 x 32)
-            Tile = (byte)Math.Floor(Pixel / 8.0);
-
-            // Backgroud and window pixel index in tile (8 x 8)
-            PixelInTile = (byte)(Pixel % 8);
+            byte Pixel = (byte)(pos + ShiftPixel > 255 ? (ShiftPixel + Overflow) % 256 : pos + ShiftPixel); // Pixel index in screen (256 x 256)
+            Tile = (byte)Math.Floor(Pixel / 8.0); // Tile index in tile map (32 x 32)
+            PixelInTile = (byte)(Pixel % 8); // Pixel index in tile (8 x 8)
         }
 
         // Update tile data
-        private void BG_WIN_UpdateTileData(ref sbyte LastTileX, byte TileX, byte TileY, ushort StartTileMapArea, ref byte[] TileData)
+        private void BG_WIN_UpdateTileData(ref sbyte LastTileX, byte TileX, byte TileY, ushort StartTileMapArea)
         {
             if (LastTileX != (sbyte)TileX)
             {
@@ -264,7 +259,7 @@ namespace GameBoyReborn
                 ushort StartTileDataArea = (ushort)(BG_and_Window_tile_data_area ? 0 : TileIndexData > 0x7F ? 800 : 1000);
                 short BG_TileIndexDataS = BG_and_Window_tile_data_area ? unchecked((sbyte)TileIndexData) : TileIndexData;
 
-                Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (StartTileDataArea + BG_TileIndexDataS) * 16, TileData, 0, 16);
+                Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (StartTileDataArea + BG_TileIndexDataS) * 16, BG_WIN_TileData, 0, 16);
             }
         }
 
