@@ -81,8 +81,6 @@ namespace GameBoyReborn
                     case 0:
                         if (LyCycles >= 456)
                         {
-                            //Console.WriteLine("Mode 0 : " + IO.LY);
-
                             // Next mode (OAM scan / Vertical blank)
                             if (IO.LY != 143)
                             {
@@ -93,7 +91,7 @@ namespace GameBoyReborn
                                 IO.STAT = (byte)(IO.STAT & 0xFC | 2);
 
                                 if (Mode_2_int_select)
-                                    Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
+                                Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
                             }
                             else
                             {
@@ -101,7 +99,7 @@ namespace GameBoyReborn
                                 IO.STAT = (byte)(IO.STAT & 0xFC | 1);
 
                                 if (Mode_1_int_select)
-                                    Binary.SetBit(ref IO.IF, 0, true); // 0 = VBlank
+                                Binary.SetBit(ref IO.IF, 0, true); // 0 = VBlank
                             }
                         }
                     break;
@@ -111,7 +109,6 @@ namespace GameBoyReborn
                     case 1:
                         if (LyCycles >= 456)
                         {
-                            //Console.WriteLine("Mode 1");
                             IO.LY++;
                             LyCompare();
                         }
@@ -123,11 +120,10 @@ namespace GameBoyReborn
 
                             // Next mode (OAM scan)
                             IO.STAT = (byte)(IO.STAT & 0xFC | 2); // Mode_PPU = 2
+                            IO.LY = 0;
 
                             if (Mode_2_int_select)
-                                Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
-
-                            IO.LY = 0;
+                            Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
                         }
                     break;
 
@@ -136,7 +132,6 @@ namespace GameBoyReborn
                     case 2:
                         if (LyCycles >= 80)
                         {
-                            //Console.WriteLine("Mode 2");
                             // Next mode (Drawing pixel)
                             IO.STAT = (byte)(IO.STAT & 0xFC | 3); // Mode_PPU = 3
                         }
@@ -147,13 +142,8 @@ namespace GameBoyReborn
                     case 3:
                         if (LyCycles >= 252)
                         {
-                            //Console.WriteLine("Mode 3");
-                            // Draw background
-                            Color[] backgroundData = Background();
-                            Array.Copy(backgroundData, (IO.LY + IO.SCY) * 256 + IO.SCX, CurrentLyColors, 0, 160);
-
-                            for (byte x = 0; x < 160; x++)
-                            Drawing.SetPixel(x, IO.LY, CurrentLyColors[x]);
+                            // Draw
+                            DrawLine();
 
                             // Next mode (Horizontal blank)
                             IO.STAT = (byte)(IO.STAT & 0xFC | 0); // Mode_PPU = 0
@@ -186,41 +176,109 @@ namespace GameBoyReborn
                             SetBit(ref IO.IF, setInterrupt, true);*/
             }
             else
-                Binary.SetBit(ref IO.STAT, 2, false);
+            Binary.SetBit(ref IO.STAT, 2, false);
         }
 
+        // Draw line
+        private void DrawLine()
+        {
+            // Palettes
+            Color[] BG_WIN_Pal = new Color[4] { ColorMap[IO.BGP & 3], ColorMap[(IO.BGP >> 2) & 3], ColorMap[(IO.BGP >> 4) & 3], ColorMap[(IO.BGP >> 6) & 3] };
 
-        /*    private void OAMScan(byte LY)
+            // Index start for map area
+            ushort BG_StartTileMapArea = (ushort)(!BG_tile_map_area ? 0x1800 : 0x1C00);
+            ushort WIN_StartTileMapArea = (ushort)(!Window_tile_map_area ? 0x1800 : 0x1C00);
+
+            // Backgroud and window tile index in tile map (32 x 32)
+            byte BG_TileY = 0;
+            byte BG_TileX = 0;
+            byte WIN_TileY = 0;
+            byte WIN_TileX = 0;
+
+            // Backgroud and window pixel index in tile (8 x 8)
+            byte BG_PixelInTileY = 0;
+            byte BG_PixelInTileX = 0;
+            byte WIN_PixelInTileY = 0;
+            byte WIN_PixelInTileX = 0;
+
+            // Tile data
+            byte[] BG_WIN_TileData = new byte[16];
+
+            // Last tiles
+            sbyte BG_LastTileX = -1;
+            sbyte WIN_LastTileX = -1;
+
+            // Set Y position
+            if (BG_and_Window_enable_priority)
             {
-                //Console.WriteLine("MODE 2");
+                BG_WIN_SetInedex(ref BG_TileY, ref BG_PixelInTileY, IO.LY, IO.SCY, 143);
 
-                Color[] _Background = Background();
-                //Color[] _Window = Window();
-                //Color[] _Object = Object();
-
-                for (byte x = 0; x < 160; x++)
-                {
-                    Color PixelColorBackground = _Background[(IO.SCY + LY) * 160 + IO.SCX + x];
-        *//*            Color PixelColorWindow = _Window[(IO.WY + LY) * 160 + IO.WX + x];
-                    Color PixelColorObject = _Object[(16 + LY) * 160 + 8 + x];*//*
-
-                    CurrentLyColors[x] = PixelColorBackground;
-        *//*            if (!PixelColorWindow.Equals(PixelColorBackground))
-                    CurrentLyColors[x] = PixelColorWindow;
-                    if (!PixelColorObject.Equals(PixelColorWindow))
-                    CurrentLyColors[x] = PixelColorObject;*//*
-                }
+                if (Window_enable)
+                BG_WIN_SetInedex(ref WIN_TileY, ref WIN_PixelInTileY, IO.LY, IO.WY, 143);
             }
 
-            private void DrawingPixels(byte LY)
+            // Browse line
+            for (byte x = 0; x < 160; x++)
             {
-                //Console.WriteLine("MODE 3");
+                // If enable, draw background
+                if (BG_and_Window_enable_priority)
+                {
+                    BG_WIN_SetInedex(ref BG_TileX, ref BG_PixelInTileX, x, IO.SCX, 159);
+                    BG_WIN_UpdateTileData(ref BG_LastTileX, BG_TileX, BG_TileY, BG_StartTileMapArea, ref BG_WIN_TileData);
+                    BG_WIN_DrawPixel(x, IO.LY, BG_WIN_Pal, BG_WIN_TileData[BG_PixelInTileY * 2], BG_WIN_TileData[BG_PixelInTileY * 2 + 1], BG_PixelInTileX);
 
-                for (byte x = 0; x < 160; x++)
-                Drawing.SetPixel(x, LY, CurrentLyColors[x]);
-            }*/
+                    // If enable, draw window
+                    if (Window_enable)
+                    {
+                        BG_WIN_SetInedex(ref WIN_TileX, ref WIN_PixelInTileX, x, IO.WX, 159);
+                        BG_WIN_UpdateTileData(ref WIN_LastTileX, WIN_TileX, WIN_TileY, WIN_StartTileMapArea, ref BG_WIN_TileData);
+                        BG_WIN_DrawPixel(x, IO.LY, BG_WIN_Pal, BG_WIN_TileData[BG_PixelInTileY * 2], BG_WIN_TileData[WIN_PixelInTileY * 2 + 1], WIN_PixelInTileX);
+                    }
+                }
+            }
+        }
 
-        // Create tiles
+        // Handle backgroud and window
+        // ---------------------------
+
+        // Set all index background and window
+        private static void BG_WIN_SetInedex(ref byte Tile, ref byte PixelInTile, byte pos, byte ShiftPixel, byte Overflow)
+        {
+            // Backgroud and window pixel index in screen (256 x 256)
+            byte Pixel = (byte)(pos + ShiftPixel > 255 ? (ShiftPixel + Overflow) % 256 : pos + ShiftPixel);
+
+            // Backgroud and window tile index in tile map (32 x 32)
+            Tile = (byte)Math.Floor(Pixel / 8.0);
+
+            // Backgroud and window pixel index in tile (8 x 8)
+            PixelInTile = (byte)(Pixel % 8);
+        }
+
+        // Update tile data
+        private void BG_WIN_UpdateTileData(ref sbyte LastTileX, byte TileX, byte TileY, ushort StartTileMapArea, ref byte[] TileData)
+        {
+            if (LastTileX != (sbyte)TileX)
+            {
+                LastTileX = (sbyte)TileX;
+                byte TileIndexData = Memory.VideoRam_nn[Memory.selectedVideoBank][StartTileMapArea + (TileY * 32 + TileX)];
+                ushort StartTileDataArea = (ushort)(BG_and_Window_tile_data_area ? 0 : TileIndexData > 0x7F ? 800 : 1000);
+                short BG_TileIndexDataS = BG_and_Window_tile_data_area ? unchecked((sbyte)TileIndexData) : TileIndexData;
+
+                Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (StartTileDataArea + BG_TileIndexDataS) * 16, TileData, 0, 16);
+            }
+        }
+
+        // Draw pixel background and window
+        private static void BG_WIN_DrawPixel(byte X, byte Y, Color[] Pal, byte Msb, byte Lsb, byte ShiftX)
+        {
+            byte lowBit = (byte)((Msb >> (7 - ShiftX)) & 1);
+            byte highBit = (byte)((Lsb >> (7 - ShiftX)) & 1);
+            byte pixelValue = (byte)((highBit << 1) | lowBit);
+
+            Drawing.SetPixel(X, Y, Pal[pixelValue]);
+        }
+
+/*        // Create tiles
         private Color[] Background()
         {
             Color[] TilesData = new Color[256 * 256];
@@ -260,9 +318,9 @@ namespace GameBoyReborn
             }
 
             return TilesData;
-        }
+        }*/
 
-        private Color[] Window()
+/*        private Color[] Window()
         {
             Color[] TilesData = new Color[256 * 256];
 
@@ -309,7 +367,7 @@ namespace GameBoyReborn
             }
 
             return TilesData;
-        }
+        }*/
 
         private Color[] Object()
         {
