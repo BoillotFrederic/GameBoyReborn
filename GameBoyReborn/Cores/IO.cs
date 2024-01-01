@@ -184,7 +184,7 @@ namespace GameBoyReborn
             else if (at == 0x11) NR11 = b;
             else if (at == 0x12) NR12 = b;
             else if (at == 0x13) NR13 = b;
-            else if (at == 0x14) NR14 = b;
+            else if (at == 0x14) { NR14 = b; NR52 = (byte)(((NR12 & 0xF8) != 0) ? (NR52 | 1) : NR52); }
             else if (at == 0x16) NR21 = b;
             else if (at == 0x17) NR22 = b;
             else if (at == 0x18) NR23 = b;
