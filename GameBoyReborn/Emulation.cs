@@ -1,7 +1,6 @@
 ﻿// ---------
 // Emulation
 // ---------
-using Raylib_cs;
 
 namespace GameBoyReborn
 {
@@ -13,6 +12,7 @@ namespace GameBoyReborn
         private static Memory? Memory;
         private static CPU? CPU;
         private static PPU? PPU;
+        private static APU? APU;
         private static Timer? Timer;
 
         // All cores init
@@ -31,6 +31,7 @@ namespace GameBoyReborn
                 Memory = new Memory(Cartridge, IO, romData);
                 CPU = new CPU(Memory);
                 PPU = new PPU(IO, Memory, CPU);
+                APU = new APU(IO, CPU);
                 Timer = new Timer(IO, CPU);
 
                 // Update ref
@@ -61,7 +62,7 @@ namespace GameBoyReborn
         // Emulation loop
         public static void Loop()
         {
-            if (CPU != null && PPU != null && Timer != null)
+            if (CPU != null && PPU != null && APU != null && Timer != null)
             {
                 PPU.CompletedFrame = false;
 
@@ -69,6 +70,7 @@ namespace GameBoyReborn
                 {
                     CPU.Execution();
                     PPU.Execution();
+                    APU.Execution();
                     Timer.Execution();
                 }
             }
@@ -82,6 +84,7 @@ namespace GameBoyReborn
             Memory = null;
             CPU = null;
             PPU = null;
+            APU = null;
             Timer = null;
         }
     }
