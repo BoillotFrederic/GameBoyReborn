@@ -31,7 +31,7 @@ namespace GameBoyReborn
                 Memory = new Memory(Cartridge, IO, romData);
                 CPU = new CPU(Memory);
                 PPU = new PPU(IO, Memory, CPU);
-                APU = new APU(IO, CPU);
+                APU = new APU(IO, CPU, PPU);
                 Timer = new Timer(IO, CPU);
 
                 // Update ref

@@ -51,8 +51,6 @@ namespace GameBoyReborn
 
         // Getter / setter
         // ---------------
-
-        // Set
         public static int DeadZoneTrigger
         {
             get { return _DeadZoneTrigger; }

@@ -2,6 +2,7 @@
 // Start program
 // -------------
 using Raylib_cs;
+using System.Runtime.InteropServices;
 
 namespace GameBoyReborn
 {
@@ -9,7 +10,6 @@ namespace GameBoyReborn
     {
         public const int SystemWidth = 160;
         public const int SystemHeight = 144;
-        public static AudioStream AudioStream;
 
         public static Task Main(/*string[] args*/)
         {
@@ -39,14 +39,12 @@ namespace GameBoyReborn
             // Load game
             Emulation.Load("Tetris.gb");
             Emulation.Init();
-
-            // Play sound
-            Raylib.InitAudioDevice();
-            Raylib.PlayAudioStream(AudioStream);
+            Audio.Init();
 
             // Game loop
             while (!Raylib.WindowShouldClose())
             {
+                Audio.Loop();
                 Raylib.BeginDrawing();
                 Input.Set();
                 Emulation.Loop();
@@ -55,6 +53,7 @@ namespace GameBoyReborn
 
             // Exit program
             Log.Close();
+            Audio.Close();
             Raylib.CloseWindow();
 
             return Task.CompletedTask;
