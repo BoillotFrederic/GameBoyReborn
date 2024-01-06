@@ -8,7 +8,7 @@ namespace GameBoyReborn
     public class APU
     {
         // Cycles
-        private double CycleDuration = 1.0f / Audio.MaxSamplesPerUpdate;
+        private double CycleDuration = 1.0f / Audio.Frequency;
 
         // DACs
         private bool DAC1 = false;
@@ -50,11 +50,14 @@ namespace GameBoyReborn
                 for (int indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
                 {
                     // Channel 1
-                    short CH1_Value = CH1_GetValue(indexBuffer);
+                    short CH1_Value = CH1_GetValue();
                     Audio.CH1_AudioBuffer[indexBuffer] = CH1_Value;
                 }
             }
         }
+
+        // Channel 1
+        // ---------
 
         // Channel 1 params
         private ushort CH1_IndexSample = 0;
@@ -69,6 +72,8 @@ namespace GameBoyReborn
         private bool CH1_EnvDir = false;
         private byte CH1_SweepPace = 0;
         private double CH1_LengthVolume = 0;
+        private double CH1_LengthVolumeElapsed = 0;
+        private bool CH1_EnvVolumeEnable = false;
         private byte CH1_LowPeriod = 0;
         private byte CH1_HighPeriod = 0;
         private ushort CH1_Period = 0;
@@ -76,7 +81,7 @@ namespace GameBoyReborn
         private bool CH1_LengthEnable = false;
 
         // Get value for x position in buffer
-        private short CH1_GetValue(int IndexBuffer)
+        private short CH1_GetValue()
         {
             if (DAC1)
             {
@@ -118,6 +123,38 @@ namespace GameBoyReborn
                 CH1_Period = (ushort)NewPeriod;
 
                 // Volume
+                double VolumeRatio = 32767.0f / 15.0f;
+
+                if (CH1_EnvVolumeEnable)
+                {
+                    CH1_LengthVolumeElapsed += CycleDuration;
+
+                    if(CH1_LengthVolumeElapsed >= CH1_LengthVolume)
+                    {
+                        CH1_LengthVolumeElapsed -= CH1_LengthVolume;
+
+                        if (CH1_EnvDir)
+                        {
+                            if (CH1_InitialVolume < 15)
+                            CH1_InitialVolume++;
+                            else
+                            CH1_SweepPace = 0;
+                        }
+                        else
+                        {
+                            if (CH1_InitialVolume > 0)
+                            CH1_InitialVolume--;
+                            else
+                            {
+                                DAC1 = false;
+                                CH1_Pace = 0;
+                                return 0;
+                            }
+                        }
+                    }
+                }
+
+                int Volume = (int)Math.Round(CH1_InitialVolume * VolumeRatio);
 
 
                 // Apply frequency
@@ -126,7 +163,7 @@ namespace GameBoyReborn
                 double Frequency = 131072.0f / (2048 - CH1_Period);
                 double Ratio = Math.PI * Frequency / Audio.Frequency;
                 double Sample = Math.PI / Ratio;
-                short Value = (short)((CH1_IndexSample) * Ratio < WaveDutyCycle[CH1_WaveForm] ? 32767 : -32767);
+                short Value = (short)((CH1_IndexSample) * Ratio < WaveDutyCycle[CH1_WaveForm] ? 1 * Volume : -1 * Volume);
 
                 if (CH1_IndexSample > Sample)
                 CH1_IndexSample = 0;
@@ -151,6 +188,8 @@ namespace GameBoyReborn
             CH1_EnvDir = Binary.ReadBit(IO.NR12, 3);
             CH1_SweepPace = (byte)(IO.NR12 & 7);
             CH1_LengthVolume = CH1_SweepPace * (1.0f / 64.0f);
+            CH1_LengthVolumeElapsed = 0;
+            CH1_EnvVolumeEnable = CH1_InitialVolume != 0 && CH1_SweepPace != 0;
             CH1_LowPeriod = IO.NR13;
             CH1_HighPeriod = (byte)(IO.NR14 & 7);
             CH1_Period = (ushort)(CH1_HighPeriod << 8 | CH1_LowPeriod);
@@ -200,7 +239,9 @@ namespace GameBoyReborn
             IO.NR52 = (byte)((CH1_SweepPace != 0) ? IO.NR52 | 1 : IO.NR52 & 0xFE);
 
             if (Binary.ReadBit(IO.NR52, 7))
-            DAC1 = CH1_SweepPace != 0;
+            {
+                CH1_InitNR();
+            }
         }
 
         // Pulse channel 2
