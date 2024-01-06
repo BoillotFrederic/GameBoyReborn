@@ -84,8 +84,6 @@ namespace GameBoyReborn
 
         public byte Read(byte at)
         {
-            //Console.WriteLine(at);
-
             //JOYP	Joypad
             if (at == 0x00) return P1;
 
@@ -127,7 +125,7 @@ namespace GameBoyReborn
             else if (at == 0x26) return NR52;
             else if (at == 0x76) return PCM12;
             else if (at == 0x77) return PCM34;
-            else if (at >= 0x30 && at <= 0x3F) return WaveRAM[Binary.U16(at, 0xFF) - 0xFF3F];
+            else if (at >= 0x30 && at <= 0x3F) return WaveRAM[at - 0x30];
 
             // Graphic
             else if (at == 0x40) return LCDC;
@@ -208,7 +206,7 @@ namespace GameBoyReborn
                 else if (at == 0x26) NR52 = b;
                 else if (at == 0x76) PCM12 = b;
                 else if (at == 0x77) PCM34 = b;
-                else if (at >= 0x30 && at <= 0x3F) WaveRAM[Binary.U16(at, 0xFF) - 0xFF3F] = b;
+                else if (at >= 0x30 && at <= 0x3F) WaveRAM[at - 0x30] = b;
 
                 // Graphic
                 else if (at == 0x40) LCDC = b;
