@@ -6,6 +6,9 @@ namespace GameBoyReborn
 {
     public class IO
     {
+        // Using
+        public APU? APU;
+
         //JOYP	Joypad
         public byte P1 = 0xCF;
 
@@ -162,78 +165,81 @@ namespace GameBoyReborn
 
         public void Write(byte at, byte b)
         {
-            //JOYP	Joypad
-            if (at == 0x00) P1 = b;
+            if(APU != null)
+            {
+                //JOYP	Joypad
+                if (at == 0x00) P1 = b;
 
-            // Serial transfer
-            else if (at == 0x00) SB = b;
-            else if (at == 0x02) SC = b;
+                // Serial transfer
+                else if (at == 0x00) SB = b;
+                else if (at == 0x02) SC = b;
 
-            // Timer
-            else if (at == 0x04) DIV = 0x00;
-            else if (at == 0x05) TIMA = b;
-            else if (at == 0x06) TMA = b;
-            else if (at == 0x07) TAC = b;
+                // Timer
+                else if (at == 0x04) DIV = 0x00;
+                else if (at == 0x05) TIMA = b;
+                else if (at == 0x06) TMA = b;
+                else if (at == 0x07) TAC = b;
 
-            // Interrupt
-            else if (at == 0x0F) IF = b;
-            else if (at == 0xFF) IE = b;
+                // Interrupt
+                else if (at == 0x0F) IF = b;
+                else if (at == 0xFF) IE = b;
 
-            // Sound
-            else if (at == 0x10) NR10 = b;
-            else if (at == 0x11) NR11 = b;
-            else if (at == 0x12) NR12 = b;
-            else if (at == 0x13) NR13 = b;
-            else if (at == 0x14) { NR14 = b; NR52 = (byte)(((NR12 & 0xF8) != 0) ? NR52 | 1 : NR52 & 0xFE); }
-            else if (at == 0x16) NR21 = b;
-            else if (at == 0x17) NR22 = b;
-            else if (at == 0x18) NR23 = b;
-            else if (at == 0x19) NR24 = b;
-            else if (at == 0x1A) NR30 = b;
-            else if (at == 0x1B) NR31 = b;
-            else if (at == 0x1C) NR32 = b;
-            else if (at == 0x1D) NR33 = b;
-            else if (at == 0x1E) NR34 = b;
-            else if (at == 0x20) NR41 = b;
-            else if (at == 0x21) NR42 = b;
-            else if (at == 0x22) NR43 = b;
-            else if (at == 0x23) NR44 = b;
-            else if (at == 0x24) NR50 = b;
-            else if (at == 0x25) NR51 = b;
-            else if (at == 0x26) NR52 = b;
-            else if (at == 0x76) PCM12 = b;
-            else if (at == 0x77) PCM34 = b;
-            else if (at >= 0x30 && at <= 0x3F) WaveRAM[Binary.U16(at, 0xFF) - 0xFF3F] = b;
+                // Sound
+                else if (at == 0x10) { NR10 = b; APU.CH1_WriteNR10(b); }
+                else if (at == 0x11) { NR11 = b; APU.CH1_WriteNR11(b); }
+                else if (at == 0x12) { NR12 = b; APU.CH1_WriteNR12(b); }
+                else if (at == 0x13) { NR13 = b; APU.CH1_WriteNR13(b); }
+                else if (at == 0x14) { NR14 = b; APU.CH1_WriteNR14(b); }
+                else if (at == 0x16) NR21 = b;
+                else if (at == 0x17) NR22 = b;
+                else if (at == 0x18) NR23 = b;
+                else if (at == 0x19) NR24 = b;
+                else if (at == 0x1A) NR30 = b;
+                else if (at == 0x1B) NR31 = b;
+                else if (at == 0x1C) NR32 = b;
+                else if (at == 0x1D) NR33 = b;
+                else if (at == 0x1E) NR34 = b;
+                else if (at == 0x20) NR41 = b;
+                else if (at == 0x21) NR42 = b;
+                else if (at == 0x22) NR43 = b;
+                else if (at == 0x23) NR44 = b;
+                else if (at == 0x24) NR50 = b;
+                else if (at == 0x25) NR51 = b;
+                else if (at == 0x26) NR52 = b;
+                else if (at == 0x76) PCM12 = b;
+                else if (at == 0x77) PCM34 = b;
+                else if (at >= 0x30 && at <= 0x3F) WaveRAM[Binary.U16(at, 0xFF) - 0xFF3F] = b;
 
-            // Graphic
-            else if (at == 0x40) LCDC = b;
-            else if (at == 0x41) STAT = b;
-            else if (at == 0x42) SCY = b;
-            else if (at == 0x43) SCX = b;
-            else if (at == 0x44) LY = b;
-            else if (at == 0x45) LYC = b;
-            //else if (at == 0x46) DMA = b;
-            else if (at == 0x47) BGP = b;
-            else if (at == 0x48) OBP0 = b;
-            else if (at == 0x49) OBP1 = b;
-            else if (at == 0x4A) WY = b;
-            else if (at == 0x4B) WX = b;
-            else if (at == 0x4F) VBK = b;
-            else if (at == 0x51) HDMA1 = b;
-            else if (at == 0x52) HDMA2 = b;
-            else if (at == 0x53) HDMA3 = b;
-            else if (at == 0x54) HDMA4 = b;
-            else if (at == 0x55) HDMA5 = b;
-            else if (at == 0x68) BCPS_BGPI = b;
-            else if (at == 0x69) BCPD_BGPD = b;
-            else if (at == 0x6A) OCPS_OBPI = b;
-            else if (at == 0x6B) OCPD_OBPD = b;
-            else if (at == 0x6C) OPRI = b;
+                // Graphic
+                else if (at == 0x40) LCDC = b;
+                else if (at == 0x41) STAT = b;
+                else if (at == 0x42) SCY = b;
+                else if (at == 0x43) SCX = b;
+                else if (at == 0x44) LY = b;
+                else if (at == 0x45) LYC = b;
+                //else if (at == 0x46) DMA = b;
+                else if (at == 0x47) BGP = b;
+                else if (at == 0x48) OBP0 = b;
+                else if (at == 0x49) OBP1 = b;
+                else if (at == 0x4A) WY = b;
+                else if (at == 0x4B) WX = b;
+                else if (at == 0x4F) VBK = b;
+                else if (at == 0x51) HDMA1 = b;
+                else if (at == 0x52) HDMA2 = b;
+                else if (at == 0x53) HDMA3 = b;
+                else if (at == 0x54) HDMA4 = b;
+                else if (at == 0x55) HDMA5 = b;
+                else if (at == 0x68) BCPS_BGPI = b;
+                else if (at == 0x69) BCPD_BGPD = b;
+                else if (at == 0x6A) OCPS_OBPI = b;
+                else if (at == 0x6B) OCPD_OBPD = b;
+                else if (at == 0x6C) OPRI = b;
 
-            // Other
-            else if (at == 0x4C) KEY1 = b;
-            else if (at == 0x56) RP = b;
-            else if (at == 0x70) SVBK = b;
+                // Other
+                else if (at == 0x4C) KEY1 = b;
+                else if (at == 0x56) RP = b;
+                else if (at == 0x70) SVBK = b;
+            }
         }
     }
 }
