@@ -24,7 +24,7 @@ namespace GameBoyReborn
         public byte selectedWorkBank = 0;
 
         private byte[] RomBoot = new byte[256];
-        public bool booting = true;
+        public bool booting = false;
 
         private readonly IO IO;
         public CPU? CPU;
@@ -136,7 +136,7 @@ namespace GameBoyReborn
             RomBoot[at] = b;
 
             // Rom bank 00
-            if (at >= 0 && at <= 0x3FFF)
+            else if (at >= 0 && at <= 0x3FFF)
             RomBank_00[at] = b;
 
             // Rom bank 01~NN
