@@ -270,6 +270,7 @@ namespace GameBoyReborn
             byte highBit = (byte)((Lsb >> (7 - ShiftX)) & 1);
             byte pixelValue = (byte)((highBit << 1) | lowBit);
 
+            if (X < 160 && Y < 144)
             Drawing.SetPixel(X, Y, Pal[pixelValue]);
         }
 
