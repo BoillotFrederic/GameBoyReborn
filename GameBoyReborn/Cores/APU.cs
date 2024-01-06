@@ -8,8 +8,6 @@ namespace GameBoyReborn
     public class APU
     {
         // Cycles
-        // private double CycleDuration = 0;
-        private double FrameDuration = 0;
         private double CycleDuration = 1.0f / Audio.MaxSamplesPerUpdate;
 
         // DACs
@@ -22,7 +20,7 @@ namespace GameBoyReborn
         private short[] CH1_Wave = new short[4096];
         private short[][] CH1_WaveTest = new short[4][];
 
-        private readonly float[] CH1_CH2_WaveDutyCycle = new float[4]{ 12.5f/100, 25.0f/100, 50.0f/100, 75.0f/100 };
+        private readonly double[] WaveDutyCycle = new double[4]{ 12.5f/100.0f*Math.PI, 25.0f/100.0f*Math.PI, 50.0f/100.0f*Math.PI, 75.0f/100.0f*Math.PI };
 
         // Volume
         // int MasterVolume
@@ -52,55 +50,19 @@ namespace GameBoyReborn
                 for (int indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
                 {
                     // Channel 1
-                    short CH1_Value = CH1_GetValue();
-                    Audio.AudioBuffer[indexBuffer] = CH1_Value;
+                    short CH1_Value = CH1_GetValue(indexBuffer);
+                    Audio.CH1_AudioBuffer[indexBuffer] = CH1_Value;
                 }
             }
-
-                /*            // 1 / (4194304 / 4) (Freq CPU)
-                            CycleDuration = 0.0000002384185791015625 * CPU.Cycles * 4;
-                            FrameDuration += CycleDuration;
-                            CH1_WaveDutyTimeElapsed += CycleDuration;
-
-                            // Construct wave
-                            if ((IO.NR52 >> 7 & 1) == 1)
-                            {
-                                DAC1 = (IO.NR12 & 0xF8) != 0;
-
-                                Channel1();
-                                Channel2();
-                                Channel3();
-                                Channel4();
-                            }
-
-                            // Output
-                            if (PPU.CompletedFrame)
-                            {
-                                FrameDuration = 0;
-
-                                // Send sound
-                                if (CH1_Wave.Length != 0 && CH1_Wave != null)
-                                {
-                                    unsafe
-                                    {
-                                        fixed (short* pData = &CH1_Wave[0])
-                                        {
-                                            Array.Copy(CH1_Wave, Audio.AudioBuffer, 4096);
-                                            //Raylib.UpdateAudioStream(Program.CH1_AudioStream, pData, 0);
-                                        }
-                                    }
-
-                                    Array.Clear(CH1_Wave, 0, 4096);
-                                }
-                            }*/
         }
 
         // Channel 1 params
-        private double CH1_WaveDutyTimeElapsed = 0;
+        private ushort CH1_IndexSample = 0;
         private byte CH1_Pace = 0;
         private bool CH1_Direction = false;
         private byte CH1_IndividualStep = 0;
-        private double CH1_WaveForm = 0;
+        private double CH1_SweepTime = 0;
+        private byte CH1_WaveForm = 0;
         private byte CH1_InitialLengthTimer = 0;
         private double CH1_WaveLength = 0;
         private byte CH1_InitialVolume = 0;
@@ -114,28 +76,62 @@ namespace GameBoyReborn
         private bool CH1_LengthEnable = false;
 
         // Get value for x position in buffer
-        private short CH1_GetValue()
+        private short CH1_GetValue(int IndexBuffer)
         {
             if (DAC1)
             {
-                // Wave duty form
-                byte WaveDuty = (byte)(IO.NR11 >> 5 & 3);
-
-                // If length enable
-                if (Binary.ReadBit(IO.NR14, 6))
+                // Delay for stop
+                if (CH1_LengthEnable & CH1_WaveLength <= 0)
                 {
-                    byte InitialLengthTimer = (byte)(IO.NR11 & 0x1F);
-                    byte SoundLength = (byte)(64 - InitialLengthTimer);
+                    CH1_WaveLength -= CycleDuration;
+
+                    if(CH1_WaveLength <= 0)
+                    {
+                        CH1_LengthEnable = false;
+                        DAC1 = false;
+                    }
                 }
 
-                if (CH1_WaveDutyTimeElapsed <= 0)
+                // Sweep
+                int NewPeriod = CH1_Period;
+
+                if (CH1_Pace != 0 && CH1_SweepTime <= 0)
                 {
-                    // Wave duty check
-                    ushort period = (ushort)((IO.NR14 & 0x07) << 8 | IO.NR13);
-                    double ToneFrequency = 131072 / (2048 - period);
+                    CH1_SweepTime -= CycleDuration;
 
-
+                    if(CH1_SweepTime >= 0)
+                    {
+                        if (CH1_Direction)
+                        NewPeriod = (ushort)(CH1_Period - (CH1_Period / (int)Math.Pow(2, CH1_IndividualStep)));
+                        else
+                        NewPeriod = (ushort)(CH1_Period + (CH1_Period / (int)Math.Pow(2, CH1_IndividualStep)));
+                    }
                 }
+
+                if ((!CH1_Direction && NewPeriod > 0x7FF) || (CH1_Direction && NewPeriod <= 0))
+                {
+                    DAC1 = false;
+                    CH1_Pace = 0;
+                    return 0;
+                }
+
+                CH1_Period = (ushort)NewPeriod;
+
+                // Volume
+
+
+                // Apply frequency
+                CH1_IndexSample++;
+
+                double Frequency = 131072.0f / (2048 - CH1_Period);
+                double Ratio = Math.PI * Frequency / Audio.Frequency;
+                double Sample = Math.PI / Ratio;
+                short Value = (short)((CH1_IndexSample) * Ratio < WaveDutyCycle[CH1_WaveForm] ? 32767 : -32767);
+
+                if (CH1_IndexSample > Sample)
+                CH1_IndexSample = 0;
+
+                return Value;
             }
             
             return 0;
@@ -144,11 +140,11 @@ namespace GameBoyReborn
         // Channel 1 IO init
         private void CH1_InitNR()
         {
-            CH1_WaveDutyTimeElapsed = 0;
             CH1_Pace = (byte)(IO.NR10 >> 4 & 0x07);
             CH1_Direction = Binary.ReadBit(IO.NR10, 3);
             CH1_IndividualStep = (byte)(IO.NR10 & 0x07);
-            CH1_WaveForm = IO.NR11 >> 6 & 3;
+            CH1_SweepTime = CH1_Pace * (1.0f / 128.0f);
+            CH1_WaveForm = (byte)(IO.NR11 >> 6 & 3);
             CH1_InitialLengthTimer = (byte)(IO.NR11 & 0x3F);
             CH1_WaveLength = (64 - CH1_InitialLengthTimer) * (1.0f / 255.0f);
             CH1_InitialVolume = (byte)(IO.NR12 >> 4 & 0x0F);
@@ -173,11 +169,12 @@ namespace GameBoyReborn
             CH1_Pace = (byte)(b >> 4 & 0x07);
             CH1_Direction = Binary.ReadBit(b, 3);
             CH1_IndividualStep = (byte)(b & 0x07);
+            CH1_SweepTime = CH1_Pace * (1.0f/128.0f);
         }
         public void CH1_WriteNR11(byte b)
         {
             CH1_InitialLengthTimer = (byte)(b & 0x3F);
-            CH1_WaveForm = b >> 6 & 3;
+            CH1_WaveForm = (byte)(b >> 6 & 3);
 
             if(CH1_LengthEnable)
             CH1_WaveLength = (64 - CH1_InitialLengthTimer) * (1.0f/255.0f);
@@ -205,247 +202,6 @@ namespace GameBoyReborn
             if (Binary.ReadBit(IO.NR52, 7))
             DAC1 = CH1_SweepPace != 0;
         }
-
-        /*        // Pulse channel 1
-                private double CH1_SweepTimeElapsed = 0;
-                private double CH1_WaveDutyTimeElapsed = 0;
-                private byte CH1_SweepCounter = 0;
-                private byte CH1_WaveCounter = 0;
-                private short CH1_NextWave = 0;
-                private bool[] CH1_WaveDuty;
-                private int test = 0;
-                private bool WaveCreationEnable = false;
-                private bool CH1_Enable = false;
-
-                private int CH1_WaveDutyPos = 0;
-                private bool LengthEnable;
-                private byte InitialLengthTimer;
-                private byte WaveDuty;
-                private byte SoundLength;
-                private byte CH1_BufferPos = 0;
-                private void Channel1()
-                {
-                    if (DAC1 && Binary.ReadBit(IO.NR52, 0))
-                    {
-                        if (CH1_WaveDutyTimeElapsed >= 0.00390625)
-                        {
-                            CH1_WaveDutyTimeElapsed = 0;
-
-                            // Wave duty check
-                            ushort period = (ushort)((IO.NR14 & 0x07) << 8 | IO.NR13);
-                            double ToneFrequency = 131072 / (2048 - period);
-
-                            if (CH1_WaveDutyPos == 0)
-                            {
-                                CH1_BufferPos = (byte)Math.Floor(FrameDuration / 0.00390625);
-                                if (CH1_BufferPos > 3)
-                                CH1_BufferPos = 3;
-
-                                LengthEnable = Binary.ReadBit(IO.NR14, 6);
-                                InitialLengthTimer = (byte)(IO.NR11 & 0x1F);
-                                WaveDuty = (byte)(IO.NR11 >> 5 & 3);
-                                SoundLength = (byte)(64 - InitialLengthTimer);
-                            }
-
-                            // Wave duty construct
-                            if (CH1_BufferPos < 4)
-                            {
-                                int numSamplesPerPeriod = (int)Math.Abs(44100.0 / ToneFrequency);
-
-                                if (numSamplesPerPeriod != 0)
-                                for (int i = 0; i < 1024; i++)
-                                {
-                                    int dutyIndex = numSamplesPerPeriod == 0 ? 0 : i % numSamplesPerPeriod;
-                                    CH1_Wave[CH1_BufferPos * 1024 + i] = (short)((dutyIndex < ((int)numSamplesPerPeriod * CH1_CH2_WaveDutyCycle[WaveDuty])) ? 32767 : -32767);
-                                }
-
-                            }
-
-                            *//*
-                                                if (CH1_BufferPos < 4)
-                                                {
-                                                    int numSamplesPerPeriod = (int)Math.Abs(44100.0 / ToneFrequency);
-
-                                                    if (numSamplesPerPeriod != 0)
-                                                        for (int i = 0; i < 1024; i++)
-                                                        {
-                                                            int dutyIndex = numSamplesPerPeriod == 0 ? 0 : i % numSamplesPerPeriod;
-                                                            //CH1_Wave[CH1_BufferPos * 1024 + i] = (short)((dutyIndex < ((int)numSamplesPerPeriod * CH1_CH2_WaveDutyCycle[WaveDuty])) ? 32767 : -32767);
-                                                            CH1_Wave[CH1_BufferPos * 1024 + i] = (short)((dutyIndex < numSamplesPerPeriod * CH1_CH2_WaveDutyCycle[WaveDuty]) ? 32767 : -32767);
-                                                        }
-
-                                                }
-                            *//*
-
-                            if (CH1_BufferPos >= 3)
-                            CH1_BufferPos = 0;
-                            else
-                            CH1_BufferPos++;
-
-                            // Wave duty completed
-                            if (CH1_WaveDutyPos++ >= SoundLength)
-                            {
-                                CH1_WaveDutyPos = 0;
-                                Binary.SetBit(ref IO.NR52, 0, false);
-                            }
-                        }
-
-        *//*                // Period
-                        ushort period = (ushort)((IO.NR14 & 0x07) << 8 | IO.NR13);
-
-                        // Sweep
-                        if (CH1_SweepTimeElapsed >= 0.0078125)
-                        {
-                            CH1_SweepTimeElapsed = 0;
-
-                            // Register
-                            byte SweepPace = (byte)(IO.NR12 & 3);
-                            bool EnvDir = Binary.ReadBit(IO.NR12, 3);
-                            byte InitialVolume = (byte)(IO.NR12 >> 3 & 0x0F);
-
-                            //double SampleRate = 1048576 / (2048 - period);
-                            //double ToneFrequency = 131072 / (2048 - period);
-                            byte Pace = (byte)(IO.NR10 >> 4 & 0x07);
-                            bool Direction = Binary.ReadBit(IO.NR10, 3);
-                            byte IndividualStep = (byte)(IO.NR10 & 0x07);
-
-                            if (CH1_SweepCounter == 0)
-                            CH1_SweepCounter = Pace;
-
-                            CH1_SweepCounter--;
-
-                            if (CH1_SweepCounter == 0)
-                            Pace = 0;
-
-                            if (IndividualStep != 0)
-                            {
-                                if (Direction)
-                                period = (ushort)(period - (period / (2 ^ IndividualStep)));
-                                else
-                                {
-                                    period = (ushort)(period + (period / (2 ^ IndividualStep)));
-
-                                    if (period > 0x1FF)
-                                    IO.NR52 &= 0xFE;
-                                }
-                            }
-                        }*//*
-                    }
-                    else
-                        CH1_WaveCounter = 0;
-                }*/
-
-
-        /*        private double CH1_SweepTimeElapsed = 0;
-                private double CH1_WaveDutyTimeElapsed = 0;
-                private byte CH1_SweepCounter = 0;
-                private byte CH1_WaveCounter = 0;
-                private short CH1_NextWave = 0;
-                private bool[] CH1_WaveDuty;
-                private int test = 0;
-                private bool WaveCreationEnable = false;
-                private bool CH1_Enable = false;
-
-                private void Channel1()
-                {
-                    if (DAC1 && Binary.ReadBit(IO.NR52, 0))
-                    {
-                        CH1_SweepTimeElapsed += CycleDuration;
-                        CH1_WaveDutyTimeElapsed += CycleDuration;
-
-                        // Period
-                        ushort period = (ushort)((IO.NR14 & 0x07) << 8 | IO.NR13);
-
-                        // Sweep
-                        if (CH1_SweepTimeElapsed >= 0.0078125)
-                        {
-                            CH1_SweepTimeElapsed = 0;
-
-                            // Register
-                            byte SweepPace = (byte)(IO.NR12 & 3);
-                            bool EnvDir = Binary.ReadBit(IO.NR12, 3);
-                            byte InitialVolume = (byte)(IO.NR12 >> 3 & 0x0F);
-
-                            //double SampleRate = 1048576 / (2048 - period);
-                            //double ToneFrequency = 131072 / (2048 - period);
-                            byte Pace = (byte)(IO.NR10 >> 4 & 0x07);
-                            bool Direction = Binary.ReadBit(IO.NR10, 3);
-                            byte IndividualStep = (byte)(IO.NR10 & 0x07);
-
-                            if (CH1_SweepCounter == 0)
-                            CH1_SweepCounter = Pace;
-
-                            CH1_SweepCounter--;
-
-                            if (CH1_SweepCounter == 0)
-                            Pace = 0;
-
-                            if (IndividualStep != 0)
-                            {
-                                if (Direction)
-                                period = (ushort)(period - (period / (2 ^ IndividualStep)));
-                                else
-                                {
-                                    period = (ushort)(period + (period / (2 ^ IndividualStep)));
-
-                                    if (period > 0x1FF)
-                                    IO.NR52 &= 0xFE;
-                                }
-                            }
-                        }
-
-                        // Wave duty
-                        if (CH1_WaveDutyTimeElapsed >= 0.00390625)
-                        {
-                            CH1_WaveDutyTimeElapsed = 0;
-
-                            bool LengthEnable = Binary.ReadBit(IO.NR14, 6);
-                            byte InitialLengthTimer = (byte)(IO.NR11 & 0x1F);
-                            byte WaveDuty = (byte)(IO.NR11 >> 5 & 3);
-                            double SoundLength = LengthEnable ? (64 - InitialLengthTimer) * 0.00390625 : 0.25;
-
-
-
-                            *//*                    if (CH1_WaveCounter == 0)
-                                                CH1_WaveDuty = new bool[64 - InitialLengthTimer];
-
-                                                CH1_WaveDuty[CH1_WaveCounter++] = CH1_CH2_WaveDutyCycle[WaveDuty, CH1_WaveCounter % 8];*//*
-
-                            test++;
-
-                                *//*                    if (CH1_WaveCounter++ == SoundLength / 0.00390625)
-                                                    {
-                                                        Console.WriteLine(SoundLength);
-                                                        CH1_WaveCounter = 0;
-                                                        CH1_NextWave = 0;
-                                                        Binary.SetBit(ref IO.NR52, 0, false);
-                                                    }*//*
-
-                                // Write buffer
-                                //double SampleRate = 1048576 / (2048 - period);
-                                *//*                    double ToneFrequency = 131072 / (2048 - period);
-
-                                                    int sampleRate = 44100;
-                                                    int numSamples = (int)(sampleRate / ToneFrequency);
-
-                                                    short[] samples = new short[numSamples];
-
-                                                    for (int i = 0; i < numSamples; i++)
-                                                    {
-                                                        int dutyIndex = i % CH1_WaveDuty.Length;
-                                                        samples[i] = (short)(CH1_WaveDuty[dutyIndex] ? 32767 : -32767);
-                                                    }*//*
-
-                                //Console.WriteLine(samples.Length);
-                                //CH1_Wave.Concat(samples);
-                                *//*                    Array.Copy(samples, 0, CH1_Wave, CH1_NextWave, numSamples);
-                                                    CH1_NextWave += (short)numSamples;*//*
-
-                        }
-                    }
-                    else
-                    CH1_WaveCounter = 0;
-                }*/
 
         // Pulse channel 2
         private double CH2_SweepTimeElapsed = 0;

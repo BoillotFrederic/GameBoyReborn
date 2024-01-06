@@ -10,8 +10,8 @@ namespace GameBoyReborn
         // Params
         private const int MaxSamples = 512;
         public static int MaxSamplesPerUpdate = 4096;
-        private const int Frequency = 44100;
-        public static short[] AudioBuffer = new short[MaxSamplesPerUpdate];
+        public const int Frequency = 44100;
+        public static short[] CH1_AudioBuffer = new short[MaxSamplesPerUpdate];
         private static AudioStream _CH1_AudioStream;
         private static AudioStream _CH2_AudioStream;
         private static AudioStream _CH3_AudioStream;
@@ -38,24 +38,17 @@ namespace GameBoyReborn
         // Loop
         public static void Loop()
         {
-/*            elapsedTime += Raylib.GetFrameTime();
-
-            if (elapsedTime >= updateInterval)
-            {*/
-                if (Raylib.IsAudioStreamProcessed(_CH1_AudioStream))
+            if (Raylib.IsAudioStreamProcessed(_CH1_AudioStream))
+            {
+                unsafe
                 {
-                    unsafe
+                    fixed (short* pData = &CH1_AudioBuffer[0])
                     {
-                        fixed (short* pData = &Noise()[0])
-                        {
 
-                            Raylib.UpdateAudioStream(_CH1_AudioStream, pData, MaxSamplesPerUpdate);
-                        }
+                        Raylib.UpdateAudioStream(_CH1_AudioStream, pData, MaxSamplesPerUpdate);
                     }
                 }
-
-/*                elapsedTime = 0f;
-            }*/
+            }
         }
 
         // Close
@@ -76,48 +69,6 @@ namespace GameBoyReborn
             short[] managedBuffer = new short[MaxSamplesPerUpdate];
             for (int i = 0; i < MaxSamplesPerUpdate; i++)
             managedBuffer[i] = (short)random.Next(-32768, 32767);
-
-            return managedBuffer;
-        }
-
-        // Wave duty
-        private static short[] WaveDuty(float dutyCycle, int tone)
-        {
-            double numSamplesPerPeriod = 44100.0 / tone;
-            double sampleSize = 256.0f / numSamplesPerPeriod;
-
-            float samples = MaxSamplesPerUpdate / 16.0f;
-            float dutyCycleSamples = (float)(samples * dutyCycle);
-            short[] managedBuffer = new short[MaxSamplesPerUpdate];
-
-            int sampleStep = 0;
-
-            for (int i = 0; i < MaxSamplesPerUpdate; i++)
-            {
-
-                int dutyIndex = (int)(numSamplesPerPeriod == 0 ? 0 : i % numSamplesPerPeriod);
-
-                if(dutyIndex == 0 && i != 0)
-                sampleStep += (int)numSamplesPerPeriod;
-
-                if (sampleStep + dutyIndex < i)
-                {
-                    managedBuffer[i] = managedBuffer[i - 1];
-                    sampleStep++;
-                    i++;
-                }
-                else if (sampleStep + dutyIndex < i)
-                {
-                    sampleStep--;
-                    i--;
-                }
-
-                managedBuffer[i] = (short)((dutyIndex < sampleSize * dutyCycle) ? 32767 : -32767);
-            }
-            /*            for (int i = 0; i < MaxSamplesPerUpdate; i++)
-                        {
-                            managedBuffer[i] = (short)((i % samples < dutyCycleSamples) ? 32767 : -32767);
-                        }*/
 
             return managedBuffer;
         }
