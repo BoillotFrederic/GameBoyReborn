@@ -640,7 +640,9 @@ namespace GameBoyReborn
             // Interrupts handle
             if (IME) CPUWakeUp();
 
-            //foo += Cycles - LastCycles;
+            // Quit boot rom
+            if (Memory.booting && PC == 0x100)
+            Memory.booting = false;
         }
 
         // Init and instructions
