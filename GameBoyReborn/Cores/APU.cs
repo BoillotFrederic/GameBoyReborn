@@ -50,8 +50,10 @@ namespace GameBoyReborn
                 for (int indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
                 {
                     // Channel 1
-                    short CH1_Value = CH1_GetValue();
-                    Audio.CH1_AudioBuffer[indexBuffer] = CH1_Value;
+                    Audio.CH1_AudioBuffer[indexBuffer] = CH1_GetValue();
+
+                    // Channel 2
+                    CH2_GetValue();
                 }
             }
         }
@@ -117,6 +119,7 @@ namespace GameBoyReborn
                 {
                     DAC1 = false;
                     CH1_Pace = 0;
+                    Binary.SetBit(ref IO.NR52, 0, false);
                     return 0;
                 }
 
@@ -147,7 +150,6 @@ namespace GameBoyReborn
                             else
                             {
                                 DAC1 = false;
-                                CH1_Pace = 0;
                                 return 0;
                             }
                         }
@@ -163,7 +165,7 @@ namespace GameBoyReborn
                 double Frequency = 131072.0f / (2048 - CH1_Period);
                 double Ratio = Math.PI * Frequency / Audio.Frequency;
                 double Sample = Math.PI / Ratio;
-                short Value = (short)((CH1_IndexSample) * Ratio < WaveDutyCycle[CH1_WaveForm] ? 1 * Volume : -1 * Volume);
+                short Value = (short)(CH1_IndexSample * Ratio < WaveDutyCycle[CH1_WaveForm] ? 1 * Volume : -1 * Volume);
 
                 if (CH1_IndexSample > Sample)
                 CH1_IndexSample = 0;
@@ -205,6 +207,7 @@ namespace GameBoyReborn
         // Channel 1 IO write
         public void CH1_WriteNR10(byte b)
         {
+            IO.NR10 = b;
             CH1_Pace = (byte)(b >> 4 & 0x07);
             CH1_Direction = Binary.ReadBit(b, 3);
             CH1_IndividualStep = (byte)(b & 0x07);
@@ -212,6 +215,7 @@ namespace GameBoyReborn
         }
         public void CH1_WriteNR11(byte b)
         {
+            IO.NR11 = b;
             CH1_InitialLengthTimer = (byte)(b & 0x3F);
             CH1_WaveForm = (byte)(b >> 6 & 3);
 
@@ -220,6 +224,7 @@ namespace GameBoyReborn
         }
         public void CH1_WriteNR12(byte b)
         {
+            IO.NR12 = b;
             CH1_InitialVolume = (byte)(b >> 4 & 0x0F);
             CH1_EnvDir = Binary.ReadBit(b, 3);
             CH1_SweepPace = (byte)(b & 7);
@@ -227,10 +232,11 @@ namespace GameBoyReborn
         }
         public void CH1_WriteNR13(byte b)
         {
-            CH1_LowPeriod = b;
+            IO.NR13 = CH1_LowPeriod = b;
         }
         public void CH1_WriteNR14(byte b)
         {
+            IO.NR14 = b;
             CH1_HighPeriod = (byte)(b & 7);
             CH1_Period = (ushort)(CH1_HighPeriod << 8 | CH1_LowPeriod);
             CH1_Trigger = Binary.ReadBit(b, 7);
@@ -239,25 +245,29 @@ namespace GameBoyReborn
             IO.NR52 = (byte)((CH1_SweepPace != 0) ? IO.NR52 | 1 : IO.NR52 & 0xFE);
 
             if (Binary.ReadBit(IO.NR52, 7))
-            {
-                CH1_InitNR();
-            }
+            CH1_InitNR();
         }
 
-        // Pulse channel 2
-        private double CH2_SweepTimeElapsed = 0;
-        private void Channel2()
+        // Channel 2
+        // ---------
+
+        // Channel 2 params
+
+        // Get value for x position in buffer
+        private void CH2_GetValue()
         {
             if (Binary.ReadBit(IO.NR52, 1))
             {
-                byte Pace = (byte)(IO.NR10 >> 4 & 0x07);
-
-                if (CH2_SweepTimeElapsed >= 0.0078125 && Pace != 0)
-                {
-                    Console.WriteLine("Channel2");
-                }
+                Console.WriteLine("Channel2");
             }
         }
+
+        // Channel 2 IO init
+
+        // Channel 2 IO write
+
+
+
 
         // Wave channel
         private void Channel3()

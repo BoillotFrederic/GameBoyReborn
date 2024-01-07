@@ -61,6 +61,22 @@ namespace GameBoyReborn
         // GameBoy effects
         // ---------------
 
+        public static short[] ApplyReverb(short[] input, int delayMilliseconds, float attenuation)
+        {
+            int delaySamples = (int)(delayMilliseconds * Frequency / 1000.0f);
+            short[] output = new short[input.Length];
+
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (i + delaySamples < input.Length)
+                {
+                    output[i] += (short)(input[i + delaySamples] * attenuation);
+                }
+            }
+
+            return output;
+        }
+
         // Noise song
         private static short[] Noise()
         {
