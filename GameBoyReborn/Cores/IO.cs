@@ -7,6 +7,7 @@ namespace GameBoyReborn
     public class IO
     {
         // Using
+        public PPU? PPU;
         public APU? APU;
 
         //JOYP	Joypad
@@ -163,7 +164,7 @@ namespace GameBoyReborn
 
         public void Write(byte at, byte b)
         {
-            if(APU != null)
+            if(APU != null && PPU != null)
             {
                 //JOYP	Joypad
                 if (at == 0x00) P1 = b;
@@ -183,11 +184,11 @@ namespace GameBoyReborn
                 else if (at == 0xFF) IE = b;
 
                 // Sound
-                else if (at == 0x10) { NR10 = b; APU.CH1_WriteNR10(b); }
-                else if (at == 0x11) { NR11 = b; APU.CH1_WriteNR11(b); }
-                else if (at == 0x12) { NR12 = b; APU.CH1_WriteNR12(b); }
-                else if (at == 0x13) { NR13 = b; APU.CH1_WriteNR13(b); }
-                else if (at == 0x14) { NR14 = b; APU.CH1_WriteNR14(b); }
+                else if (at == 0x10) APU.CH1_WriteNR10(b);
+                else if (at == 0x11) APU.CH1_WriteNR11(b);
+                else if (at == 0x12) APU.CH1_WriteNR12(b);
+                else if (at == 0x13) APU.CH1_WriteNR13(b);
+                else if (at == 0x14) APU.CH1_WriteNR14(b);
                 else if (at == 0x16) NR21 = b;
                 else if (at == 0x17) NR22 = b;
                 else if (at == 0x18) NR23 = b;
@@ -209,18 +210,18 @@ namespace GameBoyReborn
                 else if (at >= 0x30 && at <= 0x3F) WaveRAM[at - 0x30] = b;
 
                 // Graphic
-                else if (at == 0x40) LCDC = b;
-                else if (at == 0x41) STAT = b;
-                else if (at == 0x42) SCY = b;
-                else if (at == 0x43) SCX = b;
+                else if (at == 0x40) PPU.LCDC(b);
+                else if (at == 0x41) PPU.STAT(b);
+                else if (at == 0x42) PPU.SCY_W(b);
+                else if (at == 0x43) PPU.SCX_W(b);
                 else if (at == 0x44) LY = b;
                 else if (at == 0x45) LYC = b;
                 //else if (at == 0x46) DMA = b;
-                else if (at == 0x47) BGP = b;
+                else if (at == 0x47) PPU.BGP_W(b);
                 else if (at == 0x48) OBP0 = b;
                 else if (at == 0x49) OBP1 = b;
-                else if (at == 0x4A) WY = b;
-                else if (at == 0x4B) WX = b;
+                else if (at == 0x4A) PPU.WY_W(b);
+                else if (at == 0x4B) PPU.WX_W(b);
                 else if (at == 0x4F) VBK = b;
                 else if (at == 0x51) HDMA1 = b;
                 else if (at == 0x52) HDMA2 = b;
