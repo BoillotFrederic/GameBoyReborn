@@ -16,12 +16,16 @@ namespace GameBoyReborn
 
         public PPU(IO _IO, Memory _Memory, CPU _CPU)
         {
+            // Relation
             IO = _IO;
             Memory = _Memory;
             CPU = _CPU;
+
+            // Init registers
+            InitRegisters();
         }
 
-        // CONTROL
+        // Registers
         private bool LCD_and_PPU_enable;
         private bool Window_tile_map_area;
         private bool Window_enable;
@@ -30,14 +34,17 @@ namespace GameBoyReborn
         private bool OBJ_size;
         private bool OBJ_enable;
         private bool BG_and_Window_enable_priority;
-
-        // STAT
         private bool LYC_int_select;
         private bool Mode_2_int_select;
         private bool Mode_1_int_select;
         private bool Mode_0_int_select;
         private bool LYC_equal_LY;
         private byte Mode_PPU;
+        private byte SCX;
+        private byte SCY;
+        private byte WX;
+        private byte WY;
+        private byte BGP;
 
         // Check append frame
         public bool CompletedFrame;
@@ -45,13 +52,9 @@ namespace GameBoyReborn
         // Cycles
         private int LyCycles = 0;
 
-        // Current LY Colors
-        // private readonly Color[] CurrentLyColors = new Color[160];
-
-        // Execution
-        public void Execution()
+        // Init all PPU registers
+        private void InitRegisters()
         {
-            // Read CONTROL
             LCD_and_PPU_enable = Binary.ReadBit(IO.LCDC, 7);
             Window_tile_map_area = Binary.ReadBit(IO.LCDC, 6);
             Window_enable = Binary.ReadBit(IO.LCDC, 5);
@@ -60,15 +63,54 @@ namespace GameBoyReborn
             OBJ_size = Binary.ReadBit(IO.LCDC, 2);
             OBJ_enable = Binary.ReadBit(IO.LCDC, 1);
             BG_and_Window_enable_priority = Binary.ReadBit(IO.LCDC, 0);
-
-            // Read STAT
             LYC_int_select = Binary.ReadBit(IO.STAT, 6);
             Mode_2_int_select = Binary.ReadBit(IO.STAT, 5);
             Mode_1_int_select = Binary.ReadBit(IO.STAT, 4);
             Mode_0_int_select = Binary.ReadBit(IO.STAT, 3);
             LYC_equal_LY = Binary.ReadBit(IO.STAT, 2);
-            Mode_PPU = (byte)((IO.STAT) & 3);
+            Mode_PPU = (byte)(IO.STAT & 3);
+            SCX = IO.SCX;
+            SCY = IO.SCY;
+            WX = IO.WX;
+            WY = IO.WY;
+            BGP = IO.BGP;
+        }
 
+        // PPU IO write
+        public void LCDC(byte b)
+        {
+            IO.LCDC = b;
+            LCD_and_PPU_enable = Binary.ReadBit(b, 7);
+            Window_tile_map_area = Binary.ReadBit(b, 6);
+            Window_enable = Binary.ReadBit(b, 5);
+            BG_and_Window_tile_data_area = Binary.ReadBit(b, 4);
+            BG_tile_map_area = Binary.ReadBit(b, 3);
+            OBJ_size = Binary.ReadBit(b, 2);
+            OBJ_enable = Binary.ReadBit(b, 1);
+            BG_and_Window_enable_priority = Binary.ReadBit(b, 0);
+        }
+        public void STAT(byte b)
+        {
+            IO.STAT = b;
+            LYC_int_select = Binary.ReadBit(b, 6);
+            Mode_2_int_select = Binary.ReadBit(b, 5);
+            Mode_1_int_select = Binary.ReadBit(b, 4);
+            Mode_0_int_select = Binary.ReadBit(b, 3);
+            LYC_equal_LY = Binary.ReadBit(b, 2);
+            Mode_PPU = (byte)(b & 3);
+        }
+        public void LYC(byte b)
+        {
+        }
+        public void SCX_W(byte b) { IO.SCX = SCX = b; }
+        public void SCY_W(byte b) { IO.SCY = SCY = b; }
+        public void WX_W(byte b) { IO.WX = WX = b; }
+        public void WY_W(byte b) { IO.WY = WY = b; }
+        public void BGP_W(byte b) { IO.BGP = BGP = b; }
+
+        // Execution
+        public void Execution()
+        {
             int cycles = CPU.Cycles * 4;
 
             if (LCD_and_PPU_enable)
@@ -87,17 +129,14 @@ namespace GameBoyReborn
                             {
                                 IO.LY++;
                                 LyCompare();
-
-                                // Mode_PPU = 2
-                                IO.STAT = (byte)(IO.STAT & 0xFC | 2);
+                                Mode_PPU = 2;
 
                                 if (Mode_2_int_select)
                                 Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
                             }
                             else
                             {
-                                // Mode_PPU = 1
-                                IO.STAT = (byte)(IO.STAT & 0xFC | 1);
+                                Mode_PPU = 1;
 
                                 if (Mode_1_int_select)
                                 Binary.SetBit(ref IO.IF, 0, true); // 0 = VBlank
@@ -120,7 +159,7 @@ namespace GameBoyReborn
                             CompletedFrame = true;
 
                             // Next mode (OAM scan)
-                            IO.STAT = (byte)(IO.STAT & 0xFC | 2); // Mode_PPU = 2
+                            Mode_PPU = 2;
                             IO.LY = 0;
 
                             if (Mode_2_int_select)
@@ -134,7 +173,7 @@ namespace GameBoyReborn
                         if (LyCycles >= 80)
                         {
                             // Next mode (Drawing pixel)
-                            IO.STAT = (byte)(IO.STAT & 0xFC | 3); // Mode_PPU = 3
+                            Mode_PPU = 3;
                         }
                     break;
 
@@ -147,7 +186,7 @@ namespace GameBoyReborn
                             DrawLine();
 
                             // Next mode (Horizontal blank)
-                            IO.STAT = (byte)(IO.STAT & 0xFC | 0); // Mode_PPU = 0
+                            Mode_PPU = 0;
 
                             if (Mode_0_int_select)
                             Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
@@ -171,20 +210,20 @@ namespace GameBoyReborn
         {
             if (IO.LY == IO.LYC)
             {
-                Binary.SetBit(ref IO.STAT, 2, true);
+                LYC_equal_LY = true;
 
                 /*            if (ReadBit(IO.IE, setInterrupt))
                             SetBit(ref IO.IF, setInterrupt, true);*/
             }
             else
-            Binary.SetBit(ref IO.STAT, 2, false);
+            LYC_equal_LY = false;
         }
 
         // Draw line
         private void DrawLine()
         {
             // Palettes
-            Color[] BG_WIN_Pal = new Color[4] { ColorMap[IO.BGP & 3], ColorMap[(IO.BGP >> 2) & 3], ColorMap[(IO.BGP >> 4) & 3], ColorMap[(IO.BGP >> 6) & 3] };
+            Color[] BG_WIN_Pal = new Color[4] { ColorMap[BGP & 3], ColorMap[(BGP >> 2) & 3], ColorMap[(BGP >> 4) & 3], ColorMap[(BGP >> 6) & 3] };
 
             // Index start for map area
             ushort BG_StartTileMapArea = (ushort)(!BG_tile_map_area ? 0x1800 : 0x1C00);
@@ -209,10 +248,10 @@ namespace GameBoyReborn
             // Set Y position
             if (BG_and_Window_enable_priority)
             {
-                BG_WIN_SetInedex(ref BG_TileY, ref BG_PixelInTileY, IO.LY, IO.SCY, 143);
+                BG_WIN_SetInedex(ref BG_TileY, ref BG_PixelInTileY, IO.LY, SCY, 143);
 
                 if (Window_enable)
-                BG_WIN_SetInedex(ref WIN_TileY, ref WIN_PixelInTileY, IO.LY, IO.WY, 143);
+                BG_WIN_SetInedex(ref WIN_TileY, ref WIN_PixelInTileY, IO.LY, WY, 143);
             }
 
             // Browse line
@@ -222,7 +261,7 @@ namespace GameBoyReborn
                 if (BG_and_Window_enable_priority)
                 {
                     // Set X position and draw
-                    BG_WIN_SetInedex(ref BG_TileX, ref BG_PixelInTileX, x, IO.SCX, 159);
+                    BG_WIN_SetInedex(ref BG_TileX, ref BG_PixelInTileX, x, SCX, 159);
                     BG_WIN_UpdateTileData(ref BG_LastTileX, BG_TileX, BG_TileY, BG_StartTileMapArea);
                     BG_WIN_DrawPixel(x, IO.LY, BG_WIN_Pal, BG_WIN_TileData[BG_PixelInTileY * 2], BG_WIN_TileData[BG_PixelInTileY * 2 + 1], BG_PixelInTileX);
 
@@ -230,7 +269,7 @@ namespace GameBoyReborn
                     if (Window_enable)
                     {
                         // Set X position and draw
-                        BG_WIN_SetInedex(ref WIN_TileX, ref WIN_PixelInTileX, x, IO.WX, 159);
+                        BG_WIN_SetInedex(ref WIN_TileX, ref WIN_PixelInTileX, x, WX, 159);
                         BG_WIN_UpdateTileData(ref WIN_LastTileX, WIN_TileX, WIN_TileY, WIN_StartTileMapArea);
                         BG_WIN_DrawPixel(x, IO.LY, BG_WIN_Pal, BG_WIN_TileData[BG_PixelInTileY * 2], BG_WIN_TileData[WIN_PixelInTileY * 2 + 1], WIN_PixelInTileX);
                     }
@@ -274,96 +313,8 @@ namespace GameBoyReborn
             Drawing.SetPixel(X, Y, Pal[pixelValue]);
         }
 
-/*        // Create tiles
-        private Color[] Background()
-        {
-            Color[] TilesData = new Color[256 * 256];
-
-            if (BG_and_Window_enable_priority)
-            {
-                Color[] Pal = new Color[4] { ColorMap[IO.BGP & 3], ColorMap[(IO.BGP >> 2) & 3], ColorMap[(IO.BGP >> 4) & 3], ColorMap[(IO.BGP >> 6) & 3] };
-                ushort StartTileMapArea = (ushort)(!BG_tile_map_area ? 0x1800 : 0x1C00);
-
-                // Browse tiles
-                for (byte ty = 0; ty < 32; ty++)
-                {
-                    for (byte tx = 0; tx < 32; tx++)
-                    {
-
-                        byte TileIndex = Memory.VideoRam_nn[Memory.selectedVideoBank][StartTileMapArea + (ty * 32 + tx)];
-                        ushort StartTileDataArea = (ushort)(BG_and_Window_tile_data_area ? 0 : TileIndex > 0x7F ? 800 : 1000);
-                        short STileIndex = BG_and_Window_tile_data_area ? unchecked((sbyte)TileIndex) : TileIndex;
-
-                        byte[] TileData = new byte[16];
-                        Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (StartTileDataArea + STileIndex) * 16, TileData, 0, 16);
-
-                        // Draw tiles
-                        for (byte y = 0; y < 8; y++)
-                        {
-                            for (byte x = 0; x < 8; x++)
-                            {
-                                byte lowBit = (byte)((TileData[y * 2] >> (7 - x)) & 1);
-                                byte highBit = (byte)((TileData[y * 2 + 1] >> (7 - x)) & 1);
-                                byte pixelValue = (byte)((highBit << 1) | lowBit);
-
-                                TilesData[(256 * (ty * 8 + y)) + (tx * 8 + x)] = Pal[pixelValue];
-                            }
-                        }
-                    }
-                }
-            }
-
-            return TilesData;
-        }*/
-
-/*        private Color[] Window()
-        {
-            Color[] TilesData = new Color[256 * 256];
-
-            if (BG_and_Window_enable_priority && Window_enable)
-            {
-                Color[] Pal = new Color[4] { ColorMap[IO.BGP & 3], ColorMap[(IO.BGP >> 2) & 3], ColorMap[(IO.BGP >> 4) & 3], ColorMap[(IO.BGP >> 6) & 3] };
-
-                ushort StartTileMapArea = (ushort)(Window_tile_map_area ? 0x1800 : 0x1C00);
-                ushort StartTileDataArea = (ushort)(Window_tile_map_area ? 0x800 : 0x17FF);
-
-                int windowX = IO.WX - 7;
-                int windowY = IO.WY;
-
-                // Browse tiles
-                for (int ty = 0; ty < 32; ty++)
-                {
-                    for (int tx = 0; tx < 32; tx++)
-                    {
-                        int screenX = tx * 8 + windowX;
-                        int screenY = ty * 8 + windowY;
-
-                        if (screenX >= 0 && screenX < 160 && screenY >= 0 && screenY < 144)
-                        {
-                            byte TileIndex = Memory.VideoRam_nn[Memory.selectedVideoBank][StartTileMapArea + (ty * 32 + tx)];
-
-                            byte[] TileData = new byte[16];
-                            Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], StartTileDataArea + TileIndex * 16, TileData, 0, 16);
-
-                            // Draw tiles
-                            for (byte y = 0; y < 8; y++)
-                            {
-                                for (byte x = 0; x < 8; x++)
-                                {
-                                    byte lowBit = (byte)((TileData[y * 2] >> (7 - x)) & 1);
-                                    byte highBit = (byte)((TileData[y * 2 + 1] >> (7 - x)) & 1);
-                                    byte pixelValue = (byte)((highBit << 1) | lowBit);
-
-                                    TilesData[(ty * 8 + y) * 32 + tx * 8 + x] = Pal[pixelValue];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            return TilesData;
-        }*/
+        // Handle Objects
+        // --------------
 
         private Color[] Object()
         {
