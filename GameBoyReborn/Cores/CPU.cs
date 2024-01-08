@@ -6,6 +6,9 @@ namespace GameBoyReborn
 {
     public class CPU
     {
+        // IO port
+        private readonly IO IO;
+
         // Handle memory
         private readonly Memory Memory;
         private delegate byte ReadDelegate(ushort at);
@@ -581,6 +584,7 @@ namespace GameBoyReborn
             Console.WriteLine("L = " + L.ToString("X2") + " (" + L + ")");
             Console.WriteLine("FLAGS = Z(" + (FlagZ ? 1 : 0) + "), N(" + (FlagN ? 1 : 0) + "), H(" + (FlagH ? 1 : 0) + "), C(" + (FlagC ? 1 : 0) + ")");
             Console.WriteLine("Interrupts = Stop(" + (Stop ? 1 : 0) + "), Halt(" + (Halt ? 1 : 0) + "), IME(" + (IME ? 1 : 0) + ")");
+            Console.WriteLine("IE = " + IO.IE.ToString("X2") + ", IF = " + IO.IF.ToString("X2"));
 
             string InstructionName = opcode != 0xCB ? InstructionsName[opcode] : (Read(PC).ToString("X2") + " : " + CBInstructionsName[Read(PC)]);
             Console.WriteLine("Op = " + opcode.ToString("X2") + ", " + InstructionName + " : Next ushort = " + Read(opcode != 0xCB ? PC : (ushort)(PC + 1)).ToString("X2") + Read((ushort)(opcode != 0xCB ? PC + 1 : PC + 2)).ToString("X2"));
@@ -634,8 +638,6 @@ namespace GameBoyReborn
                 Cycles++;
             }
 
-            // Set timer
-            //Timer(LastCycles);
 
             // Interrupts handle
             if (IME) CPUWakeUp();
@@ -651,9 +653,10 @@ namespace GameBoyReborn
         private InstructionDelegate[] Instructions;
         private InstructionDelegate[] CB_Instructions;
 
-        public CPU(Memory _Memory)
+        public CPU(IO _IO, Memory _Memory)
         {
-            // Init memory
+            // Relation
+            IO = _IO;
             Memory = _Memory;
             Read = Memory.Read;
             Write = Memory.Write;
@@ -710,8 +713,31 @@ namespace GameBoyReborn
         // -----------------
         private void CPUWakeUp()
         {
-            if (Memory.Read(0xFFFF) != 0)
+            if (IO.IE != 0 && IO.IF != 0)
             {
+                PUSH_RR(Binary.Msb(PC), Binary.Lsb(PC));
+                Cycles += 4;
+
+                // VBlank interrupt
+                if (Binary.ReadBit(IO.IE, 0) && Binary.ReadBit(IO.IF, 0))
+                PC = 0x40;
+
+                // STAT interrupt
+                else if (Binary.ReadBit(IO.IE, 1) && Binary.ReadBit(IO.IF, 1))
+                PC = 0x48;
+
+                // Timer interrupt
+                else if (Binary.ReadBit(IO.IE, 2) && Binary.ReadBit(IO.IF, 2))
+                PC = 0x50;
+
+                // Serial interrupt
+                else if (Binary.ReadBit(IO.IE, 3) && Binary.ReadBit(IO.IF, 3))
+                PC = 0x58;
+
+                // Joypad interrupt
+                else if (Binary.ReadBit(IO.IE, 4) && Binary.ReadBit(IO.IF, 4))
+                PC = 0x60;
+
                 // HaltBug
                 if (Halt) PC--;
 
@@ -1698,8 +1724,7 @@ namespace GameBoyReborn
         // Unconditional jump to the absolute address specified by the 16-bit operand nn.
         private void JP_nn()
         {
-            Cycles += 4;
-            PC = Binary.U16(Binary.Lsb(Read(PC++)), Binary.Msb(Read(PC++)));
+            PC = Binary.U16(Read(PC++), Read(PC++));
         }
 
         // JP HL: Jump to HL
@@ -1819,12 +1844,12 @@ namespace GameBoyReborn
         {
             Cycles += 4;
 
-            byte n = Read(PC);
+            //byte n = Read(PC);
 
             Write(--SP, Binary.Msb(PC));
             Write(--SP, Binary.Lsb(PC));
 
-            PC = Binary.U16(n, at);
+            PC = at;
         }
 
         // HALT: Halt system clock
