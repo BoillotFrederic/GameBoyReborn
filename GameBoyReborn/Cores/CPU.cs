@@ -37,7 +37,7 @@ namespace GameBoyReborn
         // Interrupt
         public bool Stop = false;
         private bool Halt = false;
-        private bool IME = false;
+        private sbyte IME = -1;
 
         // Handle flags
         private bool FlagZ;
@@ -51,6 +51,9 @@ namespace GameBoyReborn
         //
         */
 
+        public bool DebugModeEnable = false;
+        private byte LastOpcode = 0;
+        public int CyclesAccumulator = 0;
         private readonly string[] InstructionsName = new string[]
         {
         "NOP()",
@@ -573,6 +576,7 @@ namespace GameBoyReborn
         };
         private void ShowStat(byte opcode)
         {
+            Console.WriteLine("Cycles elapsed = " + CyclesAccumulator);
             Console.WriteLine("PC = " + (PC - 1).ToString("X4") + " (" + (PC - 1) + ")");
             Console.WriteLine("SP = " + SP.ToString("X4") + " (" + SP + ")");
             Console.WriteLine("A = " + A.ToString("X2") + " (" + A + ")");
@@ -583,10 +587,10 @@ namespace GameBoyReborn
             Console.WriteLine("H = " + H.ToString("X2") + " (" + H + ")");
             Console.WriteLine("L = " + L.ToString("X2") + " (" + L + ")");
             Console.WriteLine("FLAGS = Z(" + (FlagZ ? 1 : 0) + "), N(" + (FlagN ? 1 : 0) + "), H(" + (FlagH ? 1 : 0) + "), C(" + (FlagC ? 1 : 0) + ")");
-            Console.WriteLine("Interrupts = Stop(" + (Stop ? 1 : 0) + "), Halt(" + (Halt ? 1 : 0) + "), IME(" + (IME ? 1 : 0) + ")");
+            Console.WriteLine("Interrupts = Stop(" + (Stop ? 1 : 0) + "), Halt(" + (Halt ? 1 : 0) + "), IME(" + IME + ")");
             Console.WriteLine("IE = " + IO.IE.ToString("X2") + ", IF = " + IO.IF.ToString("X2"));
-
             string InstructionName = opcode != 0xCB ? InstructionsName[opcode] : (Read(PC).ToString("X2") + " : " + CBInstructionsName[Read(PC)]);
+            Console.WriteLine("LastOp = " + LastOpcode.ToString("X2"));
             Console.WriteLine("Op = " + opcode.ToString("X2") + ", " + InstructionName + " : Next ushort = " + Read(opcode != 0xCB ? PC : (ushort)(PC + 1)).ToString("X2") + Read((ushort)(opcode != 0xCB ? PC + 1 : PC + 2)).ToString("X2"));
             Console.ReadKey();
             Console.WriteLine("----------------------------------------");
@@ -621,16 +625,24 @@ namespace GameBoyReborn
         public void Execution()
         {
             Cycles = 0;
-            //int LastCycles = Cycles;
 
             if (!Halt && !Stop)
             {
                 byte opcode = Read(PC++);
 
+                //Console.WriteLine(CyclesAccumulator + " : " + opcode);
+
+/*                if (CyclesAccumulator >= 61739)
+                DebugModeEnable = true;*/
+
                 //if(foo > 56000)
-                //ShowStat(opcode);
+                if (DebugModeEnable)
+                ShowStat(opcode);
                 //ShowOpcodeUsed(opcode);
                 Instructions[opcode]?.Invoke();
+
+                LastOpcode = opcode;
+                CyclesAccumulator++;
             }
             else
             {
@@ -640,7 +652,7 @@ namespace GameBoyReborn
 
 
             // Interrupts handle
-            if (IME) CPUWakeUp();
+            if (IME >= 0) Interrupts();
 
             // Quit boot rom
             if (Memory.booting && PC == 0x100)
@@ -650,8 +662,8 @@ namespace GameBoyReborn
         // Init and instructions
         // ---------------------
         private delegate void InstructionDelegate();
-        private InstructionDelegate[] Instructions;
-        private InstructionDelegate[] CB_Instructions;
+        private readonly InstructionDelegate[] Instructions;
+        private readonly InstructionDelegate[] CB_Instructions;
 
         public CPU(IO _IO, Memory _Memory)
         {
@@ -711,9 +723,9 @@ namespace GameBoyReborn
 
         // Interrupts handle
         // -----------------
-        private void CPUWakeUp()
+        private void Interrupts()
         {
-            if (IO.IE != 0 && IO.IF != 0)
+            if (IME == 0 && IO.IE != 0 && IO.IF != 0)
             {
                 PUSH_RR(Binary.Msb(PC), Binary.Lsb(PC));
                 Cycles += 4;
@@ -743,8 +755,11 @@ namespace GameBoyReborn
 
                 Halt = false;
                 Stop = false;
-                IME = false;
+                IME = -1;
             }
+
+            if (IME > -1)
+            IME--;
         }
 
         private void InitRegisters()
@@ -1063,8 +1078,8 @@ namespace GameBoyReborn
             if (FlagH) Binary.SetBit(ref F, 5, true);
             if (FlagC) Binary.SetBit(ref F, 4, true);
 
-            Write(--SP, F);
             Write(--SP, A);
+            Write(--SP, F);
         }
 
         // POP rr: Pop from stack
@@ -1834,7 +1849,7 @@ namespace GameBoyReborn
             Cycles += 4;
 
             PC = Binary.U16(Read(SP++), Read(SP++));
-            IME = true;
+            IME = 0;
         }
 
         // RST n: Restart / Call function (implied)
@@ -1860,7 +1875,7 @@ namespace GameBoyReborn
         {
             Halt = true;
 
-            if (IME)
+            if (IME == 0)
             {
                 if (Memory.Read(0xFF0F) != 0)
                 Halt = false;
@@ -1888,7 +1903,7 @@ namespace GameBoyReborn
         private void DI()
         {
             Cycles++;
-            IME = false;
+            IME = -1;
             //IME_scheduled = false;
         }
 
@@ -1898,7 +1913,7 @@ namespace GameBoyReborn
         private void EI()
         {
             Cycles += 1;
-            IME = true;
+            IME = 1;
             //IME_scheduled = true;
         }
 
