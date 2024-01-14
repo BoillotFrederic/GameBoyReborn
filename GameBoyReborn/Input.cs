@@ -211,5 +211,46 @@ namespace GameBoyReborn
                 if (AxisRightX < -1 * (_DeadZoneStickRight / 100.0f) && AxisRightX < 0) _AxisRightPadLeft = true;
             }
         }
+
+        // Input joypad to byte for Gameboy
+        public static byte InputToByteGB(byte requested)
+        {
+            // All buttons off
+            requested |= 0x0F;
+
+            // D-pad
+            if ((requested & 0x30) != 0x10)
+            {
+                if (_DPadDown || _AxisLeftPadDown)
+                Binary.SetBit(ref requested, 3, false);
+
+                if (_DPadUp || _AxisLeftPadUp)
+                Binary.SetBit(ref requested, 2, false);
+
+                if (_DPadLeft || _AxisLeftPadLeft)
+                Binary.SetBit(ref requested, 1, false);
+
+                if (_DPadRight || _AxisLeftPadRight)
+                Binary.SetBit(ref requested, 0, false);
+            }
+
+            // Buttons
+            else if ((requested & 0x30) != 0x20)
+            {
+                if (_MiddlePadRight)
+                Binary.SetBit(ref requested, 3, false);
+
+                if (_MiddlePadLeft)
+                Binary.SetBit(ref requested, 2, false);
+
+                if (_XabyPadB)
+                Binary.SetBit(ref requested, 1, false);
+
+                if (_XabyPadA)
+                Binary.SetBit(ref requested, 0, false);
+            }
+
+            return requested;
+        }
     }
 }

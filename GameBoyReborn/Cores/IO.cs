@@ -86,10 +86,10 @@ namespace GameBoyReborn
         public byte Read(byte at)
         {
             //JOYP	Joypad
-            if (at == 0x00) return P1;
+            if (at == 0x00) return Input.InputToByteGB(P1);
 
             // Serial transfer
-            else if (at == 0x00) return SB;
+            else if (at == 0x01) return SB;
             else if (at == 0x02) return SC;
 
             // Timer
@@ -170,7 +170,7 @@ namespace GameBoyReborn
                 if (at == 0x00) P1 = b;
 
                 // Serial transfer
-                else if (at == 0x00) SB = b;
+                else if (at == 0x01) SB = b;
                 else if (at == 0x02) SC = b;
 
                 // Timer
@@ -212,16 +212,16 @@ namespace GameBoyReborn
                 // Graphic
                 else if (at == 0x40) PPU.LCDC(b);
                 else if (at == 0x41) PPU.STAT(b);
-                else if (at == 0x42) PPU.SCY_W(b);
-                else if (at == 0x43) PPU.SCX_W(b);
+                else if (at == 0x42) SCY = b;
+                else if (at == 0x43) SCX = b;
                 else if (at == 0x44) LY = b;
                 else if (at == 0x45) LYC = b;
                 //else if (at == 0x46) DMA = b;
-                else if (at == 0x47) PPU.BGP_W(b);
+                else if (at == 0x47) BGP = b;
                 else if (at == 0x48) OBP0 = b;
                 else if (at == 0x49) OBP1 = b;
-                else if (at == 0x4A) PPU.WY_W(b);
-                else if (at == 0x4B) PPU.WX_W(b);
+                else if (at == 0x4A) WY = b;
+                else if (at == 0x4B) WX = b;
                 else if (at == 0x4F) VBK = b;
                 else if (at == 0x51) HDMA1 = b;
                 else if (at == 0x52) HDMA2 = b;
