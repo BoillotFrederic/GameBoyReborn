@@ -22,14 +22,14 @@ namespace GameBoyReborn
         public static void Screen()
         {
             // Clear
-            Raylib.ClearBackground(Color.RAYWHITE);
+            Raylib.ClearBackground(Color.WHITE);
 
             // Draw
             UpdateScreenImage();
             Texture2D screenTexture = Raylib.LoadTextureFromImage(ScreenImage);
             screenTexture.Width = 800;
             screenTexture.Height = 600;
-            Raylib.DrawTexture(screenTexture, 0, 0, Color.WHITE);
+            Raylib.DrawTexture(screenTexture, 0, 0, Color.RAYWHITE);
             UpdateAndDrawTexts();
             //ShowXboxButton();
 
@@ -59,6 +59,12 @@ namespace GameBoyReborn
         public static Color GetPixel(byte x, byte y)
         {
             return ScreenData[y * Program.SystemWidth + x];
+        }
+
+        // Disable screen
+        public static void DisableScreen()
+        {
+            Array.Clear(ScreenData);
         }
 
         // Draw text
