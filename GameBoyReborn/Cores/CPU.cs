@@ -621,7 +621,6 @@ namespace GameBoyReborn
 
         // Execution
         // ---------
-        //int foo = 0;
         public void Execution()
         {
             Cycles = 0;
@@ -632,10 +631,9 @@ namespace GameBoyReborn
 
                 //Console.WriteLine(CyclesAccumulator + " : " + opcode);
 
-/*                if (CyclesAccumulator >= 61739)
-                DebugModeEnable = true;*/
+/*                if (CyclesAccumulator >= *//*61739*//* 67673) // 67673
+                    DebugModeEnable = true;*/
 
-                //if(foo > 56000)
                 if (DebugModeEnable)
                 ShowStat(opcode);
                 //ShowOpcodeUsed(opcode);
@@ -678,7 +676,8 @@ namespace GameBoyReborn
 
             // Instructions
             Instructions = new InstructionDelegate[]
-            {   /*          [0]                           [1]                             [2]                           [3]                           [4]                             [5]                        [6]                      [7]                        [8]                          [9]                                  [A]                          [B]                           [C]                            [D]                        [E]                      [F]      */
+            {   
+            /*          [0]                           [1]                             [2]                           [3]                           [4]                             [5]                        [6]                      [7]                        [8]                          [9]                                  [A]                          [B]                           [C]                            [D]                        [E]                      [F]      */
             /* [0] */   ()=> NOP(),                   ()=> LD_RRw_nn(ref B, ref C),   ()=> LD_RRn_A(B, C),          ()=> INC_RRw(ref B, ref C),   ()=> INC_Rw(ref B),             ()=> DEC_Rw(ref B),        ()=> LD_Rw_n(ref B),     ()=> RLCA(),               ()=> LD_Nnn_SP(),            ()=> ADD_HL_RRr(B, C),               ()=> LD_A_RRn(B, C),         ()=> DEC_RRw(ref B, ref C),   ()=> INC_Rw(ref C),            ()=> DEC_Rw(ref C),        ()=> LD_Rw_n(ref C),     ()=> RRCA(),
             /* [1] */   ()=> STOP(),                  ()=> LD_RRw_nn(ref D, ref E),   ()=> LD_RRn_A(D, E),          ()=> INC_RRw(ref D, ref E),   ()=> INC_Rw(ref D),             ()=> DEC_Rw(ref D),        ()=> LD_Rw_n(ref D),     ()=> RLA(),                ()=> JR_en(),                ()=> ADD_HL_RRr(D, E),               ()=> LD_A_RRn(D, E),         ()=> DEC_RRw(ref D, ref E),   ()=> INC_Rw(ref E),            ()=> DEC_Rw(ref E),        ()=> LD_Rw_n(ref E),     ()=> RRA(),
             /* [2] */   ()=> JR_CC_en(!FlagZ),        ()=> LD_RRw_nn(ref H, ref L),   ()=> LD_HLnp_A(),             ()=> INC_RRw(ref H, ref L),   ()=> INC_Rw(ref H),             ()=> DEC_Rw(ref H),        ()=> LD_Rw_n(ref H),     ()=> DAA(),                ()=> JR_CC_en(FlagZ),        ()=> ADD_HL_RRr(H, L),               ()=> LD_A_HLnp(),            ()=> DEC_RRw(ref H, ref L),   ()=> INC_Rw(ref L),            ()=> DEC_Rw(ref L),        ()=> LD_Rw_n(ref L),     ()=> CPL(),
@@ -725,30 +724,45 @@ namespace GameBoyReborn
         // -----------------
         private void Interrupts()
         {
-            if (IME == 0 && IO.IE != 0 && IO.IF != 0)
+            if (IME == 0 && (IO.IE & IO.IF) != 0)
             {
                 PUSH_RR(Binary.Msb(PC), Binary.Lsb(PC));
                 Cycles += 4;
 
                 // VBlank interrupt
                 if (Binary.ReadBit(IO.IE, 0) && Binary.ReadBit(IO.IF, 0))
-                PC = 0x40;
+                {
+                    Binary.SetBit(ref IO.IF, 0, false);
+                    PC = 0x40;
+                }
 
                 // STAT interrupt
                 else if (Binary.ReadBit(IO.IE, 1) && Binary.ReadBit(IO.IF, 1))
-                PC = 0x48;
+                {
+                    Binary.SetBit(ref IO.IF, 1, false);
+                    PC = 0x48;
+                }
 
                 // Timer interrupt
                 else if (Binary.ReadBit(IO.IE, 2) && Binary.ReadBit(IO.IF, 2))
-                PC = 0x50;
+                {
+                    Binary.SetBit(ref IO.IF, 2, false);
+                    PC = 0x50;
+                }
 
                 // Serial interrupt
                 else if (Binary.ReadBit(IO.IE, 3) && Binary.ReadBit(IO.IF, 3))
-                PC = 0x58;
+                {
+                    Binary.SetBit(ref IO.IF, 3, false);
+                    PC = 0x58;
+                }
 
                 // Joypad interrupt
                 else if (Binary.ReadBit(IO.IE, 4) && Binary.ReadBit(IO.IF, 4))
-                PC = 0x60;
+                {
+                    Binary.SetBit(ref IO.IF, 4, false);
+                    PC = 0x60;
+                }
 
                 // HaltBug
                 if (Halt) PC--;
@@ -758,7 +772,7 @@ namespace GameBoyReborn
                 IME = -1;
             }
 
-            if (IME > -1)
+            if (IME > 0)
             IME--;
         }
 
@@ -1181,13 +1195,15 @@ namespace GameBoyReborn
         private void ADD_HL_RRr(byte Rmr, byte Rlr)
         {
             Cycles += 2;
-            ushort HL = (ushort)(Binary.U16(L, H) + Binary.U16(Rlr, Rmr));
+            ushort _HL = Binary.U16(L, H);
+            ushort _RR = Binary.U16(Rlr, Rmr);
+            int HL = _HL + _RR;
 
-            H = Binary.Msb(HL);
-            L = Binary.Lsb(HL);
+            H = Binary.Msb((ushort)HL);
+            L = Binary.Lsb((ushort)HL);
 
             FlagN = false;
-            FlagH = ((HL & 0xFFF) + (Binary.U16(Rlr, Rmr) & 0xFFF)) > 0xFFF;
+            FlagH = ((_HL ^ _RR ^ (ushort)HL) & 0x1000) != 0;
             FlagC = (HL & 0x10000) != 0;
         }
         private void ADD_HL_SP()
@@ -1858,8 +1874,6 @@ namespace GameBoyReborn
         private void RST_n(byte at)
         {
             Cycles += 4;
-
-            //byte n = Read(PC);
 
             Write(--SP, Binary.Msb(PC));
             Write(--SP, Binary.Lsb(PC));
