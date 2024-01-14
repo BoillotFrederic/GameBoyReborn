@@ -24,7 +24,7 @@ namespace GameBoyReborn
         public byte selectedWorkBank = 0;
 
         private byte[] RomBoot = new byte[256];
-        public bool booting = false;
+        public bool booting = true;
 
         private readonly IO IO;
         public CPU? CPU;
@@ -152,7 +152,7 @@ namespace GameBoyReborn
             ExternalRam[at - 0xA000] = b;
 
             // Work RAM (WRAM)
-            else if (at >= 0xC000 && at <= 0xCFFF)
+            else if (at >= 0xC000 && at <= 0xCFFF && CPU != null)
             WorkRam[at - 0xC000] = b;
 
             // Work RAM (WRAM)

@@ -29,7 +29,7 @@ namespace GameBoyReborn
                 IO = new IO();
                 Cartridge = new Cartridge(header);
                 Memory = new Memory(Cartridge, IO, romData);
-                CPU = new CPU(Memory);
+                CPU = new CPU(IO, Memory);
                 PPU = new PPU(IO, Memory, CPU);
                 APU = new APU(IO, CPU, PPU);
                 Timer = new Timer(IO, CPU);

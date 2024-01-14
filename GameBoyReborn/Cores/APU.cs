@@ -258,7 +258,7 @@ namespace GameBoyReborn
         {
             if (Binary.ReadBit(IO.NR52, 1))
             {
-                Console.WriteLine("Channel2");
+                //Console.WriteLine("Channel2");
             }
         }
 
@@ -274,7 +274,7 @@ namespace GameBoyReborn
         {
             if (Binary.ReadBit(IO.NR52, 2))
             {
-                Console.WriteLine("Channel3");
+                //Console.WriteLine("Channel3");
             }
         }
 
@@ -283,7 +283,7 @@ namespace GameBoyReborn
         {
             if (Binary.ReadBit(IO.NR52, 3))
             {
-                Console.WriteLine("Channel4");
+                //Console.WriteLine("Channel4");
             }
         }
     }
