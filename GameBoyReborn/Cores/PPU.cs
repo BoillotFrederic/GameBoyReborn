@@ -112,10 +112,12 @@ namespace GameBoyReborn
         {
             int cycles = CPU.Cycles * 4;
 
+            // Screen enable
             if (LCD_and_PPU_enable)
             {
                 LyCycles += cycles;
 
+                // Scanline
                 switch (Mode_PPU)
                 {
                     // Horizontal blank
@@ -123,24 +125,31 @@ namespace GameBoyReborn
                     case 0:
                         if (LyCycles >= 456)
                         {
-                            // Next mode (OAM scan / Vertical blank)
                             if (IO.LY < 144)
                             {
+                                // This mode
+                                Set_LYC_equal_LY(IO.LY == IO.LYC);
+
+                                if (LYC_equal_LY && LYC_int_select)
+                                Binary.SetBit(ref IO.IF, 1, true);
+
                                 IO.LY++;
-                                LyCompare();
+
+                                // Got to OAM scan
                                 Set_Mode_PPU(2);
 
                                 if (Mode_2_int_select)
-                                Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
+                                Binary.SetBit(ref IO.IF, 1, true);
                             }
                             else
                             {
+                                // Got to VBlank
                                 Set_Mode_PPU(1);
 
-                                Binary.SetBit(ref IO.IF, 0, true); // 0 = VBlank
+                                Binary.SetBit(ref IO.IF, 0, true);
 
                                 if (Mode_1_int_select)
-                                Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
+                                Binary.SetBit(ref IO.IF, 1, true);
                             }
                         }
                     break;
@@ -148,10 +157,15 @@ namespace GameBoyReborn
                     // Vertical blank
                     // --------------
                     case 1:
+                        // This mode
                         if (LyCycles >= 456)
                         {
                             IO.LY++;
-                            LyCompare();
+
+                            Set_LYC_equal_LY(IO.LY == IO.LYC);
+
+                            if (LYC_equal_LY && LYC_int_select)
+                            Binary.SetBit(ref IO.IF, 1, true);
                         }
 
                         // Completed
@@ -159,12 +173,12 @@ namespace GameBoyReborn
                         {
                             CompletedFrame = true;
 
-                            // Next mode (OAM scan)
+                            // Go to OAM scan
                             Set_Mode_PPU(2);
                             IO.LY = 0;
 
                             if (Mode_2_int_select)
-                            Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
+                            Binary.SetBit(ref IO.IF, 1, true);
                         }
                     break;
 
@@ -173,7 +187,7 @@ namespace GameBoyReborn
                     case 2:
                         if (LyCycles >= 80)
                         {
-                            // Next mode (Drawing pixel)
+                            // Go to drawing pixel
                             Set_Mode_PPU(3);
                         }
                     break;
@@ -191,7 +205,7 @@ namespace GameBoyReborn
 
                             Reenable = false;
 
-                            // Next mode (Horizontal blank)
+                            // Go to horizontal blank)
                             Set_Mode_PPU(0);
 
                             if (Mode_0_int_select)
@@ -200,31 +214,23 @@ namespace GameBoyReborn
                     break;
                 }
 
+                // Next scanline
                 if (LyCycles >= 456)
                 LyCycles -= 456;
             }
+
+            // Screen disable
             else
             {
                 LyCycles += cycles;
 
                 if (LyCycles >= 70224)
                 {
+                    //Console.WriteLine("Test");
                     CompletedFrame = true;
                     LyCycles -= 70224;
                 }
             }
-        }
-
-        private void LyCompare()
-        {
-            if (IO.LY == IO.LYC)
-            {
-                Set_LYC_equal_LY(true);
-
-                Binary.SetBit(ref IO.IF, 1, true); // 1 = LCD
-            }
-            else
-            Set_LYC_equal_LY(false);
         }
 
         // Draw line
