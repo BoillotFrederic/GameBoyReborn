@@ -37,6 +37,7 @@ namespace GameBoyReborn
                 // Relation
                 IO.APU = APU;
                 IO.PPU = PPU;
+                IO.Timer = Timer;
                 Memory.CPU = CPU;
 
                 // Log rom loaded

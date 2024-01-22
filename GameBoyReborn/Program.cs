@@ -37,7 +37,7 @@ namespace GameBoyReborn
             Drawing.ScreenImage = Raylib.GenImageColor(SystemWidth, SystemHeight, Color.RAYWHITE);
 
             // Load game
-            Emulation.Load("Tetris.gb");
+            Emulation.Load(/*"Tetris.gb"*/ "RomsTest/Instructions/02-interrupts.gb");
             Emulation.Init();
             Audio.Init();
 

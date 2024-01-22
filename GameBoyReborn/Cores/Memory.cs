@@ -189,7 +189,7 @@ namespace GameBoyReborn
         {
             if (CPU != null)
             {
-                ushort startAddress;
+/*                ushort startAddress;
 
                 // Rom source
                 if (sourceAddress <= 0x7F)
@@ -202,7 +202,7 @@ namespace GameBoyReborn
                 {
                     startAddress = (ushort)((sourceAddress - 0xC0) << 8);
                     Array.Copy(WorkRamCGB[selectedWorkBank], startAddress, OAM, 0, 160);
-                }
+                }*/
             }
         }
 
