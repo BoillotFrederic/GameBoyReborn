@@ -16,10 +16,34 @@ namespace GameBoyReborn
             CPU = _CPU;
         }
 
+        // TIMER IO Write
+        public void DIV(byte b)
+        {
+            IO.DIV = 0x00;
+        }
+
+        public void TAC(byte b)
+        {
+            IO.TAC = b;
+
+            Enable = Binary.ReadBit(IO.TAC, 2);
+            TmaClock = IO.TAC & 3 switch
+            {
+                0 => 69,
+                1 => 4389,
+                2 => 1097,
+                3 => 274,
+                _ => 69,
+            };
+        }
+
+        // TAC - Timer Control
+        private int TmaClock = 69;
+        private bool Enable = false;
+
         // Cycles
         private ushort DivCycles = 0;
         private ushort TacCycles = 0;
-        private readonly ushort[] ClockCPU = new ushort[4] { 69, 4389, 1097, 274 };
         private const int DivClockDMG = 274; // 16384 / 59.73 = 274.3
         private const int DivClockSGB = 281; // 16779 / 59.73 = 280.9
 
@@ -29,7 +53,7 @@ namespace GameBoyReborn
             if (IO != null)
             {
                 // DIV
-                DivCycles += CPU.Cycles;
+                DivCycles += (ushort)(CPU.Cycles * 4);
 
                 if (CPU.Cycles == 0 || CPU.Stop)
                 {
@@ -44,28 +68,26 @@ namespace GameBoyReborn
 
                 // TIMA and TMA
                 TacCycles += CPU.Cycles;
-                byte ClockSelect = (byte)(IO.TAC & 3);
 
-                if (Binary.ReadBit(IO.TAC, 2))
+                if (Enable)
                 {
-                    if (TacCycles > ClockCPU[ClockSelect])
+                    if (TacCycles > TmaClock)
                     {
                         ushort NewTima = (ushort)(IO.TIMA + 1);
 
                         if (NewTima > 0xFF)
                         {
-                            NewTima = 0;
+                            NewTima = IO.TMA;
                             IO.TMA = 0;
-
-                            Binary.SetBit(ref IO.IE, 2, true);
+                            Binary.SetBit(ref IO.IF, 2, true);
                         }
 
                         IO.TIMA = (byte)NewTima;
 
                         if (IO.TMA == 0xFF || (IO.TIMA % (0xFF - IO.TMA) == 0))
-                        Binary.SetBit(ref IO.IE, 2, true);
+                        Binary.SetBit(ref IO.IF, 2, true);
 
-                        TacCycles -= ClockCPU[ClockSelect];
+                        TacCycles -= (ushort)TmaClock;
                     }
                 }
                 else
