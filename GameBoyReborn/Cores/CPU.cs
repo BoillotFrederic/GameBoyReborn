@@ -51,10 +51,10 @@ namespace GameBoyReborn
         //
         */
 
-        public bool DebugModeEnable = false;
-        private byte LastOpcode = 0;
-        public int CyclesAccumulator = 0;
-        private readonly string[] InstructionsName = new string[]
+        public bool FOR_DEBUG_DebugModeEnable = false;
+        private byte FOR_DEBUG_LastOpcode = 0;
+        public int FOR_DEBUG_CyclesAccumulator = 0;
+        private readonly string[] FOR_DEBUG_InstructionsName = new string[]
         {
         "NOP()",
         "LD_RRw_nn(ref B, ref C)",
@@ -314,7 +314,7 @@ namespace GameBoyReborn
         "RST_n(0x38)"
         };
 
-        private readonly string[] CBInstructionsName = new string[]
+        private readonly string[] FOR_DEBUG_CBInstructionsName = new string[]
         {
 
         "RLC_Rw(ref B)",
@@ -574,9 +574,10 @@ namespace GameBoyReborn
         "SET_n_HLn(7)",
         "SET_n_r(7, ref A)"
         };
-        private void ShowStat(byte opcode)
+        private void FOR_DEBUG_ShowStat(byte opcode)
         {
-            Console.WriteLine("Cycles elapsed = " + CyclesAccumulator);
+            Console.WriteLine("Cycles elapsed = " + FOR_DEBUG_CyclesAccumulator);
+            Console.WriteLine("Scanline = " + IO.LY);
             Console.WriteLine("PC = " + (PC - 1).ToString("X4") + " (" + (PC - 1) + ")");
             Console.WriteLine("SP = " + SP.ToString("X4") + " (" + SP + ")");
             Console.WriteLine("A = " + A.ToString("X2") + " (" + A + ")");
@@ -589,22 +590,21 @@ namespace GameBoyReborn
             Console.WriteLine("FLAGS = Z(" + (FlagZ ? 1 : 0) + "), N(" + (FlagN ? 1 : 0) + "), H(" + (FlagH ? 1 : 0) + "), C(" + (FlagC ? 1 : 0) + ")");
             Console.WriteLine("Interrupts = Stop(" + (Stop ? 1 : 0) + "), Halt(" + (Halt ? 1 : 0) + "), IME(" + IME + ")");
             Console.WriteLine("IE = " + IO.IE.ToString("X2") + ", IF = " + IO.IF.ToString("X2"));
-            string InstructionName = opcode != 0xCB ? InstructionsName[opcode] : (Read(PC).ToString("X2") + " : " + CBInstructionsName[Read(PC)]);
-            Console.WriteLine("LastOp = " + LastOpcode.ToString("X2"));
+            string InstructionName = opcode != 0xCB ? FOR_DEBUG_InstructionsName[opcode] : (Read(PC).ToString("X2") + " : " + FOR_DEBUG_CBInstructionsName[Read(PC)]);
+            Console.WriteLine("LastOp = " + FOR_DEBUG_LastOpcode.ToString("X2"));
             Console.WriteLine("Op = " + opcode.ToString("X2") + ", " + InstructionName + " : Next ushort = " + Read(opcode != 0xCB ? PC : (ushort)(PC + 1)).ToString("X2") + Read((ushort)(opcode != 0xCB ? PC + 1 : PC + 2)).ToString("X2"));
             Console.ReadKey();
             Console.WriteLine("----------------------------------------");
-            //Console.WriteLine(Memory.VideoRam_nn[0][10].ToString("X2") +" : "+ Memory.VideoRam_nn[0][11].ToString("X2") + " : " + Memory.VideoRam_nn[0][12].ToString("X2") + " : " + Memory.VideoRam_nn[0][13].ToString("X2"));
             Console.WriteLine();
         }
 
-        private List<string> OpcodeUsed = new List<string>();
+        private readonly List<string> OpcodeUsed = new();
 
-        private void ShowOpcodeUsed(byte opcode)
+        private void FOR_DEBUG_ShowOpcodeUsed(byte opcode)
         {
             string InstructionName = opcode != 0xCB
-                ? (opcode.ToString("X2") + " : " + InstructionsName[opcode])
-                : (opcode.ToString("X2") + Read(PC).ToString("X2") + " : " + CBInstructionsName[Read(PC)]);
+                ? (opcode.ToString("X2") + " : " + FOR_DEBUG_InstructionsName[opcode])
+                : (opcode.ToString("X2") + Read(PC).ToString("X2") + " : " + FOR_DEBUG_CBInstructionsName[Read(PC)]);
 
             if (!OpcodeUsed.Contains(InstructionName))
             {
@@ -625,32 +625,38 @@ namespace GameBoyReborn
         {
             Cycles = 0;
 
+            // Interrupts handle
+            if (IME >= 0)
+            Interrupts();
+
+            // Instructions
             if (!Halt && !Stop)
             {
                 byte opcode = Read(PC++);
 
-                //Console.WriteLine(CyclesAccumulator + " : " + opcode);
+                /*                
+                if(Input.XabyPadA)
+                FOR_DEBUG_DebugModeEnable = true;
+                */
+                /*
+                if(opcode == 0x76)
+                FOR_DEBUG_DebugModeEnable = true;
+                */
 
-/*                if (CyclesAccumulator >= *//*61739*//* 67673) // 67673
-                    DebugModeEnable = true;*/
+                if (FOR_DEBUG_DebugModeEnable)
+                FOR_DEBUG_ShowStat(opcode);
+                //FOR_DEBUG_ShowOpcodeUsed(opcode);
 
-                if (DebugModeEnable)
-                ShowStat(opcode);
-                //ShowOpcodeUsed(opcode);
                 Instructions[opcode]?.Invoke();
 
-                LastOpcode = opcode;
-                CyclesAccumulator++;
+                FOR_DEBUG_LastOpcode = opcode;
+                FOR_DEBUG_CyclesAccumulator++;
             }
             else
             {
                 PC++;
                 Cycles++;
             }
-
-
-            // Interrupts handle
-            if (IME >= 0) Interrupts();
 
             // Quit boot rom
             if (Memory.booting && PC == 0x100)
@@ -727,7 +733,7 @@ namespace GameBoyReborn
             if (IME == 0 && (IO.IE & IO.IF) != 0)
             {
                 PUSH_RR(Binary.Msb(PC), Binary.Lsb(PC));
-                Cycles += 4;
+                Cycles++;
 
                 // VBlank interrupt
                 if (Binary.ReadBit(IO.IE, 0) && Binary.ReadBit(IO.IF, 0))
@@ -763,9 +769,6 @@ namespace GameBoyReborn
                     Binary.SetBit(ref IO.IF, 4, false);
                     PC = 0x60;
                 }
-
-                // HaltBug
-                if (Halt) PC--;
 
                 Halt = false;
                 Stop = false;
@@ -1114,6 +1117,7 @@ namespace GameBoyReborn
             Cycles += 3;
 
             byte F = Read(SP++);
+            //Console.WriteLine(F);
 
             FlagZ = Binary.ReadBit(F, 7);
             FlagN = Binary.ReadBit(F, 6);
@@ -1131,12 +1135,21 @@ namespace GameBoyReborn
         {
             Cycles++;
 
-            A += Rr;
+            byte _A = A;
+            ushort result = (ushort)(A + Rr);
+            A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (A & 0x08) != 0;
-            FlagC = (A & 0x80) != 0;
+            FlagH = (_A & 0xF) + (result & 0xF) > 0xF;
+            FlagC = result > 0xFF;
+
+            /*            A += Rr;
+
+                        FlagZ = A == 0;
+                        FlagN = false;
+                        FlagH = (A & 0x08) != 0;
+                        FlagC = (A & 0x80) != 0;*/
         }
 
         // ADD (HL): Add (indirect HL)
@@ -1147,12 +1160,22 @@ namespace GameBoyReborn
         {
             Cycles += 2;
 
-            A += Read(Binary.U16(L, H));
+            byte _A = A;
+            byte n = Read(Binary.U16(L, H));
+            ushort result = (ushort)(A + n);
+            A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (A & 0x08) != 0;
-            FlagC = (A & 0x80) != 0;
+            FlagH = (_A & 0xF) + (result & 0xF) > 0xF;
+            FlagC = result > 0xFF;
+
+            /*            A += Read(Binary.U16(L, H));
+
+                        FlagZ = A == 0;
+                        FlagN = false;
+                        FlagH = (A & 0x08) != 0;
+                        FlagC = (A & 0x80) != 0;*/
         }
 
         // ADD n: Add (immediate)
@@ -1163,12 +1186,22 @@ namespace GameBoyReborn
         {
             Cycles += 2;
 
-            A += Read(PC++);
+            byte _A = A;
+            byte n = Read(PC++);
+            ushort result = (ushort)(A + n);
+            A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (A & 0x08) != 0;
-            FlagC = (A & 0x80) != 0;
+            FlagH = (_A & 0xF) + (result & 0xF) > 0xF;
+            FlagC = result > 0xFF;
+
+            /*            A += Read(PC++);
+
+                        FlagZ = A == 0;
+                        FlagN = false;
+                        FlagH = (A & 0x08) != 0;
+                        FlagC = (A & 0x80) != 0;*/
         }
 
         // ADD SP e
@@ -1227,12 +1260,22 @@ namespace GameBoyReborn
         {
             Cycles++;
 
-            A += (byte)((FlagC ? 1 : 0) + Rr);
+            byte _A = A;
+            byte carry = (byte)(FlagC ? 1 : 0);
+            ushort result = (ushort)(A + Rr + carry);
+            A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (A & 0x08) != 0;
-            FlagC = (A & 0x80) != 0;
+            FlagH = (_A & 0xF) + (result & 0xF) + carry > 0xF;
+            FlagC = result > 0xFF;
+
+            /*            A += (byte)((FlagC ? 1 : 0) + Rr);
+
+                        FlagZ = A == 0;
+                        FlagN = false;
+                        FlagH = (A & 0x08) != 0;
+                        FlagC = (A & 0x80) != 0;*/
         }
 
         // ADC (HL): Add with carry (indirect HL)
@@ -1244,12 +1287,23 @@ namespace GameBoyReborn
         {
             Cycles += 2;
 
-            A += (byte)((FlagC ? 1 : 0) + Read(Binary.U16(L, H)));
+            byte _A = A;
+            byte n = Read(Binary.U16(L, H));
+            byte carry = (byte)(FlagC ? 1 : 0);
+            ushort result = (ushort)(A + n + carry);
+            A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (A & 0x08) != 0;
-            FlagC = (A & 0x80) != 0;
+            FlagH = (_A & 0xF) + (result & 0xF) + carry > 0xF;
+            FlagC = result > 0xFF;
+
+            /*            A += (byte)((FlagC ? 1 : 0) + Read(Binary.U16(L, H)));
+
+                        FlagZ = A == 0;
+                        FlagN = false;
+                        FlagH = (A & 0x08) != 0;
+                        FlagC = (A & 0x80) != 0;*/
         }
 
         // ADC n: Add with carry (immediate)
@@ -1260,12 +1314,23 @@ namespace GameBoyReborn
         {
             Cycles += 2;
 
-            A += (byte)((FlagC ? 1 : 0) + Read(PC++));
+            byte _A = A;
+            byte n = Read(PC++);
+            byte carry = (byte)(FlagC ? 1 : 0);
+            ushort result = (ushort)(A + n + carry);
+            A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (A & 0x08) != 0;
-            FlagC = (A & 0x80) != 0;
+            FlagH = (_A & 0xF) + (result & 0xF) + carry > 0xF;
+            FlagC = result > 0xFF;
+
+            /*            A += (byte)((FlagC ? 1 : 0) + Read(PC++));
+
+                        FlagZ = A == 0;
+                        FlagN = false;
+                        FlagH = (A & 0x08) != 0;
+                        FlagC = (A & 0x80) != 0;*/
         }
 
         // SUB r: Subtract (register)
@@ -1276,15 +1341,24 @@ namespace GameBoyReborn
         {
             Cycles++;
 
-            ushort result = (ushort)(A - Rr);
-            bool borrowFromBit4 = (result & 0x10) != 0;
-
+            byte _A = A;
+            short result = (short)(A - Rr);
             A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = true;
-            FlagH = borrowFromBit4;
-            FlagC = Rr > A;
+            FlagH = (_A & 0xF) - (result & 0xF) < 0;
+            FlagC = result < 0;
+
+            /*            ushort result = (ushort)(A - Rr);
+                        bool borrowFromBit4 = (result & 0x10) != 0;
+
+                        A = (byte)result;
+
+                        FlagZ = A == 0;
+                        FlagN = true;
+                        FlagH = borrowFromBit4;
+                        FlagC = Rr > A;*/
         }
 
         // SUB (HL): Subtract (indirect HL)
@@ -1295,16 +1369,26 @@ namespace GameBoyReborn
         {
             Cycles += 2;
 
-            byte HL = Read(Binary.U16(L, H));
-            ushort result = (ushort)(A - HL);
-            bool borrowFromBit4 = (result & 0x10) != 0;
-
+            byte _A = A;
+            byte n = Read(Binary.U16(L, H));
+            short result = (short)(A - n);
             A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = true;
-            FlagH = borrowFromBit4;
-            FlagC = HL > A;
+            FlagH = (_A & 0xF) - (result & 0xF) < 0;
+            FlagC = result < 0;
+
+            /*            byte HL = Read(Binary.U16(L, H));
+                        ushort result = (ushort)(A - HL);
+                        bool borrowFromBit4 = (result & 0x10) != 0;
+
+                        A = (byte)result;
+
+                        FlagZ = A == 0;
+                        FlagN = true;
+                        FlagH = borrowFromBit4;
+                        FlagC = HL > A;*/
         }
 
         // SUB n: Subtract (immediate)
@@ -1315,16 +1399,26 @@ namespace GameBoyReborn
         {
             Cycles += 2;
 
+            byte _A = A;
             byte n = Read(PC++);
-            ushort result = (ushort)(A - n);
-            bool borrowFromBit4 = (result & 0x10) != 0;
-
+            short result = (short)(A - n);
             A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = true;
-            FlagH = borrowFromBit4;
-            FlagC = n > A;
+            FlagH = (_A & 0xF) - (result & 0xF) < 0;
+            FlagC = result < 0;
+
+            /*            byte n = Read(PC++);
+                        ushort result = (ushort)(A - n);
+                        bool borrowFromBit4 = (result & 0x10) != 0;
+
+                        A = (byte)result;
+
+                        FlagZ = A == 0;
+                        FlagN = true;
+                        FlagH = borrowFromBit4;
+                        FlagC = n > A;*/
         }
 
         // SBC r: Subtract with carry (register)
@@ -1335,15 +1429,25 @@ namespace GameBoyReborn
         {
             Cycles++;
 
-            ushort result = (ushort)(A - (Rr + (FlagC ? 1 : 0)));
-            bool borrowFromBit4 = (result & 0x10) != 0;
-
+            byte _A = A;
+            byte carry = (byte)(FlagC ? 1 : 0);
+            short result = (short)(A - Rr - carry);
             A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = true;
-            FlagH = borrowFromBit4;
-            FlagC = Rr + (FlagC ? 1 : 0) > A;
+            FlagH = (_A & 0xF) - (result & 0xF) - carry < 0;
+            FlagC = result < 0;
+
+            /*            ushort result = (ushort)(A - (Rr + (FlagC ? 1 : 0)));
+                        bool borrowFromBit4 = (result & 0x10) != 0;
+
+                        A = (byte)result;
+
+                        FlagZ = A == 0;
+                        FlagN = true;
+                        FlagH = borrowFromBit4;
+                        FlagC = Rr + (FlagC ? 1 : 0) > A;*/
         }
 
         // SBC (HL): Subtract with carry (indirect HL)
@@ -1354,16 +1458,27 @@ namespace GameBoyReborn
         {
             Cycles += 2;
 
-            byte HL = Read(Binary.U16(L, H));
-            ushort result = (ushort)(A - (HL + (FlagC ? 1 : 0)));
-            bool borrowFromBit4 = (result & 0x10) != 0;
-
+            byte _A = A;
+            byte n = Read(Binary.U16(L, H));
+            byte carry = (byte)(FlagC ? 1 : 0);
+            short result = (short)(A - n - carry);
             A = (byte)result;
 
             FlagZ = A == 0;
             FlagN = true;
-            FlagH = borrowFromBit4;
-            FlagC = HL + (FlagC ? 1 : 0) > A;
+            FlagH = (_A & 0xF) - (result & 0xF) - carry < 0;
+            FlagC = result < 0;
+
+            /*            byte HL = Read(Binary.U16(L, H));
+                        ushort result = (ushort)(A - (HL + (FlagC ? 1 : 0)));
+                        bool borrowFromBit4 = (result & 0x10) != 0;
+
+                        A = (byte)result;
+
+                        FlagZ = A == 0;
+                        FlagN = true;
+                        FlagH = borrowFromBit4;
+                        FlagC = HL + (FlagC ? 1 : 0) > A;*/
         }
 
         // SBC n: Subtract with carry (immediate)
@@ -1374,7 +1489,18 @@ namespace GameBoyReborn
         {
             Cycles += 2;
 
+            byte _A = A;
             byte n = Read(PC++);
+            byte carry = (byte)(FlagC ? 1 : 0);
+            short result = (short)(A - n - carry);
+            A = (byte)result;
+
+            FlagZ = A == 0;
+            FlagN = true;
+            FlagH = (_A & 0xF) - (result & 0xF) - carry < 0;
+            FlagC = result < 0;
+
+            /*byte n = Read(PC++);
             ushort result = (ushort)(A - (n + (FlagC ? 1 : 0)));
             bool borrowFromBit4 = (result & 0x10) != 0;
 
@@ -1383,7 +1509,7 @@ namespace GameBoyReborn
             FlagZ = A == 0;
             FlagN = true;
             FlagH = borrowFromBit4;
-            FlagC = n + (FlagC ? 1 : 0) > A;
+            FlagC = n + (FlagC ? 1 : 0) > A;*/
         }
 
         // CP r: Compare (register)
@@ -1755,6 +1881,7 @@ namespace GameBoyReborn
         // Unconditional jump to the absolute address specified by the 16-bit operand nn.
         private void JP_nn()
         {
+            Cycles += 4;
             PC = Binary.U16(Read(PC++), Read(PC++));
         }
 
@@ -1797,6 +1924,7 @@ namespace GameBoyReborn
         private void JR_CC_en(bool CC)
         {
             Cycles += (byte)(CC ? 3 : 2);
+
             sbyte e = unchecked((sbyte)Read(PC++));
 
             if (CC)
@@ -1889,17 +2017,16 @@ namespace GameBoyReborn
         {
             Halt = true;
 
-            if (IME == 0)
-            {
-                if (Memory.Read(0xFF0F) != 0)
-                Halt = false;
-                else
-                {
-
-                }
-            }
+            if (IME >= 0)
+            IME = 1;
             else
-            Halt = false;
+            {
+                Halt = false;
+
+                // Halt bug
+                if ((IO.IE & IO.IF) != 0)
+                PC--;
+            }
         }
 
         // STOP: Stop system and main clocks
@@ -1945,6 +2072,7 @@ namespace GameBoyReborn
         // -
         private void unknown()
         {
+            Cycles++;
         }
 
         // RLCA
