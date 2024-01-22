@@ -9,6 +9,7 @@ namespace GameBoyReborn
         // Using
         public PPU? PPU;
         public APU? APU;
+        public Timer? Timer;
 
         //JOYP	Joypad
         public byte P1 = 0xCF;
@@ -164,7 +165,7 @@ namespace GameBoyReborn
 
         public void Write(byte at, byte b)
         {
-            if(APU != null && PPU != null)
+            if(APU != null && PPU != null && Timer != null)
             {
                 //JOYP	Joypad
                 if (at == 0x00) P1 = b;
@@ -174,10 +175,10 @@ namespace GameBoyReborn
                 else if (at == 0x02) SC = b;
 
                 // Timer
-                else if (at == 0x04) DIV = 0x00;
+                else if (at == 0x04) Timer.DIV(b);
                 else if (at == 0x05) TIMA = b;
                 else if (at == 0x06) TMA = b;
-                else if (at == 0x07) TAC = b;
+                else if (at == 0x07) Timer.TAC(b);
 
                 // Interrupt
                 else if (at == 0x0F) IF = b;
