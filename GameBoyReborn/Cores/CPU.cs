@@ -1142,15 +1142,8 @@ namespace GameBoyReborn
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (_A & 0xF) + (result & 0xF) > 0xF;
+            FlagH = (_A & 0xF) + (Rr & 0xF) > 0xF;
             FlagC = result > 0xFF;
-
-            /*            A += Rr;
-
-                        FlagZ = A == 0;
-                        FlagN = false;
-                        FlagH = (A & 0x08) != 0;
-                        FlagC = (A & 0x80) != 0;*/
         }
 
         // ADD (HL): Add (indirect HL)
@@ -1168,15 +1161,8 @@ namespace GameBoyReborn
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (_A & 0xF) + (result & 0xF) > 0xF;
+            FlagH = (_A & 0xF) + (n & 0xF) > 0xF;
             FlagC = result > 0xFF;
-
-            /*            A += Read(Binary.U16(L, H));
-
-                        FlagZ = A == 0;
-                        FlagN = false;
-                        FlagH = (A & 0x08) != 0;
-                        FlagC = (A & 0x80) != 0;*/
         }
 
         // ADD n: Add (immediate)
@@ -1194,15 +1180,8 @@ namespace GameBoyReborn
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (_A & 0xF) + (result & 0xF) > 0xF;
+            FlagH = (_A & 0xF) + (n & 0xF) > 0xF;
             FlagC = result > 0xFF;
-
-            /*            A += Read(PC++);
-
-                        FlagZ = A == 0;
-                        FlagN = false;
-                        FlagH = (A & 0x08) != 0;
-                        FlagC = (A & 0x80) != 0;*/
         }
 
         // ADD SP e
@@ -1270,15 +1249,8 @@ namespace GameBoyReborn
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (_A & 0xF) + (result & 0xF) + carry > 0xF;
+            FlagH = (_A & 0xF) + (Rr & 0xF) + carry > 0xF;
             FlagC = result > 0xFF;
-
-            /*            A += (byte)((FlagC ? 1 : 0) + Rr);
-
-                        FlagZ = A == 0;
-                        FlagN = false;
-                        FlagH = (A & 0x08) != 0;
-                        FlagC = (A & 0x80) != 0;*/
         }
 
         // ADC (HL): Add with carry (indirect HL)
@@ -1298,15 +1270,8 @@ namespace GameBoyReborn
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (_A & 0xF) + (result & 0xF) + carry > 0xF;
+            FlagH = (_A & 0xF) + (n & 0xF) + carry > 0xF;
             FlagC = result > 0xFF;
-
-            /*            A += (byte)((FlagC ? 1 : 0) + Read(Binary.U16(L, H)));
-
-                        FlagZ = A == 0;
-                        FlagN = false;
-                        FlagH = (A & 0x08) != 0;
-                        FlagC = (A & 0x80) != 0;*/
         }
 
         // ADC n: Add with carry (immediate)
@@ -1325,15 +1290,8 @@ namespace GameBoyReborn
 
             FlagZ = A == 0;
             FlagN = false;
-            FlagH = (_A & 0xF) + (result & 0xF) + carry > 0xF;
+            FlagH = (_A & 0xF) + (n & 0xF) + carry > 0xF;
             FlagC = result > 0xFF;
-
-            /*            A += (byte)((FlagC ? 1 : 0) + Read(PC++));
-
-                        FlagZ = A == 0;
-                        FlagN = false;
-                        FlagH = (A & 0x08) != 0;
-                        FlagC = (A & 0x80) != 0;*/
         }
 
         // SUB r: Subtract (register)
@@ -1562,7 +1520,7 @@ namespace GameBoyReborn
 
             FlagZ = result == 0;
             FlagN = true;
-            FlagH = (result & 0x10) != 0;
+            FlagH = (A & 0xF) < (result & 0xF);
             FlagC = n > A;
         }
 
