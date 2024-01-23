@@ -1485,7 +1485,7 @@ namespace GameBoyReborn
 
             FlagZ = result == 0;
             FlagN = true;
-            FlagH = (result & 0x10) != 0;
+            FlagH = (A & 0xF) < (result & 0xF);
             FlagC = Rr > A;
         }
 
@@ -1503,7 +1503,7 @@ namespace GameBoyReborn
 
             FlagZ = result == 0;
             FlagN = true;
-            FlagH = (result & 0x10) != 0;
+            FlagH = (A & 0xF) < (result & 0xF);
             FlagC = HL > A;
         }
 
@@ -1531,12 +1531,11 @@ namespace GameBoyReborn
         {
             Cycles++;
 
-            bool carryPerBit = ((Rw + 1) & 0x08) != 0;
             Rw++;
 
             FlagZ = Rw == 0;
             FlagN = false;
-            FlagH = carryPerBit;
+            FlagH = (Rw & 0xF) == 0;
         }
 
         // INC (HL): Increment (indirect HL)
@@ -1581,12 +1580,11 @@ namespace GameBoyReborn
         {
             Cycles++;
 
-            bool borrowFromBit4 = (Rw & 0x10) != 0;
             Rw--;
 
             FlagZ = Rw == 0;
             FlagN = true;
-            FlagH = borrowFromBit4;
+            FlagH = (Rw & 0xF) == 0xF;
         }
 
         // DEC (HL): Decrement (indirect HL)
