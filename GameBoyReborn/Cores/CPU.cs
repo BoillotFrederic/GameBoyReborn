@@ -1061,17 +1061,18 @@ namespace GameBoyReborn
         private void LD_HL_SP_en()
         {
             Cycles += 3;
-            sbyte e = unchecked((sbyte)Read(PC++));
+            byte n = Read(PC++);
+            sbyte e = unchecked((sbyte)n);
 
-            ushort _SP = (ushort)(SP + e);
+            ushort result = (ushort)(SP + e);
 
-            H = Binary.Msb(_SP);
-            L = Binary.Lsb(_SP);
+            H = Binary.Msb(result);
+            L = Binary.Lsb(result);
 
             FlagZ = false;
             FlagN = false;
-            FlagH = (_SP & 0x08) != 0;
-            FlagC = (_SP & 0x80) != 0;
+            FlagH = ((SP ^ e ^ result) & 0x10) == 0x10;
+            FlagC = ((SP ^ e ^ result) & 0x100) == 0x100;
         }
 
         // PUSH rr: Push to stack
@@ -1211,15 +1212,16 @@ namespace GameBoyReborn
         {
             Cycles += 4;
 
-            sbyte e = unchecked((sbyte)Read(PC++));
+            byte n = Read(PC++);
+            sbyte e = unchecked((sbyte)n);
             int result = SP + e;
-
-            SP = (ushort)result;
 
             FlagZ = false;
             FlagN = false;
-            FlagH = (SP & 0x08) != 0;
-            FlagC = (SP & 0x80) != 0;
+            FlagH = (((SP & 0xF) + (e & 0xF)) & 0x10) == 0x10;
+            FlagC = (((SP & 0xFF) + (e & 0xFF)) & 0x100) == 0x100;
+
+            SP = (ushort)result;
         }
 
         // ADD HL rr
@@ -1242,14 +1244,15 @@ namespace GameBoyReborn
         private void ADD_HL_SP()
         {
             Cycles += 2;
-            ushort HL = (ushort)(Binary.U16(L, H) + SP);
+            ushort HL = Binary.U16(L, H);
+            int result = HL + SP;
 
-            H = Binary.Msb(HL);
-            L = Binary.Lsb(HL);
+            H = Binary.Msb((ushort)result);
+            L = Binary.Lsb((ushort)result);
 
             FlagN = false;
-            FlagH = ((HL & 0xFFF) + (SP & 0xFFF)) > 0xFFF;
-            FlagC = (HL & 0x10000) != 0;
+            FlagH = ((HL ^ SP ^ (result & 0xFFFF)) & 0x1000) == 0x1000;
+            FlagC = (result & 0x10000) == 0x10000;
         }
 
         // ADC r: Add with carry (register)
@@ -1839,6 +1842,7 @@ namespace GameBoyReborn
         {
             Cycles++;
 
+            byte _A = A;
             byte lsb = (byte)(A & 0x0F);
             byte msb = (byte)(A >> 4);
 
@@ -1862,6 +1866,12 @@ namespace GameBoyReborn
             FlagC = false;
 
             A = (byte)((msb << 4) | (lsb & 0x0F));
+
+            FlagZ = (A & 0xFF) == 0;
+            FlagN = false;
+            FlagH = ((A & 0xF) + (_A & 0xF)) > 0xF;
+            //FlagC = (A & 0x100) == 0x100;
+
         }
 
         // CPL: Complement accumulator
