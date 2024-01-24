@@ -652,9 +652,16 @@ namespace GameBoyReborn
                 FOR_DEBUG_LastOpcode = opcode;
                 FOR_DEBUG_CyclesAccumulator++;
             }
+            else if(!Stop)
+            {
+                //PC++;
+                Cycles++;
+
+                if ((IO.IE & IO.IF) != 0)
+                Halt = false;
+            }
             else
             {
-                PC++;
                 Cycles++;
             }
 
@@ -1909,18 +1916,13 @@ namespace GameBoyReborn
         // this instruction depends on the state of the IME flag.
         private void HALT()
         {
-            Halt = true;
-
             if (IME >= 0)
-            IME = 1;
-            else
             {
-                Halt = false;
-
-                // Halt bug
-                if ((IO.IE & IO.IF) != 0)
+                IME = 1;
                 PC--;
             }
+            else
+            Halt = true;
         }
 
         // STOP: Stop system and main clocks
