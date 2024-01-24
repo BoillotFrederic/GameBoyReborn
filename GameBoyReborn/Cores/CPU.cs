@@ -1118,7 +1118,6 @@ namespace GameBoyReborn
             Cycles += 3;
 
             byte F = Read(SP++);
-            //Console.WriteLine(F);
 
             FlagZ = Binary.ReadBit(F, 7);
             FlagN = Binary.ReadBit(F, 6);
@@ -1209,16 +1208,16 @@ namespace GameBoyReborn
         private void ADD_HL_RRr(byte Rmr, byte Rlr)
         {
             Cycles += 2;
-            ushort _HL = Binary.U16(L, H);
-            ushort _RR = Binary.U16(Rlr, Rmr);
-            int HL = _HL + _RR;
+            ushort HL = Binary.U16(L, H);
+            ushort RR = Binary.U16(Rlr, Rmr);
+            int result = HL + RR;
 
-            H = Binary.Msb((ushort)HL);
-            L = Binary.Lsb((ushort)HL);
+            H = Binary.Msb((ushort)result);
+            L = Binary.Lsb((ushort)result);
 
             FlagN = false;
-            FlagH = ((_HL ^ _RR ^ (ushort)HL) & 0x1000) != 0;
-            FlagC = (HL & 0x10000) != 0;
+            FlagH = ((HL ^ RR ^ (ushort)result) & 0x1000) != 0;
+            FlagC = (result & 0x10000) == 0x10000;
         }
         private void ADD_HL_SP()
         {
@@ -1230,7 +1229,7 @@ namespace GameBoyReborn
             L = Binary.Lsb((ushort)result);
 
             FlagN = false;
-            FlagH = ((HL ^ SP ^ (result & 0xFFFF)) & 0x1000) == 0x1000;
+            FlagH = ((HL ^ SP ^ (ushort)result) & 0x1000) == 0x1000;
             FlagC = (result & 0x10000) == 0x10000;
         }
 
@@ -1310,16 +1309,6 @@ namespace GameBoyReborn
             FlagN = true;
             FlagH = (_A & 0xF) - (result & 0xF) < 0;
             FlagC = result < 0;
-
-            /*            ushort result = (ushort)(A - Rr);
-                        bool borrowFromBit4 = (result & 0x10) != 0;
-
-                        A = (byte)result;
-
-                        FlagZ = A == 0;
-                        FlagN = true;
-                        FlagH = borrowFromBit4;
-                        FlagC = Rr > A;*/
         }
 
         // SUB (HL): Subtract (indirect HL)
@@ -1339,17 +1328,6 @@ namespace GameBoyReborn
             FlagN = true;
             FlagH = (_A & 0xF) - (result & 0xF) < 0;
             FlagC = result < 0;
-
-            /*            byte HL = Read(Binary.U16(L, H));
-                        ushort result = (ushort)(A - HL);
-                        bool borrowFromBit4 = (result & 0x10) != 0;
-
-                        A = (byte)result;
-
-                        FlagZ = A == 0;
-                        FlagN = true;
-                        FlagH = borrowFromBit4;
-                        FlagC = HL > A;*/
         }
 
         // SUB n: Subtract (immediate)
@@ -1369,17 +1347,6 @@ namespace GameBoyReborn
             FlagN = true;
             FlagH = (_A & 0xF) - (result & 0xF) < 0;
             FlagC = result < 0;
-
-            /*            byte n = Read(PC++);
-                        ushort result = (ushort)(A - n);
-                        bool borrowFromBit4 = (result & 0x10) != 0;
-
-                        A = (byte)result;
-
-                        FlagZ = A == 0;
-                        FlagN = true;
-                        FlagH = borrowFromBit4;
-                        FlagC = n > A;*/
         }
 
         // SBC r: Subtract with carry (register)
@@ -1399,16 +1366,6 @@ namespace GameBoyReborn
             FlagN = true;
             FlagH = (_A & 0xF) - (result & 0xF) - carry < 0;
             FlagC = result < 0;
-
-            /*            ushort result = (ushort)(A - (Rr + (FlagC ? 1 : 0)));
-                        bool borrowFromBit4 = (result & 0x10) != 0;
-
-                        A = (byte)result;
-
-                        FlagZ = A == 0;
-                        FlagN = true;
-                        FlagH = borrowFromBit4;
-                        FlagC = Rr + (FlagC ? 1 : 0) > A;*/
         }
 
         // SBC (HL): Subtract with carry (indirect HL)
@@ -1429,17 +1386,6 @@ namespace GameBoyReborn
             FlagN = true;
             FlagH = (_A & 0xF) - (result & 0xF) - carry < 0;
             FlagC = result < 0;
-
-            /*            byte HL = Read(Binary.U16(L, H));
-                        ushort result = (ushort)(A - (HL + (FlagC ? 1 : 0)));
-                        bool borrowFromBit4 = (result & 0x10) != 0;
-
-                        A = (byte)result;
-
-                        FlagZ = A == 0;
-                        FlagN = true;
-                        FlagH = borrowFromBit4;
-                        FlagC = HL + (FlagC ? 1 : 0) > A;*/
         }
 
         // SBC n: Subtract with carry (immediate)
@@ -1460,17 +1406,6 @@ namespace GameBoyReborn
             FlagN = true;
             FlagH = (_A & 0xF) - (result & 0xF) - carry < 0;
             FlagC = result < 0;
-
-            /*byte n = Read(PC++);
-            ushort result = (ushort)(A - (n + (FlagC ? 1 : 0)));
-            bool borrowFromBit4 = (result & 0x10) != 0;
-
-            A = (byte)result;
-
-            FlagZ = A == 0;
-            FlagN = true;
-            FlagH = borrowFromBit4;
-            FlagC = n + (FlagC ? 1 : 0) > A;*/
         }
 
         // CP r: Compare (register)
@@ -2004,7 +1939,6 @@ namespace GameBoyReborn
         {
             Cycles++;
             IME = -1;
-            //IME_scheduled = false;
         }
 
         // EI: Enable interrupts
@@ -2014,7 +1948,6 @@ namespace GameBoyReborn
         {
             Cycles += 1;
             IME = 1;
-            //IME_scheduled = true;
         }
 
         // NOP: No operation
