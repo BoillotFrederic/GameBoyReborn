@@ -1547,12 +1547,11 @@ namespace GameBoyReborn
 
             ushort HL = Binary.U16(L, H);
             byte data = Read(Binary.U16(L, H));
-            bool carryPerBit = ((data + 1) & 0x08) != 0;
             Write(HL, ++data);
 
             FlagZ = data == 0;
             FlagN = false;
-            FlagH = carryPerBit;
+            FlagH = (data & 0xF) == 0;
         }
 
         // INC rr
@@ -1595,14 +1594,13 @@ namespace GameBoyReborn
             Cycles += 3;
 
             byte HLn = Read(Binary.U16(L, H));
-            bool borrowFromBit4 = (HLn & 0x10) != 0;
 
             byte data = (byte)(HLn - 1);
             Write(Binary.U16(L, H), data);
 
             FlagZ = data == 0;
             FlagN = true;
-            FlagH = borrowFromBit4;
+            FlagH = (data & 0xF) == 0xF;
         }
 
         // DEC rr
@@ -1798,36 +1796,31 @@ namespace GameBoyReborn
         {
             Cycles++;
 
-            byte _A = A;
-            byte lsb = (byte)(A & 0x0F);
-            byte msb = (byte)(A >> 4);
+            ushort AdjustA = A;
+            byte lsb = Binary.Lsb(A);
 
-            if (FlagN)
+            if (!FlagN)
             {
-                if (FlagH || (lsb > 9))
-                lsb -= 6;
+                if (FlagH || lsb > 9)
+                AdjustA += 0x6;
+
+                if (FlagC || AdjustA > 0x9F)
+                AdjustA += 0x60;
             }
             else
             {
-                if ((lsb > 9) || FlagH)
-                lsb += 6;
+                if (FlagH)
+                AdjustA = (byte)(AdjustA - 6);
+
+                if (FlagC)
+                AdjustA -= 0x60;
             }
 
-            if (FlagC || (msb > 9))
-            {
-                msb += 6;
-                FlagC = true;
-            }
-            else
-            FlagC = false;
+            A = (byte)AdjustA;
 
-            A = (byte)((msb << 4) | (lsb & 0x0F));
-
-            FlagZ = (A & 0xFF) == 0;
-            FlagN = false;
-            FlagH = ((A & 0xF) + (_A & 0xF)) > 0xF;
-            //FlagC = (A & 0x100) == 0x100;
-
+            FlagZ = A == 0;
+            FlagH = false;
+            FlagC = (AdjustA & 0x100) == 0x100 || FlagC;
         }
 
         // CPL: Complement accumulator
