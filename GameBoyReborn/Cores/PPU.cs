@@ -12,7 +12,8 @@ namespace GameBoyReborn
         private readonly IO IO;
         private readonly CPU CPU;
         private readonly Color[] ColorMap = new Color[4] { Color.RAYWHITE, Color.GRAY, Color.DARKGRAY, Color.BLACK };
-        private readonly byte[] BG_WIN_TileData = new byte[16];
+        private byte[] BG_TileData = new byte[16];
+        private byte[] WIN_TileData = new byte[16];
 
         public PPU(IO _IO, Memory _Memory, CPU _CPU)
         {
@@ -46,13 +47,16 @@ namespace GameBoyReborn
 
         // Cycles
         private int LyCycles = 0;
+        private int ScreenRenableDelay = 0;
 
         // LCD enable
+        private bool Enable = false;
         private bool Reenable = false;
 
         // Init all PPU registers
         private void InitRegisters()
         {
+            Enable = true;
             LCD_and_PPU_enable = Binary.ReadBit(IO.LCDC, 7);
             Window_tile_map_area = Binary.ReadBit(IO.LCDC, 6);
             Window_enable = Binary.ReadBit(IO.LCDC, 5);
@@ -74,13 +78,25 @@ namespace GameBoyReborn
         {
             IO.LCDC = b;
 
-            if(!LCD_and_PPU_enable && Binary.ReadBit(b, 7))
+            // Handle enable screen
+            if (!Binary.ReadBit(b, 7))
             {
+                Enable = false;
+            }
+
+            if (!LCD_and_PPU_enable && Binary.ReadBit(b, 7))
+            {
+                //Console.WriteLine("By IO : " + LyCycles);
+
+                if (!LCD_and_PPU_enable)
+                    ScreenRenableDelay = 240;
+
+/*                Console.WriteLine(LyCycles);
                 LyCycles = 0;
                 IO.LY = 0;
-                Set_Mode_PPU(2);
+                Set_Mode_PPU(3);
                 CompletedFrame = true;
-                Reenable = true;
+                Reenable = true;*/
             }
 
             LCD_and_PPU_enable = Binary.ReadBit(b, 7);
@@ -91,6 +107,24 @@ namespace GameBoyReborn
             OBJ_size = Binary.ReadBit(b, 2);
             OBJ_enable = Binary.ReadBit(b, 1);
             BG_and_Window_enable_priority = Binary.ReadBit(b, 0);
+
+ /*           // Handle enable screen
+            if (LCD_and_PPU_enable)
+            {
+                if (!Enable)
+                {
+                    Console.WriteLine("By IO : " + LyCycles);
+                    ScreenRenableDelay = 449;
+                }
+            }
+            else
+            {
+                Console.WriteLine("Disable : " + LyCycles);
+                Enable = false;
+                IO.LY = 0;
+                LyCycles = 0;
+                Set_Mode_PPU(0);
+            }*/
         }
         public void STAT(byte b)
         {
@@ -123,7 +157,7 @@ namespace GameBoyReborn
             LyCycles += cycles;
 
             // Screen enable
-            if (LCD_and_PPU_enable)
+            if (/*LCD_and_PPU_enable*/ Enable)
             {
                 /*
                 if (CPU.FOR_DEBUG_DebugModeEnable)
@@ -235,7 +269,29 @@ namespace GameBoyReborn
             // Screen disable
             else
             {
-                if (LyCycles >= 70224)
+                if (ScreenRenableDelay > 0)
+                {
+                    ScreenRenableDelay -= cycles;
+
+                    if (ScreenRenableDelay <= 0)
+                    {
+                        //Console.WriteLine(LyCycles);
+                        ScreenRenableDelay = 0;
+                        CompletedFrame = true;
+                        LyCycles = 0;
+                        IO.LY = 0;
+                        Set_Mode_PPU(0);
+                        Reenable = true;
+                        Enable = true;
+
+                        if (Mode_2_int_select)
+                        Binary.SetBit(ref IO.IF, 1, true);
+
+                        if (LYC_equal_LY && LYC_int_select)
+                        Binary.SetBit(ref IO.IF, 1, true);
+                    }
+                }
+                else if (LyCycles >= 70224)
                 {
                     CompletedFrame = true;
                     LyCycles -= 70224;
@@ -276,7 +332,7 @@ namespace GameBoyReborn
                 BG_WIN_SetInedex(ref BG_TileY, ref BG_PixelInTileY, IO.LY, IO.SCY, 143);
 
                 if (Window_enable)
-                BG_WIN_SetInedex(ref WIN_TileY, ref WIN_PixelInTileY, IO.LY, IO.WY, 143);
+                BG_WIN_SetInedex(ref WIN_TileY, ref WIN_PixelInTileY, (byte)(IO.LY - IO.WY), 0, 143);
             }
 
             // Browse line
@@ -287,16 +343,16 @@ namespace GameBoyReborn
                 {
                     // Set X position and draw
                     BG_WIN_SetInedex(ref BG_TileX, ref BG_PixelInTileX, x, IO.SCX, 159);
-                    BG_WIN_UpdateTileData(ref BG_LastTileX, BG_TileX, BG_TileY, BG_StartTileMapArea);
-                    BG_WIN_DrawPixel(x, IO.LY, BG_WIN_Pal, BG_WIN_TileData[BG_PixelInTileY * 2], BG_WIN_TileData[BG_PixelInTileY * 2 + 1], BG_PixelInTileX);
+                    BG_WIN_UpdateTileData(ref BG_LastTileX, BG_TileX, BG_TileY, BG_StartTileMapArea, ref BG_TileData);
+                    BG_WIN_DrawPixel(x, IO.LY, BG_WIN_Pal, BG_TileData[BG_PixelInTileY * 2], BG_TileData[BG_PixelInTileY * 2 + 1], BG_PixelInTileX);
 
                     // If enable, draw window
-                    if (Window_enable)
+                    if (Window_enable && x + 7 >= IO.WX && IO.LY >= IO.WY)
                     {
                         // Set X position and draw
-                        BG_WIN_SetInedex(ref WIN_TileX, ref WIN_PixelInTileX, x, IO.WX, 159);
-                        BG_WIN_UpdateTileData(ref WIN_LastTileX, WIN_TileX, WIN_TileY, WIN_StartTileMapArea);
-                        BG_WIN_DrawPixel(x, IO.LY, BG_WIN_Pal, BG_WIN_TileData[BG_PixelInTileY * 2], BG_WIN_TileData[WIN_PixelInTileY * 2 + 1], WIN_PixelInTileX);
+                        BG_WIN_SetInedex(ref WIN_TileX, ref WIN_PixelInTileX, (byte)(x + 7 - IO.WX), 0, 159);
+                        BG_WIN_UpdateTileData(ref WIN_LastTileX, WIN_TileX, WIN_TileY, WIN_StartTileMapArea, ref WIN_TileData);
+                        BG_WIN_DrawPixel(x, IO.LY, BG_WIN_Pal, WIN_TileData[BG_PixelInTileY * 2], WIN_TileData[WIN_PixelInTileY * 2 + 1], WIN_PixelInTileX);
                     }
                 }
             }
@@ -308,23 +364,23 @@ namespace GameBoyReborn
         // Set all index background and window
         private static void BG_WIN_SetInedex(ref byte Tile, ref byte PixelInTile, byte pos, byte ShiftPixel, byte Overflow)
         {
-            byte Pixel = (byte)(pos + ShiftPixel > 255 ? /*(ShiftPixel + Overflow)*/(pos + ShiftPixel) % 256 : pos + ShiftPixel); // Pixel index in screen (256 x 256)
+            byte Pixel = (byte)(pos + ShiftPixel > 255 ? (pos + ShiftPixel) % 256 : pos + ShiftPixel); // Pixel index in screen (256 x 256)
             Tile = (byte)Math.Floor(Pixel / 8.0); // Tile index in tile map (32 x 32)
             PixelInTile = (byte)(Pixel % 8); // Pixel index in tile (8 x 8)
         }
 
         // Update tile data
-        private void BG_WIN_UpdateTileData(ref sbyte LastTileX, byte TileX, byte TileY, ushort StartTileMapArea)
+        private void BG_WIN_UpdateTileData(ref sbyte LastTileX, byte TileX, byte TileY, ushort StartTileMapArea, ref byte[] TileData)
         {
             if (LastTileX != (sbyte)TileX)
             {
                 LastTileX = (sbyte)TileX;
 
                 byte TileIndexData = Memory.VideoRam_nn[Memory.selectedVideoBank][StartTileMapArea + (TileY * 32 + TileX)];
-                ushort StartTileDataArea = (ushort)(BG_and_Window_tile_data_area ? 0 : TileIndexData > 0x7F ? 0x800 : 0x1000);
+                ushort StartTileDataArea = (ushort)(BG_and_Window_tile_data_area ? 0 : 0x1000);
                 short BG_TileIndexDataS = !BG_and_Window_tile_data_area ? unchecked((sbyte)TileIndexData) : TileIndexData;
 
-                Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], StartTileDataArea + (BG_TileIndexDataS * 16), BG_WIN_TileData, 0, 16);
+                Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], StartTileDataArea + (BG_TileIndexDataS * 16), TileData, 0, 16);
             }
         }
 
