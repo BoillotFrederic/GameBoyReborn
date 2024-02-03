@@ -218,9 +218,9 @@ namespace GameBoyReborn
                 else if (at == 0x44) LY = b;
                 else if (at == 0x45) LYC = b;
                 //else if (at == 0x46) DMA = b;
-                else if (at == 0x47) BGP = b;
-                else if (at == 0x48) OBP0 = b;
-                else if (at == 0x49) OBP1 = b;
+                else if (at == 0x47) PPU.BGP(b);
+                else if (at == 0x48) PPU.OBP0(b);
+                else if (at == 0x49) PPU.OBP1(b);
                 else if (at == 0x4A) WY = b;
                 else if (at == 0x4B) WX = b;
                 else if (at == 0x4F) VBK = b;

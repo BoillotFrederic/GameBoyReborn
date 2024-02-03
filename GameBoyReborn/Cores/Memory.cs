@@ -7,7 +7,7 @@ namespace GameBoyReborn
 {
     public class Memory
     {
-        private readonly byte[] RomData;
+        public byte[] RomData;
         public byte[] RomBank_00 = new byte[0x4000];
         public byte[][] RomBank_nn;
         public byte[][] VideoRam_nn;
@@ -24,10 +24,11 @@ namespace GameBoyReborn
         public byte selectedWorkBank = 0;
 
         private byte[] RomBoot = new byte[256];
-        public bool booting = true;
+        public bool booting = false;
 
         private readonly IO IO;
         public CPU? CPU;
+        public PPU? PPU;
 
         // Init ram
         public Memory(Cartridge Cartridge, IO _IO, byte[] _RomData)
@@ -176,41 +177,24 @@ namespace GameBoyReborn
             IO.Write((byte)(at - 0xFF00), b);
 
             // DMA transfer
-            else if (at == 0xFF46)
-            DMATransfer(b);
+            else if (at == 0xFF46 && PPU != null)
+            {
+                PPU.OBJ_DMATransfer(b);
+            }
 
             // High RAM (HRAM)
             else if (at >= 0xFF80 && at <= 0xFFFE)
             HighRAM[at - 0xFF80] = b;
         }
 
-        // DMA Transfer
-        private void DMATransfer(byte sourceAddress)
-        {
-            if (CPU != null)
-            {
-/*                ushort startAddress;
-
-                // Rom source
-                if (sourceAddress <= 0x7F)
-                {
-                    startAddress = (ushort)(sourceAddress << 8);
-                    Array.Copy(RomData, startAddress, OAM, 0, 160);
-                }
-                // RAM source
-                else if (sourceAddress >= 0xC0 && sourceAddress <= 0xFD)
-                {
-                    startAddress = (ushort)((sourceAddress - 0xC0) << 8);
-                    Array.Copy(WorkRamCGB[selectedWorkBank], startAddress, OAM, 0, 160);
-                }*/
-            }
-        }
-
         // Rom boot
         private void LoadRomBoot()
         {
-            if (File.Exists("Boot\\DMG_ROM.bin"))
-            RomBoot = File.ReadAllBytes("Boot\\DMG_ROM.bin");
+            if (File.Exists("Boot/DMG_ROM.bin"))
+            RomBoot = File.ReadAllBytes("Boot/DMG_ROM.bin");
+
+            else
+            booting = false;
         }
     }
 }

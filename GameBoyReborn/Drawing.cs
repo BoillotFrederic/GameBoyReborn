@@ -50,9 +50,10 @@ namespace GameBoyReborn
         }
 
         // Set pixel
-        public static void SetPixel(byte x, byte y, Color color)
+        public static void SetPixel(byte x, byte y, Color? color)
         {
-            ScreenData[y * Program.SystemWidth + x] = color;
+            if(color != null)
+            ScreenData[y * Program.SystemWidth + x] = (Color)color;
         }
 
         // Get pixel
