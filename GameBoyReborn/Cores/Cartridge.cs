@@ -293,8 +293,8 @@ namespace GameBoyReborn
                     Size.Bank = 96;
                 break;
                 default:
-                    Size.Byte = 0;
-                    Size.Bank = 0;
+                    Size.Byte = 32 * 1024;
+                    Size.Bank = 1;
                 break;
             }
         }
