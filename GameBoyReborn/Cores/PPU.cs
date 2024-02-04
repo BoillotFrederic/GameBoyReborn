@@ -17,7 +17,6 @@ namespace GameBoyReborn
         private byte[] BG_TileData = new byte[16];
         private byte[] WIN_TileData = new byte[16];
         private byte[] OBJ_TileData = new byte[32];
-        private readonly OBJ_scan?[,] OBJ_scans = new OBJ_scan?[256, 256];
 
         public PPU(IO _IO, Memory _Memory, CPU _CPU)
         {
@@ -385,54 +384,65 @@ namespace GameBoyReborn
             // Set Y position
             if (BG_and_Window_enable_priority)
             {
-                BG_WIN_SetInedex(ref BG_TileY, ref BG_PixelInTileY, IO.LY, IO.SCY, 143);
+                BG_WIN_SetInedex(ref BG_TileY, ref BG_PixelInTileY, IO.LY, IO.SCY);
 
                 if (Window_enable)
-                BG_WIN_SetInedex(ref WIN_TileY, ref WIN_PixelInTileY, (byte)(IO.LY - IO.WY), 0, 143);
+                BG_WIN_SetInedex(ref WIN_TileY, ref WIN_PixelInTileY, (byte)(IO.LY - IO.WY), 0);
             }
 
             // Browse line
             for (byte x = 0; x < 160; x++)
             {
-                // If enable, draw background
+                // Draw background
                 if (BG_and_Window_enable_priority)
                 {
                     // Set X position and draw
-                    BG_WIN_SetInedex(ref BG_TileX, ref BG_PixelInTileX, x, IO.SCX, 159);
+                    BG_WIN_SetInedex(ref BG_TileX, ref BG_PixelInTileX, x, IO.SCX);
                     BG_WIN_UpdateTileData(ref BG_LastTileX, BG_TileX, BG_TileY, BG_StartTileMapArea, ref BG_TileData);
                     BG_WIN_PixelPriority = DrawTile(x, IO.LY, BGP_pal, BG_TileData[BG_PixelInTileY * 2], BG_TileData[BG_PixelInTileY * 2 + 1], BG_PixelInTileX, false);
 
-                    // If enable, draw window
+                    // Draw window
                     if (Window_enable && x + 7 >= IO.WX && IO.LY >= IO.WY)
                     {
                         // Set X position and draw
-                        BG_WIN_SetInedex(ref WIN_TileX, ref WIN_PixelInTileX, (byte)(x + 7 - IO.WX), 0, 159);
+                        BG_WIN_SetInedex(ref WIN_TileX, ref WIN_PixelInTileX, (byte)(x + 7 - IO.WX), 0);
                         BG_WIN_UpdateTileData(ref WIN_LastTileX, WIN_TileX, WIN_TileY, WIN_StartTileMapArea, ref WIN_TileData);
                         BG_WIN_PixelPriority = DrawTile(x, IO.LY, BGP_pal, WIN_TileData[BG_PixelInTileY * 2], WIN_TileData[WIN_PixelInTileY * 2 + 1], WIN_PixelInTileX, false);
                     }
                 }
 
-                // If enable, draw object
+                // Draw objects
                 if (OBJ_enable)
                 {
-                    var OBJ_target = OBJ_scans[IO.LY + 16, x + 8];
-
-                    if (OBJ_target != null)
+                    // Scan line
+                    for (int i = 159, ObjMax = 0; i > 0; i -= 4)
                     {
-                        OBJ_scan Obj = (OBJ_scan)OBJ_target;
+                        byte Y_pos = Memory.OAM[i - 3];
+                        byte X_pos = Memory.OAM[i - 2];
+                        byte TileIndex = Memory.OAM[i - 1];
+                        byte Attr = Memory.OAM[i];
+                        byte ObjSize = (byte)(!OBJ_size ? 7 : 15);
+                        byte ObjPixelInTileY = (byte)(IO.LY + 16 - Y_pos);
+                        byte ObjPixelInTileX = (byte)(x + 8 - X_pos);
 
-                        byte ObjSize = (byte)(!OBJ_size ? 8 : 16);
-                        bool ObjFlipY = Binary.ReadBit(Obj.Attr, 6);
-                        bool ObjFlipX = Binary.ReadBit(Obj.Attr, 5);
-                        bool ObjDmgPalette = Binary.ReadBit(Obj.Attr, 4);
-                        byte ObjPixelInTileY = (byte)(IO.LY + 16 - Obj.StartY);
-                        byte ObjPixelInTileX = (byte)(x + 8 - Obj.StartX);
-                        ObjPixelInTileY = (byte)(ObjFlipY ? ObjSize - ObjPixelInTileY : ObjPixelInTileY);
-
-                        if (!Binary.ReadBit(Obj.Attr, 7) || BG_WIN_PixelPriority == 0)
+                        // Object for this line with limit
+                        if (Y_pos >= 16 && ObjPixelInTileY <= ObjSize && X_pos >= 8 && ObjPixelInTileX <= 8 && ObjMax < 10)
                         {
-                            OBJ_UpdateTileData(ref OBJ_LastTile, Obj.TileIndex, ref OBJ_TileData);
-                            DrawTile(x, IO.LY, ObjDmgPalette ? OBP1_pal : OBP0_pal, OBJ_TileData[ObjPixelInTileY * 2], OBJ_TileData[ObjPixelInTileY * 2 + 1], ObjPixelInTileX, ObjFlipX);
+                            bool ObjPriority = Binary.ReadBit(Attr, 7);
+                            bool ObjFlipY = Binary.ReadBit(Attr, 6);
+                            bool ObjFlipX = Binary.ReadBit(Attr, 5);
+                            Color?[] ObjDmgPalette = Binary.ReadBit(Attr, 4) ? OBP1_pal : OBP0_pal;
+
+                            if (!ObjPriority || BG_WIN_PixelPriority == 0)
+                            {
+                                // Y Flip
+                                ObjPixelInTileY = (byte)(ObjFlipY ? ObjSize - ObjPixelInTileY : ObjPixelInTileY);
+
+                                OBJ_UpdateTileData(ref OBJ_LastTile, TileIndex, ref OBJ_TileData);
+                                DrawTile(x, IO.LY, ObjDmgPalette, OBJ_TileData[ObjPixelInTileY * 2], OBJ_TileData[ObjPixelInTileY * 2 + 1], ObjPixelInTileX, ObjFlipX);
+                            }
+
+                            ObjMax++;
                         }
                     }
                 }
@@ -443,7 +453,7 @@ namespace GameBoyReborn
         // ---------------------------
 
         // Set all index background and window
-        private static void BG_WIN_SetInedex(ref byte Tile, ref byte PixelInTile, byte pos, byte ShiftPixel, byte Overflow)
+        private static void BG_WIN_SetInedex(ref byte Tile, ref byte PixelInTile, byte pos, byte ShiftPixel)
         {
             byte Pixel = (byte)(pos + ShiftPixel > 255 ? (pos + ShiftPixel) % 256 : pos + ShiftPixel); // Pixel index in screen (256 x 256)
             Tile = (byte)Math.Floor(Pixel / 8.0); // Tile index in tile map (32 x 32)
@@ -468,21 +478,12 @@ namespace GameBoyReborn
         // Handle Objects
         // --------------
 
-        private struct OBJ_scan
-        {
-            public int Priority { get; set; }
-            public byte TileIndex { get; set; }
-            public byte Attr { get; set; }
-            public byte StartY { get; set; }
-            public byte StartX { get; set; }
-        }
-
         // DMA Transfer
         public void OBJ_DMATransfer(byte sourceAddress)
         {
             DMA_InProgress = true;
             DMA_cycles = 640;
-            Array.Clear(OBJ_scans);
+            Array.Clear(Memory.OAM);
 
             ushort startAddress;
             byte[] dataSource;
@@ -500,33 +501,8 @@ namespace GameBoyReborn
             }
 
             for (int i = 0; i < 160; i += 4)
-            {
-                for (int j = 0; j < 4; j++)
-                Memory.OAM[i + j] = dataSource[startAddress + i + j];
-
-                byte ObjY = Memory.OAM[i];
-                byte ObjX = Memory.OAM[i + 1];
-
-                for (int y = 0; y < (OBJ_size ? 16 : 8); y++)
-                {
-                    for (int x = 0; x < 8; x++)
-                    {
-                        byte NewPriority = (byte)(i / 4);
-                        var OBJ_target = OBJ_scans[ObjY + y, ObjX + x];
-                        if (OBJ_target == null || OBJ_target.Value.Priority < NewPriority) // Make priority
-                        {
-                            OBJ_scans[ObjY + y, ObjX + x] = new OBJ_scan
-                            {
-                                Priority = NewPriority,
-                                TileIndex = Memory.OAM[i + 2],
-                                Attr = Memory.OAM[i + 3],
-                                StartY = ObjY,
-                                StartX = ObjX
-                            };
-                        }
-                    }
-                }
-            }
+            for (int j = 0; j < 4; j++)
+            Memory.OAM[i + j] = dataSource[startAddress + i + j];
         }
 
         // Update objects tile data
@@ -535,86 +511,15 @@ namespace GameBoyReborn
             if (LastTile != (sbyte)at)
             {
                 LastTile = (sbyte)at;
+
+                if(!OBJ_size)
                 Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], at * 16, TileData, 0, 16);
-            }
-        }
-
-        private Color[] Object()
-        {
-            Color[] oTilesSet = new Color[176 * 176];
-
-            if (OBJ_enable)
-            {
-
-                Color[] PalObj0 = new Color[4] { ColorMap[(IO.OBP0 >> 6) & 3], ColorMap[(IO.OBP0 >> 4) & 3], ColorMap[(IO.OBP0 >> 2) & 3], ColorMap[IO.OBP0 & 3] };
-                Color[] PalObj1 = new Color[4] { ColorMap[(IO.OBP1 >> 6) & 3], ColorMap[(IO.OBP1 >> 4) & 3], ColorMap[(IO.OBP1 >> 2) & 3], ColorMap[IO.OBP1 & 3] };
-
-                for (byte i = 0; i < 160; i += 4)
+                else
                 {
-                    byte oy = Memory.OAM[i];
-                    byte ox = Memory.OAM[i + 2];
-                    byte oIndex = Memory.OAM[i + 3];
-                    bool oPriority = Binary.ReadBit(Memory.OAM[i + 4], 7);
-                    bool oYflip = Binary.ReadBit(Memory.OAM[i + 4], 6);
-                    bool oXflip = Binary.ReadBit(Memory.OAM[i + 4], 5);
-                    bool oDMGPalette = Binary.ReadBit(Memory.OAM[i + 4], 4);
-                    bool oBank = Binary.ReadBit(Memory.OAM[i + 4], 3); // CGB
-                    byte oCGBPalette = (byte)(Memory.OAM[i + 4] & 7); // CGB
-
-                    // Draw 8x8 object
-                    if (!OBJ_size)
-                    {
-                        byte[] oTileData = new byte[16];
-                        Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], oIndex * 16, oTileData, 0, 16);
-
-                        for (byte y = 0; y < 8; y++)
-                        {
-                            for (byte x = 0; x < 8; x++)
-                            {
-                                byte drawX = oXflip ? (byte)(7 - x) : x;
-                                byte drawY = oYflip ? (byte)(7 - y) : y;
-
-                                byte lowBit = (byte)((oTileData[drawY * 2] >> (7 - drawX)) & 1);
-                                byte highBit = (byte)((oTileData[drawY * 2 + 1] >> (7 - drawX)) & 1);
-                                byte pixelValue = (byte)((highBit << 1) | lowBit);
-
-                                if (1 == 1 /* To do later : oPriority || (oInWindow && windowEnabled(ox + x, oy + y) */)
-                                oTilesSet[(oy + y) * 160 + ox + x] = oDMGPalette ? PalObj1[pixelValue] : PalObj0[pixelValue];
-                            }
-                        }
-                    }
-                    // Draw 8x16 object
-                    else
-                    {
-                        byte topTileIndex = (byte)(oIndex & 0xFE); // NN & $FE
-                        byte bottomTileIndex = (byte)(oIndex | 0x01); // NN | $01
-
-                        byte[] topTileData = new byte[16];
-                        byte[] bottomTileData = new byte[16];
-
-                        Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], topTileIndex * 16, topTileData, 0, 16);
-                        Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], bottomTileIndex * 16, bottomTileData, 0, 16);
-
-                        for (byte y = 0; y < 16; y++)
-                        {
-                            for (byte x = 0; x < 8; x++)
-                            {
-                                byte drawX = oXflip ? (byte)(7 - x) : x;
-                                byte drawY = oYflip ? (byte)(15 - y) : y;
-
-                                byte lowBit = (byte)((drawY < 8) ? ((topTileData[drawY * 2] >> (7 - drawX)) & 1) : ((bottomTileData[(drawY - 8) * 2] >> (7 - drawX)) & 1));
-                                byte highBit = (byte)((drawY < 8) ? ((topTileData[drawY * 2 + 1] >> (7 - drawX)) & 1) : ((bottomTileData[(drawY - 8) * 2 + 1] >> (7 - drawX)) & 1));
-                                byte pixelValue = (byte)((highBit << 1) | lowBit);
-
-                                if (1 == 1 /* To do later : oPriority || (oInWindow && windowEnabled(ox + x, oy + y) */)
-                                oTilesSet[(oy + y) * 160 + ox + x] = oDMGPalette ? PalObj1[pixelValue] : PalObj0[pixelValue];
-                            }
-                        }
-                    }
+                    Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (at & 0xFE) * 16, TileData, 0, 16);
+                    Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (at | 1) * 16, TileData, 16, 16);
                 }
             }
-
-            return oTilesSet;
         }
     }
 }
