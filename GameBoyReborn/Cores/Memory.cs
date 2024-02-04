@@ -173,14 +173,8 @@ namespace GameBoyReborn
             NotUsable[at - 0xFEA0] = b;
 
             // I/O Registers
-            else if ((at >= 0xFF00 && at <= 0xFF7F || at == 0xFFFF) && at != 0xFF46)
+            else if ((at >= 0xFF00 && at <= 0xFF7F || at == 0xFFFF))
             IO.Write((byte)(at - 0xFF00), b);
-
-            // DMA transfer
-            else if (at == 0xFF46 && PPU != null)
-            {
-                PPU.OBJ_DMATransfer(b);
-            }
 
             // High RAM (HRAM)
             else if (at >= 0xFF80 && at <= 0xFFFE)

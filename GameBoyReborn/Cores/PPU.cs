@@ -12,7 +12,7 @@ namespace GameBoyReborn
         private readonly IO IO;
         private readonly CPU CPU;
         private bool DMA_InProgress = false;
-        private ushort DMA_cycles = 0;
+        private short DMA_cycles = 0;
         private readonly Color[] ColorMap = new Color[4] { Color.RAYWHITE, Color.GRAY, Color.DARKGRAY, Color.BLACK };
         private byte[] BG_TileData = new byte[16];
         private byte[] WIN_TileData = new byte[16];
@@ -189,7 +189,7 @@ namespace GameBoyReborn
             // DMA transfer
             if (DMA_InProgress)
             {
-                DMA_cycles -= (ushort)cycles;
+                DMA_cycles -= (short)cycles;
 
                 if (DMA_cycles <= 0)
                 DMA_InProgress = false;
@@ -433,7 +433,7 @@ namespace GameBoyReborn
                             bool ObjFlipX = Binary.ReadBit(Attr, 5);
                             Color?[] ObjDmgPalette = Binary.ReadBit(Attr, 4) ? OBP1_pal : OBP0_pal;
 
-                            if (!ObjPriority || BG_WIN_PixelPriority == 0)
+                            if (!ObjPriority || (ObjPriority && BG_WIN_PixelPriority == 0))
                             {
                                 // Y Flip
                                 ObjPixelInTileY = (byte)(ObjFlipY ? ObjSize - ObjPixelInTileY : ObjPixelInTileY);
@@ -479,30 +479,21 @@ namespace GameBoyReborn
         // --------------
 
         // DMA Transfer
-        public void OBJ_DMATransfer(byte sourceAddress)
+        public void DMATransfer(byte b)
         {
+            IO.DMA = b;
+
             DMA_InProgress = true;
             DMA_cycles = 640;
             Array.Clear(Memory.OAM);
 
-            ushort startAddress;
-            byte[] dataSource;
+            ushort startAddress = (ushort)(b << 8);
 
-            if (sourceAddress <= 0x7F)
-            {
-                startAddress = (ushort)(sourceAddress << 8);
-                dataSource = Memory.RomData;
-            }
+            if (startAddress >= 0xE000)
+            startAddress -= 0x2000;
 
-            else
-            {
-                startAddress = 0;
-                dataSource = Memory.WorkRam;
-            }
-
-            for (int i = 0; i < 160; i += 4)
-            for (int j = 0; j < 4; j++)
-            Memory.OAM[i + j] = dataSource[startAddress + i + j];
+            for (byte r = 0; r < 0xA0; r++)
+            Memory.OAM[r] = Memory.Read((ushort)(startAddress | r));
         }
 
         // Update objects tile data

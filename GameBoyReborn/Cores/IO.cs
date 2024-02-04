@@ -220,7 +220,7 @@ namespace GameBoyReborn
                 else if (at == 0x43) SCX = b;
                 else if (at == 0x44) LY = b;
                 else if (at == 0x45) LYC = b;
-                //else if (at == 0x46) DMA = b;
+                else if (at == 0x46) PPU.DMATransfer(b);
                 else if (at == 0x47) PPU.BGP(b);
                 else if (at == 0x48) PPU.OBP0(b);
                 else if (at == 0x49) PPU.OBP1(b);
