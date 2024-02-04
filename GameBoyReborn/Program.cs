@@ -11,7 +11,7 @@ namespace GameBoyReborn
         public const int SystemWidth = 160;
         public const int SystemHeight = 144;
 
-        public static Task Main(/*string[] args*/)
+        public static Task Main(string[] args)
         {
             // Log handle
             Log.Start();
@@ -37,7 +37,10 @@ namespace GameBoyReborn
             Drawing.ScreenImage = Raylib.GenImageColor(SystemWidth, SystemHeight, Color.RAYWHITE);
 
             // Load game
-            Emulation.Load(/*"Tetris.gb"*/ "RomsTest/Instructions/02-interrupts.gb");
+            if(args.Length > 0)
+            Emulation.Load(args[0]);
+            else
+            Emulation.Load("Roms/Tetris.gb");
             Emulation.Init();
             Audio.Init();
 
