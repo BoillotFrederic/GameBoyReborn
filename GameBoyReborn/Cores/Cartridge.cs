@@ -29,31 +29,31 @@ namespace GameBoyReborn
             public ushort Bank { get; set; }
         }
 
-        public Cartridge(byte[] header)
+        public Cartridge(byte[] RomData)
         {
             byte[] TitleRange = new byte[11];
             byte[] ManufacturerCodeRange = new byte[4];
             byte[] LicenseeRange = new byte[2];
 
-            Array.Copy(header, 0, TitleRange, 0, 11);
-            Array.Copy(header, 0x0B, ManufacturerCodeRange, 0, 4);
-            Array.Copy(header, 0x0D, LicenseeRange, 0, 2);
+            Array.Copy(RomData, 0x134, TitleRange, 0, 11);
+            Array.Copy(RomData, 0x13F, ManufacturerCodeRange, 0, 4);
+            Array.Copy(RomData, 0x144, LicenseeRange, 0, 2);
 
             ManufacturerCode = Encoding.ASCII.GetString(ManufacturerCodeRange).TrimEnd('\0');
             Title = Encoding.ASCII.GetString(TitleRange).TrimEnd('\0');
-            CGB_Flag = header[0x0C];
-            CGBDescription = GetCGBDescription(header[0x0C]);
+            CGB_Flag = RomData[0x143];
+            CGBDescription = GetCGBDescription(CGB_Flag);
             Licensee = GetLicense(BitConverter.ToUInt16(LicenseeRange));
-            SGB_Flag = header[0x0F];
-            SGBDescription = GetSGBDescription(header[0x0F]);
-            Type = header[0x10];
-            TypeDescription = GetTypeDescription(header[0x10]);
-            SizeDescription = GetSizeDescription(header[0x11]);
-            RamSizeDescription = GetRamSizeDescription(header[0x12]);
-            RamSize = SetRamSize(header[0x12]);
-            DestinationCode = header[0x13] == 0x00 ? "Japanese" : "Non-Japanese";
+            SGB_Flag = RomData[0x146];
+            SGBDescription = GetSGBDescription(SGB_Flag);
+            Type = RomData[0x147];
+            TypeDescription = GetTypeDescription(Type);
+            SizeDescription = GetSizeDescription(RomData[0x148]);
+            RamSizeDescription = GetRamSizeDescription(RomData[0x149]);
+            RamSize = SetRamSize(RomData[0x149]);
+            DestinationCode = RomData[0x14A] == 0x00 ? "Japanese" : "Non-Japanese";
 
-            SetSize(header[0x11], header[0x10]);
+            SetSize(RomData[0x148], Type);
         }
 
         private static string GetLicense(ushort hex)
@@ -185,7 +185,7 @@ namespace GameBoyReborn
             };
 
             if (SGB.ContainsKey(hex)) return SGB[hex];
-            else return "";
+            else return "Only DMG";
         }
 
         private static string GetRamSizeDescription(byte hex)
@@ -246,7 +246,7 @@ namespace GameBoyReborn
             {
                 case 0x00:
                     Size.Byte = 32 * 1024;
-                    Size.Bank = 1;
+                    Size.Bank = 2;
                 break;
                 case 0x01:
                     Size.Byte = 64 * 1024;
@@ -294,7 +294,7 @@ namespace GameBoyReborn
                 break;
                 default:
                     Size.Byte = 32 * 1024;
-                    Size.Bank = 1;
+                    Size.Bank = 2;
                 break;
             }
         }

@@ -6,7 +6,7 @@ namespace GameBoyReborn
 {
     public static class Emulation
     {
-        private static byte[]? romData;
+        private static byte[]? RomData;
         private static Cartridge? Cartridge;
         private static IO? IO;
         private static Memory? Memory;
@@ -18,17 +18,12 @@ namespace GameBoyReborn
         // All cores init
         public static void Init()
         {
-            if (romData != null && romData.Length != 0)
+            if (RomData != null && RomData.Length != 0)
             {
-                byte[] header = new byte[0x1C];
-
-                if (romData.Length > 0x0134)
-                Array.Copy(romData, 0x0134, header, 0, 0x1C);
-
                 // Cores instance
                 IO = new IO();
-                Cartridge = new Cartridge(header);
-                Memory = new Memory(Cartridge, IO, romData);
+                Cartridge = new Cartridge(RomData.ToArray());
+                Memory = new Memory(Cartridge, IO, RomData.ToArray());
                 CPU = new CPU(IO, Memory);
                 PPU = new PPU(IO, Memory, CPU);
                 APU = new APU(IO, CPU, PPU);
@@ -38,7 +33,9 @@ namespace GameBoyReborn
                 IO.APU = APU;
                 IO.PPU = PPU;
                 IO.Timer = Timer;
+                IO.Cartridge = Cartridge;
                 Memory.CPU = CPU;
+                Memory.PPU = PPU;
 
                 // Log rom loaded
                 Console.WriteLine("Load rom");
@@ -59,7 +56,10 @@ namespace GameBoyReborn
         public static void Load(string path)
         {
             if (File.Exists(path))
-            romData = File.ReadAllBytes(path);
+            RomData = File.ReadAllBytes(path);
+
+            else
+            Console.WriteLine("ROM not found");
         }
 
         // Emulation loop
