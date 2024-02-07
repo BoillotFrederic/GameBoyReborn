@@ -266,11 +266,11 @@ namespace GameBoyReborn
                 break;
                 case 0x05:
                     Size.Byte = 1 * 1024 * 1024;
-                    Size.Bank = (ushort)((type == 0x01) ? 63 : 64);
+                    Size.Bank = (ushort)((type == 0x01 || type == 0x02 || type == 0x03) ? 63 : 64);
                 break;
                 case 0x06:
                     Size.Byte = 2 * 1024 * 1024;
-                    Size.Bank = (ushort)((type == 0x01) ? 125 : 128);
+                    Size.Bank = (ushort)((type == 0x01 || type == 0x02 || type == 0x03) ? 125 : 128);
                 break;
                 case 0x07:
                     Size.Byte = 4 * 1024 * 1024;

@@ -8,8 +8,6 @@ namespace GameBoyReborn
     public class Memory
     {
         public byte[] RomData;
-        public byte[] RomBank_00 = new byte[0x4000];
-        public byte[][] RomBank_nn;
         public byte[][] VideoRam_nn;
         public byte[] ExternalRam = new byte[0x2000];
         public byte[] WorkRam = new byte[0x1000];
@@ -19,15 +17,19 @@ namespace GameBoyReborn
         public byte[] NotUsable = new byte[0x60];
         public byte[] HighRAM = new byte[0x7F];
 
-        private bool RamEnable = false;
-        private bool BankingModeSelect = false;
-
-        public byte selectedRomBank = 0;
+        public ushort selectedRomBank = 1;
+        public byte selectedRamBank = 0;
         public byte selectedVideoBank = 0;
         public byte selectedWorkBank = 0;
 
         private byte[] RomBoot = new byte[256];
         public bool booting = false;
+
+        // MBCs Registers
+        private byte MBC1_5bit = 0;
+        private byte MBC1_2bit = 0;
+        private bool MBC1_RamEnable = false;
+        private bool MBC1_BankingModeSelect = false;
 
         private readonly IO IO;
         public CPU? CPU;
@@ -48,26 +50,6 @@ namespace GameBoyReborn
 
             // Load rom boot
             LoadRomBoot();
-
-            // Set RomBank 00
-            Array.Copy(RomData.ToArray(), 0, RomBank_00, 0, 0x4000);
-
-            // Set RomBank 01~NN
-            ushort nbBank = Cartridge.Size.Bank;
-            int bankStart = 0x4000;
-            RomBank_nn = new byte[nbBank][];
-
-            if (RomData.Length > 0x4000)
-            for (ushort i = 0; i < nbBank - 1; i++, bankStart += 0x4000)
-            {
-                RomBank_nn[i] = new byte[0x4000];
-                Array.Copy(RomData.ToArray(), bankStart, RomBank_nn[i], 0, 0x4000);
-            }
-            else
-            {
-                RomBank_nn[0] = new byte[0x4000];
-                Array.Copy(RomData.ToArray(), 0, RomBank_nn[0], 0, RomData.Length);
-            }
 
             // Set video ram
             VideoRam_nn = new byte[2][];
@@ -171,7 +153,7 @@ namespace GameBoyReborn
             HighRAM[at - 0xFF80] = b;
         }
 
-        // MBCs
+        // MBCs read
         private byte MBC_read(ushort at)
         {
             if(Cartridge != null)
@@ -183,11 +165,11 @@ namespace GameBoyReborn
 
                     // Rom bank 00
                     if (at >= 0 && at <= 0x3FFF)
-                    return RomBank_00[at];
+                    return RomData[at];
 
                     // Rom bank 01~NN
                     else if (at >= 0x4000 && at <= 0x7FFF)
-                    return RomBank_nn[selectedRomBank][at - 0x4000];
+                    return RomData[at];
 
                     // External RAM
                     else
@@ -199,15 +181,31 @@ namespace GameBoyReborn
 
                     // Rom bank 00
                     if (at >= 0 && at <= 0x3FFF)
-                    return RomBank_00[at];
+                    return RomData[at];
 
                     // Rom bank 01~NN
                     else if (at >= 0x4000 && at <= 0x7FFF)
-                    return RomBank_nn[selectedRomBank][at - 0x4000];
+                    {
+                        int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
+
+                        if (RomData.Length > atInBank)
+                        return RomData[atInBank];
+
+                        else
+                        {
+                            Console.WriteLine("Invalid rom bank : #" + selectedRomBank);
+                            return 0;
+                        }
+                    }
 
                     // External RAM
                     else
-                    return ExternalRam[at - 0xA000];
+                    {
+                        if (MBC1_RamEnable)
+                        return ExternalRam[at - 0xA000];
+                        else
+                        return 0xFF;
+                    }
 
                 // MBC2
                 // ------
@@ -259,6 +257,8 @@ namespace GameBoyReborn
             return 0;
         } 
 
+
+        // MBCs write
         private void MBC_write(ushort at, byte b)
         {
             if (Cartridge != null)
@@ -288,30 +288,71 @@ namespace GameBoyReborn
 
                     // Ram enable
                     if (at >= 0 && at <= 0x1FFF)
-                    RamEnable = b == 0xA;
+                    MBC1_RamEnable = b == 0xA;
 
                     // ROM Bank Number - Low bits
-                    else if (at >= 0x2000 && at <= 0x3FFF)
+                    else if (at >= 0x2000 && at <= 0x3FFF && Cartridge.Size.Bank > 2)
                     {
-                        selectedRomBank = (byte)((selectedRomBank & 0xE0) | (b & 0x1F));
+                        MBC1_5bit = (byte)(b & 0x1F);
 
-                        if ((selectedRomBank & 0xF) == 0)
+                        // 00
+                        if (MBC1_5bit == 0)
+                        MBC1_5bit |= 1;
+
+                        // Set
+                        selectedRomBank = (byte)(MBC1_5bit | (MBC1_2bit << 5));
+
+                        // Max banks
+                        int mask = (1 << (int)Math.Ceiling(Math.Log2(Cartridge.Size.Bank))) - 1;
+                        selectedRomBank = (byte)(selectedRomBank & mask);
+
+
+/*                        selectedRomBank = (ushort)((selectedRomBank & 0xE0) | (b & 0x1F));
+
+                        // Bank 00
+                        if ((selectedRomBank & 0x1F) == 0)
                         selectedRomBank |= 1;
+
+                        // Max banks
+                        int mask = (1 << (int)Math.Ceiling(Math.Log2(Cartridge.Size.Bank))) - 1;
+                        selectedRomBank = (byte)(selectedRomBank & mask);*/
                     }
 
                     // ROM Bank Number - High bits
-                    else if (at >= 0x4000 && at <= 0x5FFF)
+                    else if (at >= 0x4000 && at <= 0x5FFF && Cartridge.Size.Bank > 2)
                     {
-                        if (!BankingModeSelect)
-                        selectedRomBank = (byte)((selectedRomBank & 0xCF) | ((b & 3) << 8));
+                        if (!MBC1_BankingModeSelect)
+                        {
+                            Console.WriteLine("Mode 1) : " + selectedRomBank + " : " + (b & 3) + " : " + MBC1_2bit);
+
+                            MBC1_2bit = (byte)(b & 3);
+
+                            // Set
+                            selectedRomBank = (byte)(MBC1_5bit | (MBC1_2bit << 5));
+
+                            // Max banks
+                            int mask = (1 << (int)Math.Ceiling(Math.Log2(Cartridge.Size.Bank))) - 1;
+                            selectedRomBank = (byte)(selectedRomBank & mask);
+
+                            Console.WriteLine("Mode 1) : " + selectedRomBank + " : " + (b & 3) + " : " + MBC1_5bit);
+
+/*                            Console.WriteLine((b & 3) + " : " + selectedRomBank);
+                            selectedRomBank = (byte)((selectedRomBank & 0x1F) | ((b & 3) << 5));
+
+                                                        // Max banks
+                            int mask = (1 << (int)Math.Ceiling(Math.Log2(Cartridge.Size.Bank))) - 1;
+                            selectedRomBank = (byte)(selectedRomBank & mask);*/
+                        }
 
                         else
-                        selectedRomBank = (byte)(b & 3);
+                        {
+                            selectedRamBank = (byte)(b & 3);
+                        }
                     }
 
                     // Banking Mode Select
                     else if (at >= 0x6000 && at <= 0x7FFF)
-                    BankingModeSelect = Binary.ReadBit(b, 0);
+                    MBC1_BankingModeSelect = Binary.ReadBit(b, 0);
 
                 break;
 
