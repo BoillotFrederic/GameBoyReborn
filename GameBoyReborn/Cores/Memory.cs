@@ -17,6 +17,7 @@ namespace GameBoyReborn
         public byte[] NotUsable = new byte[0x60];
         public byte[] HighRAM = new byte[0x7F];
 
+        public ushort selectedRomBank00 = 0;
         public ushort selectedRomBank = 1;
         public byte selectedRamBank = 0;
         public byte selectedVideoBank = 0;
@@ -181,11 +182,25 @@ namespace GameBoyReborn
 
                     // Rom bank 00
                     if (at >= 0 && at <= 0x3FFF)
-                    return RomData[at];
+                    {
+                        int atInBank = 0x4000 * selectedRomBank00 + at;
+                        return RomData[atInBank];
+                    }
 
                     // Rom bank 01~NN
                     else if (at >= 0x4000 && at <= 0x7FFF)
                     {
+                        // 00
+                        if (MBC1_5bit == 0)
+                        MBC1_5bit |= 1;
+
+                        // Set
+                        selectedRomBank = (byte)((MBC1_2bit << 5) | MBC1_5bit);
+
+                        // Max banks
+                        int mask = (1 << (int)Math.Ceiling(Math.Log2(Cartridge.Size.Bank))) - 1;
+                        selectedRomBank = (byte)(selectedRomBank & mask);
+
                         int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
 
                         if (RomData.Length > atInBank)
@@ -292,60 +307,32 @@ namespace GameBoyReborn
 
                     // ROM Bank Number - Low bits
                     else if (at >= 0x2000 && at <= 0x3FFF && Cartridge.Size.Bank > 2)
-                    {
-                        MBC1_5bit = (byte)(b & 0x1F);
-
-                        // 00
-                        if (MBC1_5bit == 0)
-                        MBC1_5bit |= 1;
-
-                        // Set
-                        selectedRomBank = (byte)(MBC1_5bit | (MBC1_2bit << 5));
-
-                        // Max banks
-                        int mask = (1 << (int)Math.Ceiling(Math.Log2(Cartridge.Size.Bank))) - 1;
-                        selectedRomBank = (byte)(selectedRomBank & mask);
-
-
-/*                        selectedRomBank = (ushort)((selectedRomBank & 0xE0) | (b & 0x1F));
-
-                        // Bank 00
-                        if ((selectedRomBank & 0x1F) == 0)
-                        selectedRomBank |= 1;
-
-                        // Max banks
-                        int mask = (1 << (int)Math.Ceiling(Math.Log2(Cartridge.Size.Bank))) - 1;
-                        selectedRomBank = (byte)(selectedRomBank & mask);*/
-                    }
+                    MBC1_5bit = (byte)(b & 0x1F);
 
                     // ROM Bank Number - High bits
                     else if (at >= 0x4000 && at <= 0x5FFF && Cartridge.Size.Bank > 2)
                     {
                         if (!MBC1_BankingModeSelect)
                         {
-                            Console.WriteLine("Mode 1) : " + selectedRomBank + " : " + (b & 3) + " : " + MBC1_2bit);
-
                             MBC1_2bit = (byte)(b & 3);
 
-                            // Set
-                            selectedRomBank = (byte)(MBC1_5bit | (MBC1_2bit << 5));
-
-                            // Max banks
-                            int mask = (1 << (int)Math.Ceiling(Math.Log2(Cartridge.Size.Bank))) - 1;
-                            selectedRomBank = (byte)(selectedRomBank & mask);
-
-                            Console.WriteLine("Mode 1) : " + selectedRomBank + " : " + (b & 3) + " : " + MBC1_5bit);
-
-/*                            Console.WriteLine((b & 3) + " : " + selectedRomBank);
-                            selectedRomBank = (byte)((selectedRomBank & 0x1F) | ((b & 3) << 5));
-
-                                                        // Max banks
-                            int mask = (1 << (int)Math.Ceiling(Math.Log2(Cartridge.Size.Bank))) - 1;
-                            selectedRomBank = (byte)(selectedRomBank & mask);*/
+                            // RomBank00 and RamBank to 0
+                            selectedRomBank00 = 0;
+                            selectedRamBank = 0;
                         }
 
                         else
                         {
+                            // Set RomBank00
+                            selectedRomBank00 = (byte)((b & 3) << 5);
+
+                            // Max banks
+                            int mask = (1 << (int)Math.Ceiling(Math.Log2(Cartridge.Size.Bank))) - 1;
+                            selectedRomBank00 = (byte)(selectedRomBank00 & mask);
+
+                            MBC1_2bit = (byte)(selectedRomBank00 >> 5);
+
+                            // Set RamBank
                             selectedRamBank = (byte)(b & 3);
                         }
                     }
