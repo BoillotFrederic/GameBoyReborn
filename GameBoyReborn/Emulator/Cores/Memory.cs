@@ -7,7 +7,6 @@ namespace Emulator
 {
     public class Memory
     {
-        //public byte[] RomData;
         public byte[][] VideoRam_nn;
         public byte[] ExternalRam = new byte[0x2000];
         public byte[] WorkRam = new byte[0x1000];
@@ -59,7 +58,7 @@ namespace Emulator
 
             // MBC read
             else if (at <= 0x7FFF || (at >= 0xA000 && at <= 0xBFFF))
-            return Cartridge.MBC_read(at);
+            return Cartridge.Read(at);
 
             // Video RAM
             else if (at >= 0x8000 && at <= 0x9FFF)
@@ -106,7 +105,7 @@ namespace Emulator
 
             // MBC write
             else if (at <= 0x7FFF || (at >= 0xA000 && at <= 0xBFFF))
-            Cartridge.MBC_write(at, b);
+            Cartridge.Write(at, b);
 
             // Video RAM
             else if (at >= 0x8000 && at <= 0x9FFF)
