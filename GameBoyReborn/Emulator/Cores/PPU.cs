@@ -1,9 +1,10 @@
 ﻿// -------
 // Graphic
 // -------
+using GameBoyReborn;
 using Raylib_cs;
 
-namespace GameBoyReborn
+namespace Emulator
 {
     public class PPU
     {
@@ -18,12 +19,12 @@ namespace GameBoyReborn
         private byte[] WIN_TileData = new byte[16];
         private byte[] OBJ_TileData = new byte[32];
 
-        public PPU(IO _IO, Memory _Memory, CPU _CPU)
+        public PPU(Emulation Emulation)
         {
             // Relation
-            IO = _IO;
-            Memory = _Memory;
-            CPU = _CPU;
+            IO = Emulation.IO;
+            Memory = Emulation.Memory;
+            CPU = Emulation.CPU;
 
             // Init registers
             InitRegisters();

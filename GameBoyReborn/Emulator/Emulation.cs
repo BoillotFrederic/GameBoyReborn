@@ -2,42 +2,46 @@
 // Emulation
 // ---------
 
-namespace GameBoyReborn
+#pragma warning disable CS8618
+
+namespace Emulator
 {
-    public static class Emulation
+    public class Emulation
     {
-        private static byte[]? RomData;
-        private static Cartridge? Cartridge;
-        private static IO? IO;
-        private static Memory? Memory;
-        private static CPU? CPU;
-        private static PPU? PPU;
-        private static APU? APU;
-        private static Timer? Timer;
+        // Construct
+        public byte[] RomData;
+        public Cartridge Cartridge;
+        public IO IO;
+        public Memory Memory;
+        public CPU CPU;
+        public PPU PPU;
+        public APU APU;
+        public Timer Timer;
 
-        // All cores init
-        public static void Init()
+        // Emulation load
+        public Emulation(string RomPath)
         {
-            if (RomData != null && RomData.Length != 0)
+            if (File.Exists(RomPath))
             {
-                // Cores instance
-                IO = new IO();
-                Cartridge = new Cartridge(RomData.ToArray());
-                Memory = new Memory(Cartridge, IO, RomData.ToArray());
-                CPU = new CPU(IO, Memory);
-                PPU = new PPU(IO, Memory, CPU);
-                APU = new APU(IO, CPU, PPU);
-                Timer = new Timer(IO, CPU);
+                // Load bytes
+                RomData = File.ReadAllBytes(RomPath);
 
-                // Relation
+                // Instances
+                IO = new IO(this);
+                Cartridge = new Cartridge(this);
+                Memory = new Memory(this);
+                CPU = new CPU(this);
+                PPU = new PPU(this);
+                APU = new APU(this);
+                Timer = new Timer(this);
+
+                // Relations
                 IO.APU = APU;
                 IO.PPU = PPU;
                 IO.Timer = Timer;
                 IO.Cartridge = Cartridge;
-                Memory.CPU = CPU;
-                Memory.PPU = PPU;
 
-                // Log rom loaded
+                // Headers show
                 Console.WriteLine("Load rom");
                 Console.WriteLine("--------");
                 Console.WriteLine();
@@ -50,22 +54,15 @@ namespace GameBoyReborn
                 Console.WriteLine("Size Description : " + Cartridge.SizeDescription);
                 Console.WriteLine();
             }
-        }
-
-        // Load rom
-        public static void Load(string path)
-        {
-            if (File.Exists(path))
-            RomData = File.ReadAllBytes(path);
 
             else
             Console.WriteLine("ROM not found");
         }
 
         // Emulation loop
-        public static void Loop()
+        public void Loop()
         {
-            if (CPU != null && PPU != null && APU != null && Timer != null)
+            if (RomData.Length != 0)
             {
                 PPU.CompletedFrame = false;
 
@@ -82,13 +79,21 @@ namespace GameBoyReborn
         // Stop emulation
         public static void Stop()
         {
-            IO = null;
-            Cartridge = null;
-            Memory = null;
-            CPU = null;
-            PPU = null;
-            APU = null;
-            Timer = null;
+        }
+
+        // Pause emulation
+        public static void Pause()
+        {
+        }
+
+        // Rewind emulation
+        public static void Rewind()
+        {
+        }
+
+        // Save emulation
+        public static void Save()
+        {
         }
     }
 }

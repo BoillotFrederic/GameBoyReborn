@@ -8,7 +8,7 @@ namespace GameBoyReborn
     public class Log
     {
         // Log file
-        private readonly static StreamWriter logStreamWriter = new("log.txt");
+        private readonly static StreamWriter logStreamWriter = new(AppDomain.CurrentDomain.BaseDirectory + "log.txt");
         private readonly static TextWriter originalConsoleOut = Console.Out;
 
         // Start console out

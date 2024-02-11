@@ -15,11 +15,19 @@ namespace GameBoyReborn
         {
             return (byte)(u16 & 0xFF);
         }
+        public static byte Lsb(byte u8)
+        {
+            return (byte)(u8 & 0xF);
+        }
 
         // Most significant bit from 16 bits
         public static byte Msb(ushort u16)
         {
             return (byte)((u16 >> 8) & 0xFF);
+        }
+        public static byte Msb(byte u8)
+        {
+            return (byte)((u8 >> 4) & 0xF);
         }
 
         // Create unsigned 16 bits with two 8 bits

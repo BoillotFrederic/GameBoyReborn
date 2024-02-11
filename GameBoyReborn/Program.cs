@@ -2,7 +2,7 @@
 // Start program
 // -------------
 using Raylib_cs;
-using System.Runtime.InteropServices;
+using Emulator;
 
 namespace GameBoyReborn
 {
@@ -36,12 +36,10 @@ namespace GameBoyReborn
             // Init screen image
             Drawing.ScreenImage = Raylib.GenImageColor(SystemWidth, SystemHeight, Color.RAYWHITE);
 
-            // Load game
-            if(args.Length > 0)
-            Emulation.Load(args[0]);
-            else
-            Emulation.Load("Roms/Tetris.gb");
-            Emulation.Init();
+            // Init emulation
+            Emulation Emulation = new Emulation(args.Length > 0 ? args[0] : "Roms/Tetris.gb");
+
+            // Init audio
             Audio.Init();
 
             // Game loop

@@ -3,6 +3,9 @@
 // ---------
 using Raylib_cs;
 
+#pragma warning disable CS0414
+#pragma warning disable CS0169
+
 namespace GameBoyReborn
 {
     public class Audio

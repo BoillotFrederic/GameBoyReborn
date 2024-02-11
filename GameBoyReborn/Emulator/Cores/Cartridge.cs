@@ -1,14 +1,18 @@
 ﻿// ---------
 // Cartridge
 // ---------
+using GameBoyReborn;
 using System.Text;
-using Raylib_cs;
 
-namespace GameBoyReborn
+namespace Emulator
 {
     public class Cartridge
     {
+        // Headers
+        // -------
+
         // Attribute of Cartridge
+        private readonly byte[] RomData;
         public string Title;
         public string ManufacturerCode;
         public byte CGB_Flag;
@@ -29,8 +33,10 @@ namespace GameBoyReborn
             public ushort Bank { get; set; }
         }
 
-        public Cartridge(byte[] RomData)
+        public Cartridge(Emulation Emulation)
         {
+            RomData = Emulation.RomData;
+
             byte[] TitleRange = new byte[11];
             byte[] ManufacturerCodeRange = new byte[4];
             byte[] LicenseeRange = new byte[2];
@@ -297,6 +303,327 @@ namespace GameBoyReborn
                     Size.Bank = 2;
                 break;
             }
+        }
+
+        // Memory bank controller
+        // ----------------------
+
+        // MBCs Registers
+        private byte MBC1_5bit = 0;
+        private byte MBC1_2bit = 0;
+        private bool MBC1_RamEnable = false;
+        private bool MBC1_BankingModeSelect = false;
+        private ushort selectedRomBank00 = 0;
+        private ushort selectedRomBank = 1;
+        public byte selectedRamBank = 0;
+        public byte[] ExternalRam = new byte[0x2000];
+
+        // MBCs read
+        public byte MBC_read(ushort at)
+        {
+            switch (Type)
+            {
+                // No MBC
+                // ------
+                case 0x00:
+                case 0x08:
+                case 0x09:
+                    {
+                        // Rom bank 00
+                        if (at >= 0 && at <= 0x3FFF)
+                            return RomData[at];
+
+                        // Rom bank 01~NN
+                        else if (at >= 0x4000 && at <= 0x7FFF)
+                            return RomData[at];
+
+                        // External RAM
+                        else
+                            return ExternalRam[at - 0xA000];
+                    }
+
+                // MBC1
+                // ----
+                case 0x01:
+                case 0x02:
+                case 0x03:
+                    {
+                        // Rom bank 00
+                        if (at >= 0 && at <= 0x3FFF)
+                        {
+                            int atInBank = 0x4000 * selectedRomBank00 + at;
+                            return RomData[atInBank];
+                        }
+
+                        // Rom bank 01~NN
+                        else if (at >= 0x4000 && at <= 0x7FFF)
+                        {
+                            // 00
+                            if (MBC1_5bit == 0)
+                                MBC1_5bit |= 1;
+
+                            // Set
+                            selectedRomBank = (byte)((MBC1_2bit << 5) | MBC1_5bit);
+
+                            // Max banks
+                            int mask = (1 << (int)Math.Ceiling(Math.Log2(Size.Bank))) - 1;
+                            selectedRomBank = (byte)(selectedRomBank & mask);
+
+                            int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
+
+                            if (RomData.Length > atInBank)
+                                return RomData[atInBank];
+
+                            else
+                            {
+                                Console.WriteLine("Invalid rom bank : #" + selectedRomBank);
+                                return 0;
+                            }
+                        }
+
+                        // External RAM
+                        else
+                        {
+                            if (MBC1_RamEnable)
+                                return ExternalRam[at - 0xA000];
+                            else
+                                return 0xFF;
+                        }
+                    }
+
+                // MBC2
+                // ----
+                case 0x05:
+                case 0x06:
+                    {
+
+                    }
+                    return 0;
+
+                // MBC3
+                // ----
+                case 0x0F:
+                case 0x10:
+                case 0x11:
+                case 0x12:
+                case 0x13:
+                    {
+
+                    }
+                    return 0;
+
+                // MBC5
+                // ----
+                case 0x1A:
+                case 0x1B:
+                case 0x1C:
+                case 0x1D:
+                case 0x1E:
+                    {
+
+                    }
+                    return 0;
+
+                // MBC6
+                // ----
+                case 0x20:
+                    {
+
+                    }
+                    return 0;
+
+                // MBC7
+                // ----
+                case 0x22:
+                    {
+
+                    }
+                    return 0;
+
+                // MMM01
+                // ------
+                case 0x0B:
+                case 0x0C:
+                case 0x0D:
+                    {
+
+                    }
+                    return 0;
+
+                // HuC1
+                // ----
+                case 0xFF:
+                    {
+
+                    }
+                    return 0;
+
+                // HuC3
+                // ----
+                case 0xFE:
+                    {
+
+                    }
+                    return 0;
+
+                // Other
+                // -----
+                default:
+                    {
+                        return 0;
+                    }
+            }
+        }
+
+
+        // MBCs write
+        public void MBC_write(ushort at, byte b)
+        {
+                switch (Type)
+                {
+                    // No MBC
+                    // ------
+                    case 0x00:
+                    case 0x08:
+                    case 0x09:
+                        {
+                            /*                    // Rom bank 00
+                            if (at >= 0 && at <= 0x3FFF)
+                            RomBank_00[at] = b;
+
+                            // Rom bank 01~NN
+                            else if (at >= 0x4000 && at <= 0x7FFF)
+                            RomBank_nn[selectedRomBank][at - 0x4000] = b;
+
+                            // External RAM
+                            else
+                            ExternalRam[at - 0xA000] = b;*/
+                            break;
+                        }
+
+                    // MBC1
+                    // ----
+                    case 0x01:
+                    case 0x02:
+                    case 0x03:
+                        {
+                            // Ram enable
+                            if (at >= 0 && at <= 0x1FFF)
+                                MBC1_RamEnable = b == 0xA;
+
+                            // ROM Bank Number - Low bits
+                            else if (at >= 0x2000 && at <= 0x3FFF && Size.Bank > 2)
+                                MBC1_5bit = (byte)(b & 0x1F);
+
+                            // ROM Bank Number - High bits
+                            else if (at >= 0x4000 && at <= 0x5FFF && Size.Bank > 2)
+                            {
+                                if (!MBC1_BankingModeSelect)
+                                {
+                                    MBC1_2bit = (byte)(b & 3);
+
+                                    // RomBank00 and RamBank = 0
+                                    selectedRomBank00 = 0;
+                                    selectedRamBank = 0;
+                                }
+
+                                else
+                                {
+                                    // Set RomBank00
+                                    selectedRomBank00 = (byte)((b & 3) << 5);
+
+                                    // Max banks
+                                    int mask = (1 << (int)Math.Ceiling(Math.Log2(Size.Bank))) - 1;
+                                    selectedRomBank00 = (byte)(selectedRomBank00 & mask);
+
+                                    MBC1_2bit = (byte)(selectedRomBank00 >> 5);
+
+                                    // Set RamBank
+                                    selectedRamBank = (byte)(b & 3);
+                                }
+                            }
+
+                            // Banking Mode Select
+                            else if (at >= 0x6000 && at <= 0x7FFF)
+                                MBC1_BankingModeSelect = Binary.ReadBit(b, 0);
+
+                            break;
+                        }
+
+                    // MBC2
+                    // ----
+                    case 0x05:
+                    case 0x06:
+                        {
+                        }
+                        break;
+
+                    // MBC3
+                    // ----
+                    case 0x0F:
+                    case 0x10:
+                    case 0x11:
+                    case 0x12:
+                    case 0x13:
+                        {
+                            break;
+                        }
+
+                    // MBC5
+                    // ----
+                    case 0x1A:
+                    case 0x1B:
+                    case 0x1C:
+                    case 0x1D:
+                    case 0x1E:
+                        {
+                            break;
+                        }
+
+                    // MBC6
+                    // ----
+                    case 0x20:
+                        {
+                            break;
+                        }
+
+                    // MBC7
+                    // ----
+                    case 0x22:
+                        {
+                            break;
+                        }
+
+                    // MMM01
+                    // -----
+                    case 0x0B:
+                    case 0x0C:
+                    case 0x0D:
+                        {
+                            break;
+                        }
+
+                    // HuC1
+                    // ----
+                    case 0xFF:
+                        {
+                            break;
+                        }
+
+                    // HuC3
+                    // ----
+                    case 0xFE:
+                        {
+                            break;
+                        }
+
+                    // Other
+                    // -----
+                    default:
+                        {
+                            break;
+                        }
+                }
         }
     }
 }

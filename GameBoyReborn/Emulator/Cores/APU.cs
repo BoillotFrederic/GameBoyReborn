@@ -1,12 +1,29 @@
 ﻿// ---
 // APU
 // ---
-using Raylib_cs;
+using GameBoyReborn;
 
-namespace GameBoyReborn
+#pragma warning disable CS0414
+#pragma warning disable CS0169
+
+namespace Emulator
 {
     public class APU
     {
+        // Construct
+        private readonly IO IO;
+        private readonly PPU PPU;
+
+        public APU(Emulation Emulation)
+        {
+            // Relation
+            IO = Emulation.IO;
+            PPU = Emulation.PPU;
+
+            // Init
+            CH1_InitNR();
+        }
+
         // Cycles
         private double CycleDuration = 1.0f / Audio.Frequency;
 
@@ -24,22 +41,6 @@ namespace GameBoyReborn
 
         // Volume
         // int MasterVolume
-
-        // Construct
-        private readonly IO IO;
-        private readonly CPU CPU;
-        private readonly PPU PPU;
-
-        public APU(IO _IO, CPU _CPU, PPU _PPU)
-        {
-            // Relation
-            IO = _IO;
-            CPU = _CPU;
-            PPU = _PPU;
-
-            // Init
-            CH1_InitNR();
-        }
 
         // Execution
         public void Execution()

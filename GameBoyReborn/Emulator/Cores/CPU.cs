@@ -1,8 +1,11 @@
 ﻿// ---
 // CPU
 // ---
+using GameBoyReborn;
 
-namespace GameBoyReborn
+#pragma warning disable CS0414
+
+namespace Emulator
 {
     public class CPU
     {
@@ -610,7 +613,7 @@ namespace GameBoyReborn
             {
                 OpcodeUsed.Add(InstructionName);
 
-                using (StreamWriter sw = File.AppendText("opcodes.txt"))
+                using (StreamWriter sw = File.AppendText(AppDomain.CurrentDomain.BaseDirectory + "opcodes.txt"))
                 {
                     sw.WriteLine(InstructionName);
                 }
@@ -621,17 +624,18 @@ namespace GameBoyReborn
 
         // Execution
         // ---------
+        bool HaltBug = false;
         public void Execution()
         {
             Cycles = 0;
 
-            // Interrupts handle
-            if (IME >= 0)
-            Interrupts();
-
             // Instructions
             if (!Halt && !Stop)
             {
+                // Interrupts handle
+                if (IME >= 0)
+                Interrupts();
+
                 byte opcode = Read(PC++);
 
                 /*                
@@ -652,17 +656,41 @@ namespace GameBoyReborn
                 FOR_DEBUG_LastOpcode = opcode;
                 FOR_DEBUG_CyclesAccumulator++;
             }
-            else if(!Stop)
+/*            else if(!Stop)
             {
-                //PC++;
                 Cycles++;
 
                 if ((IO.IE & IO.IF) != 0)
-                Halt = false;
-            }
+                {
+                    Halt = false;
+
+*//*                    if (IME < 0)
+                        PC--;*//*
+                }
+
+*//*                if (HaltBug)
+                {
+                    Halt = false;
+                    //Console.WriteLine("test");
+                    PC++;
+                    HaltBug = false;
+                }*//*
+            }*/
             else
             {
                 Cycles++;
+            }
+
+            // Halt
+            if (Halt)
+            {
+                if ((IO.IE & IO.IF) != 0)
+                {
+                    Halt = false;
+
+                    if (IME > 0)
+                    PC--;
+                }
             }
 
             // Quit boot rom
@@ -676,11 +704,11 @@ namespace GameBoyReborn
         private readonly InstructionDelegate[] Instructions;
         private readonly InstructionDelegate[] CB_Instructions;
 
-        public CPU(IO _IO, Memory _Memory)
+        public CPU(Emulation Emulation)
         {
             // Relation
-            IO = _IO;
-            Memory = _Memory;
+            IO = Emulation.IO;
+            Memory = Emulation.Memory;
             Read = Memory.Read;
             Write = Memory.Write;
 
@@ -777,8 +805,8 @@ namespace GameBoyReborn
                     PC = 0x60;
                 }
 
-                Halt = false;
-                Stop = false;
+                //Halt = false;
+                //Stop = false;
                 IME = -1;
             }
 
@@ -1916,13 +1944,31 @@ namespace GameBoyReborn
         // this instruction depends on the state of the IME flag.
         private void HALT()
         {
-            if (IME >= 0)
+            Halt = true;
+
+/*            if (IME < 0)
             {
-                IME = 1;
+                Halt = true;
+            }
+            else
+            {
+                // Halt bug
+                if ((IO.IE & IO.IF) != 0 && IME == 0)
+                HaltBug = true;
+            }*/
+
+/*            if (IME >= 0)
+            {
+                IME = 0;
                 PC--;
             }
             else
-            Halt = true;
+            {
+                Halt = true;
+
+                if ((IO.IE & IO.IF) != 0)
+                HaltBug = true;
+            }*/
         }
 
         // STOP: Stop system and main clocks
