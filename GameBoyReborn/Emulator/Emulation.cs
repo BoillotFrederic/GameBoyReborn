@@ -47,11 +47,15 @@ namespace Emulator
                 Console.WriteLine();
                 Console.WriteLine("Title : " + Cartridge.Title);
                 Console.WriteLine("Manufacturer Code : " + Cartridge.ManufacturerCode);
-                Console.WriteLine("CGB Description : " + Cartridge.CGBDescription);
                 Console.WriteLine("Licensee : " + Cartridge.Licensee);
-                Console.WriteLine("SGB Description : " + Cartridge.SGBDescription);
-                Console.WriteLine("Type Description : " + Cartridge.TypeDescription);
-                Console.WriteLine("Size Description : " + Cartridge.SizeDescription);
+                Console.WriteLine("Destination Code : " + Cartridge.DestinationCode);
+                Console.WriteLine("CGB Description : " + Cartridge.CGBDescription + " (0x"+ Cartridge.CGB_Flag.ToString("X2") + ")");
+                Console.WriteLine("SGB Description : " + Cartridge.SGBDescription + " (0x" + Cartridge.SGB_Flag.ToString("X2") + ")");
+                Console.WriteLine("Type Description : " + Cartridge.TypeDescription + " (0x" + Cartridge.Type.ToString("X2") + ")");
+                Console.WriteLine("RomSize Description : " + Cartridge.RomSizeDescription + " (0x" + Cartridge.RomSize.ToString("X2") + ")");
+                Console.WriteLine("RamSize Description : " + Cartridge.RamSizeDescription + " (0x" + Cartridge.RamSize.ToString("X2") + ")");
+                Console.WriteLine("Header Checksum : " + (Cartridge.HeaderChecksumTest ? "OK" : "KO"));
+                //Console.WriteLine("Global Checksum : " + (Cartridge.GlobalChecksumTest ? "OK" : "KO"));
                 Console.WriteLine();
             }
 
@@ -62,7 +66,7 @@ namespace Emulator
         // Emulation loop
         public void Loop()
         {
-            if (RomData.Length != 0)
+            if (RomData != null)
             {
                 PPU.CompletedFrame = false;
 
