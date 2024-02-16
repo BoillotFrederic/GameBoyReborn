@@ -15,7 +15,7 @@ namespace Emulator
         #region Headers
 
         // Attribute of Cartridge
-        private readonly byte[] RomData;
+        private byte[] RomData;
         public string Title;
         public string ManufacturerCode;
         public byte CGB_Flag;
@@ -49,10 +49,12 @@ namespace Emulator
         {
             RomData = Emulation.RomData;
 
+            byte[] NintendoLogo = new byte[0x2F];
             byte[] TitleRange = new byte[11];
             byte[] ManufacturerCodeRange = new byte[4];
             byte[] LicenseeRange = new byte[2];
 
+            Array.Copy(RomData, 0x104, NintendoLogo, 0, 0x2F);
             Array.Copy(RomData, 0x134, TitleRange, 0, 11);
             Array.Copy(RomData, 0x13F, ManufacturerCodeRange, 0, 4);
             Array.Copy(RomData, 0x144, LicenseeRange, 0, 2);
@@ -91,6 +93,19 @@ namespace Emulator
 
             HeaderChecksumTest = cs == HeaderChecksum;
             //GlobalChecksumTest = RomData.Sum(x => (int)x) == GlobalChecksum;
+
+            // Check if MBC1M
+            if((Type == 0x01 || Type == 0x02 || Type == 0x03) && RomBankCount > 0x10)
+            {
+                byte[] Data0x10 = new byte[0x2F];
+                Array.Copy(RomData, 0x10 * 0x4000 + 0x104, Data0x10, 0, 0x2F);
+
+                if (NintendoLogo.SequenceEqual(Data0x10))
+                {
+                    MBC1_M_LowRegisterMask = 0xF;
+                    MBC1_M_Shift = 4;
+                }
+            }
 
             // Delegate read/write
             MBCs();
@@ -329,11 +344,7 @@ namespace Emulator
 
         #region Memory bank controller
 
-        // MBCs Registers
-        private byte MBC1_5bit = 0;
-        private byte MBC1_2bit = 0;
-        private bool MBC1_RamEnable = false;
-        private bool MBC1_BankingModeSelect = false;
+        // Rom/ram set
         private ushort selectedRomBank00 = 0;
         private ushort selectedRomBank = 1;
         public byte selectedRamBank = 0;
@@ -472,8 +483,18 @@ namespace Emulator
         {
         }
 
-        // MBC 2
+        // MBC 1
         // -----
+
+        // MBCs Registers
+        private byte MBC1_LowRegister = 0;
+        private byte MBC1_HighRegister = 0;
+        private bool MBC1_RamEnable = false;
+        private bool MBC1_BankingModeSelect = false;
+
+        // MBC1 or MBC1M
+        private byte MBC1_M_Shift = 5;
+        private byte MBC1_M_LowRegisterMask = 0x1F;
 
         // Read
         private byte MBC1_read(ushort at)
@@ -489,11 +510,11 @@ namespace Emulator
             else if (at >= 0x4000 && at <= 0x7FFF)
             {
                 // 00
-                if (MBC1_5bit == 0)
-                MBC1_5bit |= 1;
+                if (MBC1_LowRegister == 0)
+                MBC1_LowRegister |= 1;
 
                 // Set
-                selectedRomBank = (byte)((MBC1_2bit << 5) | MBC1_5bit);
+                selectedRomBank = (byte)((MBC1_HighRegister << MBC1_M_Shift) | (MBC1_LowRegister & MBC1_M_LowRegisterMask));
 
                 // Max banks
                 selectedRomBank = (byte)(selectedRomBank & RomBankMask);
@@ -529,14 +550,14 @@ namespace Emulator
 
             // ROM Bank Number - Low bits
             else if (at >= 0x2000 && at <= 0x3FFF && RomBankCount > 2)
-            MBC1_5bit = (byte)(b & 0x1F);
+            MBC1_LowRegister = (byte)(b & 0x1F);
 
             // ROM Bank Number - High bits
             else if (at >= 0x4000 && at <= 0x5FFF && RomBankCount > 2)
             {
                 if (!MBC1_BankingModeSelect)
                 {
-                    MBC1_2bit = (byte)(b & 3);
+                    MBC1_HighRegister = (byte)(b & 3);
 
                     // RomBank00 and RamBank = 0
                     selectedRomBank00 = 0;
@@ -546,12 +567,12 @@ namespace Emulator
                 else
                 {
                     // Set RomBank00
-                    selectedRomBank00 = (byte)((b & 3) << 5);
+                    selectedRomBank00 = (byte)((b & 3) << MBC1_M_Shift);
 
                     // Max banks
                     selectedRomBank00 = (byte)(selectedRomBank00 & RomBankMask);
 
-                    MBC1_2bit = (byte)(selectedRomBank00 >> 5);
+                    MBC1_HighRegister = (byte)(selectedRomBank00 >> MBC1_M_Shift);
 
                     // Set RamBank
                     selectedRamBank = (byte)(b & 3);
