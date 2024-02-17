@@ -36,6 +36,7 @@ namespace Emulator
         private ushort GlobalChecksum;
         public bool HeaderChecksumTest;
         public bool GlobalChecksumTest;
+        public bool MBC1M = false;
 
         // Rom/ram set
         private int RomLength;
@@ -102,6 +103,7 @@ namespace Emulator
 
                 if (NintendoLogo.SequenceEqual(Data0x10))
                 {
+                    MBC1M = true;
                     MBC1_M_LowRegisterMask = 0xF;
                     MBC1_M_Shift = 4;
                 }
@@ -111,7 +113,7 @@ namespace Emulator
             MBCs();
         }
 
-        private string GetLicense(ushort hex)
+        private static string GetLicense(ushort hex)
         {
             return hex switch
             {
@@ -180,7 +182,7 @@ namespace Emulator
             };
         }
 
-        private string GetTypeDescription(byte hex)
+        private static string GetTypeDescription(byte hex)
         {
             return hex switch
             {
@@ -214,7 +216,7 @@ namespace Emulator
         }
 
 
-        private string GetCGBDescription(byte hex)
+        private static string GetCGBDescription(byte hex)
         {
             return hex switch
             {
@@ -225,7 +227,7 @@ namespace Emulator
             };
         }
 
-        private string GetSGBDescription(byte hex)
+        private static string GetSGBDescription(byte hex)
         {
             return hex switch
             {
@@ -235,7 +237,7 @@ namespace Emulator
             };
         }
 
-        private string GetRamSizeDescription(byte hex)
+        private static string GetRamSizeDescription(byte hex)
         {
             return hex switch
             {
@@ -249,7 +251,7 @@ namespace Emulator
             };
         }
 
-        private string GetSizeDescription(byte hex)
+        private static string GetSizeDescription(byte hex)
         {
             return hex switch
             {
@@ -269,7 +271,7 @@ namespace Emulator
             };
         }
 
-        private int GetRamLength(byte hex)
+        private static int GetRamLength(byte hex)
         {
             return hex switch
             {
@@ -283,7 +285,7 @@ namespace Emulator
             };
         }
 
-        private int GetRomLength(byte hex)
+        private static int GetRomLength(byte hex)
         {
             return hex switch
             {
@@ -303,7 +305,7 @@ namespace Emulator
             };
         }
 
-        private ushort GetRomBankCount(byte hex)
+        private static ushort GetRomBankCount(byte hex)
         {
             return hex switch
             {
@@ -493,8 +495,8 @@ namespace Emulator
         private bool MBC1_BankingModeSelect = false;
 
         // MBC1 or MBC1M
-        private byte MBC1_M_Shift = 5;
-        private byte MBC1_M_LowRegisterMask = 0x1F;
+        private readonly byte MBC1_M_Shift = 5;
+        private readonly byte MBC1_M_LowRegisterMask = 0x1F;
 
         // Read
         private byte MBC1_read(ushort at)
@@ -525,10 +527,7 @@ namespace Emulator
                 return RomData[atInBank];
 
                 else
-                {
-                    Console.WriteLine("Invalid rom bank : #" + selectedRomBank);
-                    return 0;
-                }
+                return 0;
             }
 
             // External RAM
@@ -549,11 +548,11 @@ namespace Emulator
             MBC1_RamEnable = (b & 0x0F) == 0x0A;
 
             // ROM Bank Number - Low bits
-            else if (at >= 0x2000 && at <= 0x3FFF && RomBankCount > 2)
+            else if (at >= 0x2000 && at <= 0x3FFF)
             MBC1_LowRegister = (byte)(b & 0x1F);
 
             // ROM Bank Number - High bits
-            else if (at >= 0x4000 && at <= 0x5FFF && RomBankCount > 2)
+            else if (at >= 0x4000 && at <= 0x5FFF)
             {
                 if (!MBC1_BankingModeSelect)
                 {

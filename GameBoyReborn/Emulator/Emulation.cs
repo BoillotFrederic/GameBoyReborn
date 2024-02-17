@@ -51,7 +51,7 @@ namespace Emulator
                 Console.WriteLine("Destination Code : " + Cartridge.DestinationCode);
                 Console.WriteLine("CGB Description : " + Cartridge.CGBDescription + " (0x"+ Cartridge.CGB_Flag.ToString("X2") + ")");
                 Console.WriteLine("SGB Description : " + Cartridge.SGBDescription + " (0x" + Cartridge.SGB_Flag.ToString("X2") + ")");
-                Console.WriteLine("Type Description : " + Cartridge.TypeDescription + " (0x" + Cartridge.Type.ToString("X2") + ")");
+                Console.WriteLine("Type Description : " + Cartridge.TypeDescription + (Cartridge.MBC1M ? " (M)" : "") + " (0x" + Cartridge.Type.ToString("X2") + ")");
                 Console.WriteLine("RomSize Description : " + Cartridge.RomSizeDescription + " (0x" + Cartridge.RomSize.ToString("X2") + ")");
                 Console.WriteLine("RamSize Description : " + Cartridge.RamSizeDescription + " (0x" + Cartridge.RamSize.ToString("X2") + ")");
                 Console.WriteLine("Header Checksum : " + (Cartridge.HeaderChecksumTest ? "OK" : "KO"));
