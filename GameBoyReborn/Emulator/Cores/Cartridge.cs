@@ -15,6 +15,7 @@ namespace Emulator
         #region Headers
 
         // Attribute of Cartridge
+        private string FileName;
         private byte[] RomData;
         public string Title;
         public string ManufacturerCode;
@@ -48,6 +49,7 @@ namespace Emulator
 
         public Cartridge(Emulation Emulation)
         {
+            FileName = Emulation.FileName;
             RomData = Emulation.RomData;
 
             byte[] NintendoLogo = new byte[0x2F];
@@ -108,6 +110,9 @@ namespace Emulator
                     MBC1_M_Shift = 4;
                 }
             }
+
+            // External ram
+            LoadExternalRam();
 
             // Delegate read/write
             MBCs();
@@ -350,7 +355,6 @@ namespace Emulator
         private ushort selectedRomBank00 = 0;
         private ushort selectedRomBank = 1;
         public byte selectedRamBank = 0;
-        public byte[][] ExternalRam;
 
         // Delegate
         public delegate byte ReadDelegate(ushort at);
@@ -358,14 +362,42 @@ namespace Emulator
         public delegate void WriteDelegate(ushort at, byte b);
         public WriteDelegate Write;
 
-        // MBCs
-        private void MBCs()
+        // External ram handle
+        public byte[][] ExternalRam;
+        private void LoadExternalRam()
         {
+            string pathExternalRam = AppDomain.CurrentDomain.BaseDirectory + "ExternalRam/" + FileName + ".er";
+            bool checkExternalRam = File.Exists(pathExternalRam);
+            byte[] ? bytesExternalRam = checkExternalRam ? File.ReadAllBytes(pathExternalRam) : null;
+
             ExternalRam = new byte[RamBankCount][];
 
             for (byte i = 0; i < RamBankCount; i++)
-            ExternalRam[i] = new byte[0x2000];
+            {
+                ExternalRam[i] = new byte[0x2000];
 
+                if (checkExternalRam && bytesExternalRam != null)
+                Array.Copy(bytesExternalRam, 0x2000 * i, ExternalRam[i], 0, 0x2000);
+            }
+        }
+        public void SaveExternalRam()
+        {
+            if (Regex.Match(TypeDescription, "BATTERY", RegexOptions.IgnoreCase).Success)
+            {
+                string pathExternalRam = AppDomain.CurrentDomain.BaseDirectory + "ExternalRam/" + FileName + ".er";
+                byte[] externalRamBytes = new byte[0x2000 * RamBankCount];
+
+                for (byte i = 0; i < RamBankCount; i++)
+                Array.Copy(ExternalRam[i], 0, externalRamBytes, 0x2000 * i, 0x2000);
+
+                File.WriteAllBytes(pathExternalRam, externalRamBytes);
+            }
+        }
+
+        // MBCs handle
+        private void MBCs()
+        {
+            // Set MBC
             switch (Type)
             {
                 // No MBC
@@ -461,8 +493,8 @@ namespace Emulator
             }
         }
 
-        // MBC 1
-        // -----
+        // No MBC
+        // ------
 
         // Read
         private byte NO_MBC_read(ushort at)

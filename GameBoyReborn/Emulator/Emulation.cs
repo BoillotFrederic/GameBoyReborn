@@ -9,6 +9,7 @@ namespace Emulator
     public class Emulation
     {
         // Construct
+        public string FileName;
         public byte[] RomData;
         public Cartridge Cartridge;
         public IO IO;
@@ -23,6 +24,11 @@ namespace Emulator
         {
             if (File.Exists(RomPath))
             {
+                // Set file name
+                FileName = Path.GetFileName(RomPath);
+                FileName = FileName.Replace(".gb", "", StringComparison.CurrentCultureIgnoreCase);
+                FileName = FileName.Replace(".gbc", "", StringComparison.CurrentCultureIgnoreCase);
+
                 // Load bytes
                 RomData = File.ReadAllBytes(RomPath);
 
@@ -78,6 +84,12 @@ namespace Emulator
                     Timer.Execution();
                 }
             }
+        }
+
+        // Save external ram
+        public void SaveExternalRam()
+        {
+            Cartridge.SaveExternalRam();
         }
 
         // Stop emulation

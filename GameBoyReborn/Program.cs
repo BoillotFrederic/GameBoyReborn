@@ -13,7 +13,10 @@ namespace GameBoyReborn
 
         public static Task Main(string[] args)
         {
-            // Log handle
+            // Emulation
+            Emulation ? Emulation = null;
+
+            // Exit handle
             Log.Start();
             AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
             {
@@ -25,6 +28,9 @@ namespace GameBoyReborn
             };
             AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
             {
+                if(Emulation != null)
+                Emulation.SaveExternalRam();
+
                 Log.Close();
             };
 
@@ -37,7 +43,7 @@ namespace GameBoyReborn
             Drawing.ScreenImage = Raylib.GenImageColor(SystemWidth, SystemHeight, Color.RAYWHITE);
 
             // Init emulation
-            Emulation Emulation = new Emulation(args.Length > 0 ? args[0] : "Roms/Tetris.gb");
+            Emulation = new Emulation(args.Length > 0 ? args[0] : "Roms/Tetris.gb");
 
             // Init audio
             Audio.Init();
