@@ -385,10 +385,10 @@ namespace Emulator
             // Set Y position
             if (BG_and_Window_enable_priority)
             {
-                BG_WIN_SetInedex(ref BG_TileY, ref BG_PixelInTileY, IO.LY, IO.SCY);
+                BG_WIN_SetIndex(ref BG_TileY, ref BG_PixelInTileY, IO.LY, IO.SCY);
 
                 if (Window_enable)
-                BG_WIN_SetInedex(ref WIN_TileY, ref WIN_PixelInTileY, (byte)(IO.LY - IO.WY), 0);
+                BG_WIN_SetIndex(ref WIN_TileY, ref WIN_PixelInTileY, (byte)(IO.LY - IO.WY), 0);
             }
 
             // Browse line
@@ -398,7 +398,7 @@ namespace Emulator
                 if (BG_and_Window_enable_priority)
                 {
                     // Set X position and draw
-                    BG_WIN_SetInedex(ref BG_TileX, ref BG_PixelInTileX, x, IO.SCX);
+                    BG_WIN_SetIndex(ref BG_TileX, ref BG_PixelInTileX, x, IO.SCX);
                     BG_WIN_UpdateTileData(ref BG_LastTileX, BG_TileX, BG_TileY, BG_StartTileMapArea, ref BG_TileData);
                     BG_WIN_PixelPriority = DrawTile(x, IO.LY, BGP_pal, BG_TileData[BG_PixelInTileY * 2], BG_TileData[BG_PixelInTileY * 2 + 1], BG_PixelInTileX, false);
 
@@ -406,15 +406,17 @@ namespace Emulator
                     if (Window_enable && x + 7 >= IO.WX && IO.LY >= IO.WY)
                     {
                         // Set X position and draw
-                        BG_WIN_SetInedex(ref WIN_TileX, ref WIN_PixelInTileX, (byte)(x + 7 - IO.WX), 0);
+                        BG_WIN_SetIndex(ref WIN_TileX, ref WIN_PixelInTileX, (byte)(x + 7 - IO.WX), 0);
                         BG_WIN_UpdateTileData(ref WIN_LastTileX, WIN_TileX, WIN_TileY, WIN_StartTileMapArea, ref WIN_TileData);
-                        BG_WIN_PixelPriority = DrawTile(x, IO.LY, BGP_pal, WIN_TileData[BG_PixelInTileY * 2], WIN_TileData[WIN_PixelInTileY * 2 + 1], WIN_PixelInTileX, false);
+                        BG_WIN_PixelPriority = DrawTile(x, IO.LY, BGP_pal, WIN_TileData[WIN_PixelInTileY * 2], WIN_TileData[WIN_PixelInTileY * 2 + 1], WIN_PixelInTileX, false);
                     }
                 }
 
                 // Draw objects
                 if (OBJ_enable)
                 {
+                    byte ObjSize = (byte)(!OBJ_size ? 7 : 15);
+
                     // Scan line
                     for (int i = 159, ObjMax = 0; i > 0; i -= 4)
                     {
@@ -422,7 +424,6 @@ namespace Emulator
                         byte X_pos = Memory.OAM[i - 2];
                         byte TileIndex = Memory.OAM[i - 1];
                         byte Attr = Memory.OAM[i];
-                        byte ObjSize = (byte)(!OBJ_size ? 7 : 15);
                         byte ObjPixelInTileY = (byte)(IO.LY + 16 - Y_pos);
                         byte ObjPixelInTileX = (byte)(x + 8 - X_pos);
 
@@ -454,7 +455,7 @@ namespace Emulator
         // ---------------------------
 
         // Set all index background and window
-        private static void BG_WIN_SetInedex(ref byte Tile, ref byte PixelInTile, byte pos, byte ShiftPixel)
+        private static void BG_WIN_SetIndex(ref byte Tile, ref byte PixelInTile, byte pos, byte ShiftPixel)
         {
             byte Pixel = (byte)(pos + ShiftPixel > 255 ? (pos + ShiftPixel) % 256 : pos + ShiftPixel); // Pixel index in screen (256 x 256)
             Tile = (byte)Math.Floor(Pixel / 8.0); // Tile index in tile map (32 x 32)
