@@ -427,7 +427,7 @@ namespace Emulator
                         byte ObjPixelInTileX = (byte)(x + 8 - X_pos);
 
                         // Object for this line with limit
-                        if (Y_pos >= 16 && ObjPixelInTileY <= ObjSize && X_pos >= 8 && ObjPixelInTileX <= 8 && ObjMax < 10)
+                        if (ObjPixelInTileY <= ObjSize && ObjPixelInTileX <= 8 && ObjMax < 10)
                         {
                             bool ObjPriority = Binary.ReadBit(Attr, 7);
                             bool ObjFlipY = Binary.ReadBit(Attr, 6);

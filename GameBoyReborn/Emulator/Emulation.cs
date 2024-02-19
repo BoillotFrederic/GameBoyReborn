@@ -28,6 +28,7 @@ namespace Emulator
                 FileName = Path.GetFileName(RomPath);
                 FileName = FileName.Replace(".gb", "", StringComparison.CurrentCultureIgnoreCase);
                 FileName = FileName.Replace(".gbc", "", StringComparison.CurrentCultureIgnoreCase);
+                FileName = FileName.Replace(".sgb", "", StringComparison.CurrentCultureIgnoreCase);
 
                 // Load bytes
                 RomData = File.ReadAllBytes(RomPath);

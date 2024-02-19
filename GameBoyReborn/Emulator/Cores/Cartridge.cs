@@ -15,8 +15,8 @@ namespace Emulator
         #region Headers
 
         // Attribute of Cartridge
-        private string FileName;
-        private byte[] RomData;
+        private readonly string FileName;
+        private readonly byte[] RomData;
         public string Title;
         public string ManufacturerCode;
         public byte CGB_Flag;
