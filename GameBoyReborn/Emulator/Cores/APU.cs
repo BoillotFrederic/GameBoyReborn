@@ -12,13 +12,11 @@ namespace Emulator
     {
         // Construct
         private readonly IO IO;
-        private readonly PPU PPU;
 
         public APU(Emulation Emulation)
         {
             // Relation
             IO = Emulation.IO;
-            PPU = Emulation.PPU;
 
             // Init
             CH1_InitNR();
@@ -33,10 +31,6 @@ namespace Emulator
         private bool DAC3 = false;
         private bool DAC4 = false;
 
-        // Channels waves
-        private short[] CH1_Wave = new short[4096];
-        private short[][] CH1_WaveTest = new short[4][];
-
         private readonly double[] WaveDutyCycle = new double[4]{ 12.5f/100.0f*Math.PI, 25.0f/100.0f*Math.PI, 50.0f/100.0f*Math.PI, 75.0f/100.0f*Math.PI };
 
         // Volume
@@ -45,17 +39,14 @@ namespace Emulator
         // Execution
         public void Execution()
         {
-            if (PPU.CompletedFrame)
+            // Update buffers
+            for (int indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
             {
-                // Update buffers
-                for (int indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
-                {
-                    // Channel 1
-                    Audio.CH1_AudioBuffer[indexBuffer] = CH1_GetValue();
+                // Channel 1
+                Audio.CH1_AudioBuffer[indexBuffer] = CH1_GetValue();
 
-                    // Channel 2
-                    CH2_GetValue();
-                }
+                // Channel 2
+                CH2_GetValue();
             }
         }
 
@@ -168,12 +159,12 @@ namespace Emulator
                 double Sample = Math.PI / Ratio;
                 short Value = (short)(CH1_IndexSample * Ratio < WaveDutyCycle[CH1_WaveForm] ? 1 * Volume : -1 * Volume);
 
-                if (CH1_IndexSample > Sample)
+                if (CH1_IndexSample >= Sample)
                 CH1_IndexSample = 0;
 
                 return Value;
             }
-            
+
             return 0;
         }
 

@@ -11,11 +11,10 @@ namespace GameBoyReborn
     public class Audio
     {
         // Params
-        private const int MaxSamples = 512;
-        public static int MaxSamplesPerUpdate = 4096;
+        public static int MaxSamplesPerUpdate = 2048;
         public const int Frequency = 44100;
         public static short[] CH1_AudioBuffer = new short[MaxSamplesPerUpdate];
-        private static AudioStream _CH1_AudioStream;
+        public static AudioStream _CH1_AudioStream;
         private static AudioStream _CH2_AudioStream;
         private static AudioStream _CH3_AudioStream;
         private static AudioStream _CH4_AudioStream;
@@ -88,6 +87,30 @@ namespace GameBoyReborn
             short[] managedBuffer = new short[MaxSamplesPerUpdate];
             for (int i = 0; i < MaxSamplesPerUpdate; i++)
             managedBuffer[i] = (short)random.Next(-32768, 32767);
+
+            return managedBuffer;
+        }
+
+        // Wave song test
+        private static int IndexSample = 0;
+        private static short[] Wave()
+        {
+            double[] WaveDutyCycle = new double[4] { 12.5f / 100.0f * Math.PI, 25.0f / 100.0f * Math.PI, 50.0f / 100.0f * Math.PI, 75.0f / 100.0f * Math.PI };
+
+            short[] managedBuffer = new short[MaxSamplesPerUpdate];
+            for (int i = 0; i < MaxSamplesPerUpdate; i++)
+            {
+                // Apply frequency
+                IndexSample++;
+
+                double Frequency = 131072.0f / (2048 - 1000);
+                double Ratio = Math.PI * Frequency / Audio.Frequency;
+                double Sample = Math.PI / Ratio;
+                managedBuffer[i] = (short)(IndexSample * Ratio < WaveDutyCycle[3] ? 32767 : -32767);
+
+                if (IndexSample >= Sample)
+                IndexSample = 0;
+            }
 
             return managedBuffer;
         }

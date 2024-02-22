@@ -51,10 +51,10 @@ namespace GameBoyReborn
             // Game loop
             while (!Raylib.WindowShouldClose())
             {
-                Audio.Loop();
                 Raylib.BeginDrawing();
                 Input.Set();
                 Emulation.Loop();
+                Audio.Loop();
                 Drawing.Screen();
             }
 

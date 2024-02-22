@@ -4,6 +4,8 @@
 
 #pragma warning disable CS8618
 
+using Raylib_cs;
+
 namespace Emulator
 {
     public class Emulation
@@ -81,9 +83,11 @@ namespace Emulator
                 {
                     CPU.Execution();
                     PPU.Execution();
-                    APU.Execution();
                     Timer.Execution();
                 }
+
+                if (Raylib.IsAudioStreamProcessed(GameBoyReborn.Audio._CH1_AudioStream))
+                APU.Execution();
             }
         }
 
