@@ -85,9 +85,6 @@ namespace Emulator
                     PPU.Execution();
                     Timer.Execution();
                 }
-
-                if (Raylib.IsAudioStreamProcessed(GameBoyReborn.Audio._CH1_AudioStream))
-                APU.Execution();
             }
         }
 

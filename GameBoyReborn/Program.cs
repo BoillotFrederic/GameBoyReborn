@@ -46,7 +46,7 @@ namespace GameBoyReborn
             Emulation = new Emulation(args.Length > 0 ? args[0] : "Roms/Tetris.gb");
 
             // Init audio
-            Audio.Init();
+            Audio.Init(Emulation);
 
             // Game loop
             while (!Raylib.WindowShouldClose())
