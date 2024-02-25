@@ -42,7 +42,7 @@ namespace Emulator
         {
             // Update buffers
             for (int indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
-            Audio.AudioBuffer[indexBuffer] = (short)((CH1_GetValue() + CH2_GetValue()) / 2);
+            Audio.AudioBuffer[indexBuffer] = (short)((CH1_GetValue() + CH2_GetValue() + CH3_GetValue()) / 3);
         }
 
         // Channel 1
@@ -66,7 +66,6 @@ namespace Emulator
         private byte CH1_LowPeriod = 0;
         private byte CH1_HighPeriod = 0;
         private ushort CH1_Period = 0;
-        private bool CH1_Trigger = false;
         private bool CH1_LengthEnable = false;
 
         // Channel 1 IO init
@@ -88,13 +87,7 @@ namespace Emulator
             CH1_LowPeriod = IO.NR13;
             CH1_HighPeriod = (byte)(IO.NR14 & 7);
             CH1_Period = (ushort)(CH1_HighPeriod << 8 | CH1_LowPeriod);
-            CH1_Trigger = Binary.ReadBit(IO.NR14, 7);
             CH1_LengthEnable = Binary.ReadBit(IO.NR14, 6);
-
-            IO.NR52 = (byte)((CH1_SweepPace != 0) ? IO.NR52 | 1 : IO.NR52 & 0xFE);
-
-            if (Binary.ReadBit(IO.NR52, 7))
-            DAC1 = CH1_SweepPace != 0;
         }
 
         // Channel 1 IO write
@@ -132,10 +125,10 @@ namespace Emulator
             IO.NR14 = b;
             CH1_HighPeriod = (byte)(b & 7);
             CH1_Period = (ushort)(CH1_HighPeriod << 8 | CH1_LowPeriod);
-            CH1_Trigger = Binary.ReadBit(b, 7);
             CH1_LengthEnable = Binary.ReadBit(b, 6);
 
-            IO.NR52 = (byte)((CH1_SweepPace != 0) ? IO.NR52 | 1 : IO.NR52 & 0xFE);
+            if (Binary.ReadBit(b, 7))
+            DAC1 = true;
 
             if (Binary.ReadBit(IO.NR52, 7))
             CH1_InitNR();
@@ -187,7 +180,7 @@ namespace Emulator
                 // Volume
                 double VolumeRatio = 32767.0f / 15.0f;
 
-                if (CH1_EnvVolumeEnable)
+                if (CH1_EnvVolumeEnable && CH1_SweepPace != 0)
                 {
                     CH1_LengthVolumeElapsed += CycleDuration;
 
@@ -253,7 +246,6 @@ namespace Emulator
         private byte CH2_LowPeriod = 0;
         private byte CH2_HighPeriod = 0;
         private ushort CH2_Period = 0;
-        private bool CH2_Trigger = false;
         private bool CH2_LengthEnable = false;
 
         // Channel 1 IO init
@@ -271,13 +263,7 @@ namespace Emulator
             CH2_LowPeriod = IO.NR23;
             CH2_HighPeriod = (byte)(IO.NR24 & 7);
             CH2_Period = (ushort)(CH2_HighPeriod << 8 | CH2_LowPeriod);
-            CH2_Trigger = Binary.ReadBit(IO.NR24, 7);
             CH2_LengthEnable = Binary.ReadBit(IO.NR24, 6);
-
-            IO.NR52 = (byte)((CH2_SweepPace != 0) ? IO.NR52 | 2 : IO.NR52 & 0xFD);
-
-            if (Binary.ReadBit(IO.NR52, 7))
-            DAC2 = CH2_SweepPace != 0;
         }
 
         public void CH2_WriteNR21(byte b)
@@ -306,10 +292,12 @@ namespace Emulator
             IO.NR24 = b;
             CH2_HighPeriod = (byte)(b & 7);
             CH2_Period = (ushort)(CH2_HighPeriod << 8 | CH2_LowPeriod);
-            CH2_Trigger = Binary.ReadBit(b, 7);
             CH2_LengthEnable = Binary.ReadBit(b, 6);
 
             IO.NR52 = (byte)((CH2_SweepPace != 0) ? IO.NR52 | 2 : IO.NR52 & 0xFD);
+
+            if (Binary.ReadBit(b, 7))
+            DAC2 = true;
 
             if (Binary.ReadBit(IO.NR52, 7))
             CH2_InitNR();
@@ -335,7 +323,7 @@ namespace Emulator
                 // Volume
                 double VolumeRatio = 32767.0f / 15.0f;
 
-                if (CH2_EnvVolumeEnable)
+                if (CH2_EnvVolumeEnable && CH2_SweepPace != 0)
                 {
                     CH2_LengthVolumeElapsed += CycleDuration;
 
@@ -384,12 +372,14 @@ namespace Emulator
         }
 
         // Wave channel
-        private void Channel3()
+        private short CH3_GetValue()
         {
             if (Binary.ReadBit(IO.NR52, 2))
             {
                 //Console.WriteLine("Channel3");
             }
+
+            return 0;
         }
 
         // Noise channel
