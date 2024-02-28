@@ -21,10 +21,11 @@ namespace Emulator
             // Init
             CH1_InitNR();
             CH2_InitNR();
+            CH3_InitNR();
         }
 
         // Cycles
-        private double CycleDuration = 1.0f / Audio.Frequency;
+        private readonly double CycleDuration = 1.0f / Audio.Frequency;
 
         // DACs
         private bool DAC1 = false;
@@ -41,8 +42,9 @@ namespace Emulator
         public void Execution()
         {
             // Update buffers
-            for (int indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
+            for (ushort indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
             Audio.AudioBuffer[indexBuffer] = (short)((CH1_GetValue() + CH2_GetValue() + CH3_GetValue()) / 3);
+            //Audio.AudioBuffer[indexBuffer] = CH3_GetValue();
         }
 
         // Channel 1
@@ -248,7 +250,7 @@ namespace Emulator
         private ushort CH2_Period = 0;
         private bool CH2_LengthEnable = false;
 
-        // Channel 1 IO init
+        // Channel 2 IO init
         private void CH2_InitNR()
         {
             CH2_WaveForm = (byte)(IO.NR21 >> 6 & 3);
@@ -371,16 +373,129 @@ namespace Emulator
             return 0;
         }
 
-        // Wave channel
+        // Channel 3
+        // ---------
+
+        // Channel 3 params
+        private ushort CH3_IndexSample = 0;
+        public bool CH3_DAC_Enable = false;
+        private byte CH3_InitialLengthTimer = 0xFF;
+        private double CH3_WaveLength = 0;
+        private byte CH3_OutputLevel = 0;
+        private byte CH3_LowPeriod = 0xFF;
+        private byte CH3_HighPeriod = 7;
+        private ushort CH3_Period = 0;
+        private bool CH3_LengthEnable = false;
+
+        // Channel 3 IO init
+        private void CH3_InitNR()
+        {
+            CH3_IndexSample = 0;
+            CH3_DAC_Enable = Binary.ReadBit(IO.NR30, 7);
+            CH3_InitialLengthTimer = IO.NR31;
+            CH3_WaveLength = (256 - CH3_InitialLengthTimer) * (1.0f / 256.0f);
+            CH3_OutputLevel = (byte)((IO.NR32 >> 5) & 3);
+            CH3_LowPeriod = IO.NR33;
+            CH3_HighPeriod = (byte)(IO.NR34 & 7);
+            CH3_Period = (ushort)(CH3_HighPeriod << 8 | CH3_LowPeriod);
+            CH3_LengthEnable = Binary.ReadBit(IO.NR34, 6);
+            //DAC3 = Binary.ReadBit(IO.NR34, 7);
+        }
+
+        public void CH3_WriteNR30(byte b)
+        {
+            IO.NR30 = b;
+            CH3_DAC_Enable = Binary.ReadBit(b, 7);
+        }
+
+        public void CH3_WriteNR31(byte b)
+        {
+            IO.NR31 = CH3_InitialLengthTimer = b;
+            CH3_WaveLength = (255 - CH3_InitialLengthTimer) * (1.0f / 255.0f);
+        }
+
+        public void CH3_WriteNR32(byte b)
+        {
+            IO.NR32 = b;
+            CH3_OutputLevel = (byte)((b >> 5) & 3);
+        }
+
+        public void CH3_WriteNR33(byte b)
+        {
+            IO.NR33 = CH3_LowPeriod = b;
+        }
+
+        public void CH3_WriteNR34(byte b)
+        {
+            IO.NR34 = b;
+
+            CH3_IndexSample = 0;
+            CH3_HighPeriod = (byte)(b & 7);
+            CH3_Period = (ushort)(CH3_HighPeriod << 8 | CH3_LowPeriod);
+            CH3_LengthEnable = Binary.ReadBit(b, 6);
+
+            if (Binary.ReadBit(b, 7))
+            CH3_InitNR();
+
+            if (Binary.ReadBit(b, 7))
+            DAC3 = true;
+        }
+
+        // Get value for x position in buffer
         private short CH3_GetValue()
         {
-            if (Binary.ReadBit(IO.NR52, 2))
+            if (DAC3 && CH3_DAC_Enable)
             {
-                //Console.WriteLine("Channel3");
+                // Delay for stop
+                if (CH3_LengthEnable & CH3_WaveLength <= 0)
+                {
+                    CH3_WaveLength -= CycleDuration;
+
+                    if (CH3_WaveLength <= 0)
+                    {
+                        CH3_LengthEnable = false;
+                        DAC3 = false;
+                    }
+                }
+
+                // Volume
+                if (CH3_OutputLevel == 0)
+                return 0;
+
+                //int Volume = (int)Math.Round(32767.0f / CH3_OutputLevel);
+
+                // Apply frequency
+                CH3_IndexSample++;
+
+                double Frequency = 65536.0f / (2048.0f - CH3_Period);
+                //double Frequency = 4194304.0f / (64.0f * (2048 - CH3_Period));
+                double Ratio = Math.PI * Frequency / Audio.Frequency;
+                double Sample = Math.PI / Ratio;
+
+                //double index = CH3_IndexSample * Ratio;
+                int x = (int)((CH3_IndexSample * 30.0f) / Sample);
+                //int x = (int)(index / (Math.PI / 30.0)) % 32;
+
+                if (CH3_IndexSample >= Sample)
+                CH3_IndexSample = 0;
+
+                if (x >= 32)
+                {
+                    //Console.WriteLine(x);
+                    return 0;
+                }
+
+                if (x % 2 == 0)
+                return (short)((IO.WaveRAM[x / 2] >> 4) / CH3_OutputLevel * 32767.0f);
+                else
+                return (short)((IO.WaveRAM[x / 2] & 15) / CH3_OutputLevel * 32767.0f);
             }
 
             return 0;
         }
+
+        // Channel 4
+        // ---------
 
         // Noise channel
         private void Channel4()
