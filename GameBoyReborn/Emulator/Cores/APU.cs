@@ -21,7 +21,6 @@ namespace Emulator
             // Init
             CH1_InitNR();
             CH2_InitNR();
-            CH3_InitNR();
         }
 
         // Cycles
@@ -36,6 +35,7 @@ namespace Emulator
         private readonly double[] WaveDutyCycle = new double[4]{ 12.5f/100.0f*Math.PI, 25.0f/100.0f*Math.PI, 50.0f/100.0f*Math.PI, 75.0f/100.0f*Math.PI };
 
         // Volume
+        private double VolumeRatio = 32767.0f / 15.0f;
         // int MasterVolume
 
         // Execution
@@ -79,7 +79,7 @@ namespace Emulator
             CH1_SweepTime = CH1_Pace * (1.0f / 128.0f);
             CH1_WaveForm = (byte)(IO.NR11 >> 6 & 3);
             CH1_InitialLengthTimer = (byte)(IO.NR11 & 0x3F);
-            CH1_WaveLength = (64 - CH1_InitialLengthTimer) * (1.0f / 255.0f);
+            CH1_WaveLength = (64 - CH1_InitialLengthTimer) * (1.0f / 256.0f);
             CH1_InitialVolume = (byte)(IO.NR12 >> 4 & 0x0F);
             CH1_EnvDir = Binary.ReadBit(IO.NR12, 3);
             CH1_SweepPace = (byte)(IO.NR12 & 7);
@@ -108,7 +108,7 @@ namespace Emulator
             CH1_WaveForm = (byte)(b >> 6 & 3);
 
             if (CH1_LengthEnable)
-            CH1_WaveLength = (64 - CH1_InitialLengthTimer) * (1.0f / 255.0f);
+            CH1_WaveLength = (64 - CH1_InitialLengthTimer) * (1.0f / 256.0f);
         }
         public void CH1_WriteNR12(byte b)
         {
@@ -180,8 +180,6 @@ namespace Emulator
                 CH1_Period = (ushort)NewPeriod;
 
                 // Volume
-                double VolumeRatio = 32767.0f / 15.0f;
-
                 if (CH1_EnvVolumeEnable && CH1_SweepPace != 0)
                 {
                     CH1_LengthVolumeElapsed += CycleDuration;
@@ -255,7 +253,7 @@ namespace Emulator
         {
             CH2_WaveForm = (byte)(IO.NR21 >> 6 & 3);
             CH2_InitialLengthTimer = (byte)(IO.NR21 & 0x3F);
-            CH2_WaveLength = (64 - CH2_InitialLengthTimer) * (1.0f / 255.0f);
+            CH2_WaveLength = (64 - CH2_InitialLengthTimer) * (1.0f / 256.0f);
             CH2_InitialVolume = (byte)(IO.NR22 >> 4 & 0x0F);
             CH2_EnvDir = Binary.ReadBit(IO.NR22, 3);
             CH2_SweepPace = (byte)(IO.NR22 & 7);
@@ -275,7 +273,7 @@ namespace Emulator
             CH2_WaveForm = (byte)(b >> 6 & 3);
 
             if (CH2_LengthEnable)
-            CH2_WaveLength = (64 - CH2_InitialLengthTimer) * (1.0f / 255.0f);
+            CH2_WaveLength = (64 - CH2_InitialLengthTimer) * (1.0f / 256.0f);
         }
         public void CH2_WriteNR22(byte b)
         {
@@ -323,8 +321,6 @@ namespace Emulator
                 }
 
                 // Volume
-                double VolumeRatio = 32767.0f / 15.0f;
-
                 if (CH2_EnvVolumeEnable && CH2_SweepPace != 0)
                 {
                     CH2_LengthVolumeElapsed += CycleDuration;
@@ -388,30 +384,22 @@ namespace Emulator
         private bool CH3_LengthEnable = false;
 
         // Channel 3 IO init
-        private void CH3_InitNR()
+        private void CH3_start()
         {
-            CH3_IndexSample = 0;
-            CH3_DAC_Enable = Binary.ReadBit(IO.NR30, 7);
-            CH3_InitialLengthTimer = IO.NR31;
-            CH3_WaveLength = (256 - CH3_InitialLengthTimer) * (1.0f / 256.0f);
-            CH3_OutputLevel = (byte)((IO.NR32 >> 5) & 3);
-            CH3_LowPeriod = IO.NR33;
-            CH3_HighPeriod = (byte)(IO.NR34 & 7);
-            CH3_Period = (ushort)(CH3_HighPeriod << 8 | CH3_LowPeriod);
-            CH3_LengthEnable = Binary.ReadBit(IO.NR34, 6);
-            //DAC3 = Binary.ReadBit(IO.NR34, 7);
+            DAC3 = true;
         }
 
         public void CH3_WriteNR30(byte b)
         {
             IO.NR30 = b;
+
             CH3_DAC_Enable = Binary.ReadBit(b, 7);
         }
 
         public void CH3_WriteNR31(byte b)
         {
             IO.NR31 = CH3_InitialLengthTimer = b;
-            CH3_WaveLength = (255 - CH3_InitialLengthTimer) * (1.0f / 255.0f);
+            CH3_WaveLength = (256 - CH3_InitialLengthTimer) * (1.0f / 256.0f);
         }
 
         public void CH3_WriteNR32(byte b)
@@ -423,22 +411,23 @@ namespace Emulator
         public void CH3_WriteNR33(byte b)
         {
             IO.NR33 = CH3_LowPeriod = b;
+
+            CH3_HighPeriod = (byte)(IO.NR34 & 7);
+            CH3_Period = (ushort)(CH3_HighPeriod << 8 | CH3_LowPeriod);
         }
 
         public void CH3_WriteNR34(byte b)
         {
             IO.NR34 = b;
 
-            CH3_IndexSample = 0;
             CH3_HighPeriod = (byte)(b & 7);
             CH3_Period = (ushort)(CH3_HighPeriod << 8 | CH3_LowPeriod);
             CH3_LengthEnable = Binary.ReadBit(b, 6);
 
             if (Binary.ReadBit(b, 7))
-            CH3_InitNR();
-
-            if (Binary.ReadBit(b, 7))
-            DAC3 = true;
+            {
+                CH3_start();
+            }
         }
 
         // Get value for x position in buffer
@@ -462,19 +451,14 @@ namespace Emulator
                 if (CH3_OutputLevel == 0)
                 return 0;
 
-                //int Volume = (int)Math.Round(32767.0f / CH3_OutputLevel);
-
                 // Apply frequency
                 CH3_IndexSample++;
 
                 double Frequency = 65536.0f / (2048.0f - CH3_Period);
-                //double Frequency = 4194304.0f / (64.0f * (2048 - CH3_Period));
                 double Ratio = Math.PI * Frequency / Audio.Frequency;
                 double Sample = Math.PI / Ratio;
 
-                //double index = CH3_IndexSample * Ratio;
-                int x = (int)((CH3_IndexSample * 30.0f) / Sample);
-                //int x = (int)(index / (Math.PI / 30.0)) % 32;
+                int x = (int)(CH3_IndexSample * 30.0f / Sample);
 
                 if (CH3_IndexSample >= Sample)
                 CH3_IndexSample = 0;
@@ -486,9 +470,9 @@ namespace Emulator
                 }
 
                 if (x % 2 == 0)
-                return (short)((IO.WaveRAM[x / 2] >> 4) / CH3_OutputLevel * 32767.0f);
+                return (short)((IO.WaveRAM[x / 2] >> 4) * VolumeRatio / CH3_OutputLevel);
                 else
-                return (short)((IO.WaveRAM[x / 2] & 15) / CH3_OutputLevel * 32767.0f);
+                return (short)((IO.WaveRAM[x / 2] & 15) * VolumeRatio / CH3_OutputLevel);
             }
 
             return 0;
