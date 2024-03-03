@@ -209,10 +209,10 @@ namespace Emulator
             else if (at == 0x1C) APU.CH3_WriteNR32((byte)(b | 0x9F));
             else if (at == 0x1D) APU.CH3_WriteNR33(b);
             else if (at == 0x1E) APU.CH3_WriteNR34(b);
-            else if (at == 0x20) NR41 = (byte)(b | 0xC0);
-            else if (at == 0x21) NR42 = b;
-            else if (at == 0x22) NR43 = b;
-            else if (at == 0x23) NR44 = (byte)(b | 0x3F);
+            else if (at == 0x20) APU.CH3_WriteNR41((byte)(b | 0xC0));
+            else if (at == 0x21) APU.CH3_WriteNR42(b);
+            else if (at == 0x22) APU.CH3_WriteNR43(b);
+            else if (at == 0x23) APU.CH3_WriteNR44((byte)(b | 0x3F));
             else if (at == 0x24) NR50 = b;
             else if (at == 0x25) NR51 = b;
             else if (at == 0x26) NR52 = (byte)(b | 0x70);

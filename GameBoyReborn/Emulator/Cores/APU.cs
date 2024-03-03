@@ -17,14 +17,10 @@ namespace Emulator
         {
             // Relation
             IO = Emulation.IO;
-
-            // Init
-            CH1_InitNR();
-            CH2_InitNR();
         }
 
         // Cycles
-        private readonly double CycleDuration = 1.0f / Audio.Frequency;
+        private const double CycleDuration = 1.0f / Audio.Frequency;
 
         // DACs
         private bool DAC1 = false;
@@ -35,7 +31,7 @@ namespace Emulator
         private readonly double[] WaveDutyCycle = new double[4]{ 12.5f/100.0f*Math.PI, 25.0f/100.0f*Math.PI, 50.0f/100.0f*Math.PI, 75.0f/100.0f*Math.PI };
 
         // Volume
-        private double VolumeRatio = 32767.0f / 15.0f;
+        private const double VolumeRatio = 32767.0f / 15.0f;
         // int MasterVolume
 
         // Execution
@@ -43,12 +39,11 @@ namespace Emulator
         {
             // Update buffers
             for (ushort indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
-            Audio.AudioBuffer[indexBuffer] = (short)((CH1_GetValue() + CH2_GetValue() + CH3_GetValue()) / 3);
-            //Audio.AudioBuffer[indexBuffer] = CH3_GetValue();
+            //Audio.AudioBuffer[indexBuffer] = (short)((CH1_GetValue() + CH2_GetValue() + CH3_GetValue()) / 3);
+            Audio.AudioBuffer[indexBuffer] = CH4_GetValue();
         }
 
-        // Channel 1
-        // ---------
+        #region Channel 1
 
         // Channel 1 params
         private ushort CH1_IndexSample = 0;
@@ -56,46 +51,25 @@ namespace Emulator
         private bool CH1_Direction = false;
         private byte CH1_IndividualStep = 0;
         private double CH1_SweepTime = 0;
-        private byte CH1_WaveForm = 0;
+        private byte CH1_WaveForm = 2;
         private byte CH1_InitialLengthTimer = 0;
-        private double CH1_WaveLength = 0;
-        private byte CH1_InitialVolume = 0;
+        private double CH1_WaveLength = 0.00390625;
+        private byte CH1_InitialVolume = 0xF;
         private bool CH1_EnvDir = false;
-        private byte CH1_SweepPace = 0;
-        private double CH1_LengthVolume = 0;
+        private byte CH1_SweepPace = 3;
+        private double CH1_LengthVolume = 0.046875;
         private double CH1_LengthVolumeElapsed = 0;
-        private bool CH1_EnvVolumeEnable = false;
-        private byte CH1_LowPeriod = 0;
-        private byte CH1_HighPeriod = 0;
-        private ushort CH1_Period = 0;
+        private bool CH1_EnvVolumeEnable = true;
+        private byte CH1_LowPeriod = 0xFF;
+        private byte CH1_HighPeriod = 7;
+        private ushort CH1_Period = 0x7FF;
         private bool CH1_LengthEnable = false;
 
-        // Channel 1 IO init
-        private void CH1_InitNR()
-        {
-            CH1_Pace = (byte)(IO.NR10 >> 4 & 0x07);
-            CH1_Direction = Binary.ReadBit(IO.NR10, 3);
-            CH1_IndividualStep = (byte)(IO.NR10 & 0x07);
-            CH1_SweepTime = CH1_Pace * (1.0f / 128.0f);
-            CH1_WaveForm = (byte)(IO.NR11 >> 6 & 3);
-            CH1_InitialLengthTimer = (byte)(IO.NR11 & 0x3F);
-            CH1_WaveLength = (64 - CH1_InitialLengthTimer) * (1.0f / 256.0f);
-            CH1_InitialVolume = (byte)(IO.NR12 >> 4 & 0x0F);
-            CH1_EnvDir = Binary.ReadBit(IO.NR12, 3);
-            CH1_SweepPace = (byte)(IO.NR12 & 7);
-            CH1_LengthVolume = CH1_SweepPace * (1.0f / 64.0f);
-            CH1_LengthVolumeElapsed = 0;
-            CH1_EnvVolumeEnable = CH1_InitialVolume != 0 && CH1_SweepPace != 0;
-            CH1_LowPeriod = IO.NR13;
-            CH1_HighPeriod = (byte)(IO.NR14 & 7);
-            CH1_Period = (ushort)(CH1_HighPeriod << 8 | CH1_LowPeriod);
-            CH1_LengthEnable = Binary.ReadBit(IO.NR14, 6);
-        }
-
-        // Channel 1 IO write
+        // IO write
         public void CH1_WriteNR10(byte b)
         {
             IO.NR10 = b;
+
             CH1_Pace = (byte)(b >> 4 & 0x07);
             CH1_Direction = Binary.ReadBit(b, 3);
             CH1_IndividualStep = (byte)(b & 0x07);
@@ -104,6 +78,7 @@ namespace Emulator
         public void CH1_WriteNR11(byte b)
         {
             IO.NR11 = b;
+
             CH1_InitialLengthTimer = (byte)(b & 0x3F);
             CH1_WaveForm = (byte)(b >> 6 & 3);
 
@@ -113,6 +88,7 @@ namespace Emulator
         public void CH1_WriteNR12(byte b)
         {
             IO.NR12 = b;
+
             CH1_InitialVolume = (byte)(b >> 4 & 0x0F);
             CH1_EnvDir = Binary.ReadBit(b, 3);
             CH1_SweepPace = (byte)(b & 7);
@@ -121,19 +97,19 @@ namespace Emulator
         public void CH1_WriteNR13(byte b)
         {
             IO.NR13 = CH1_LowPeriod = b;
+            CH1_Period = (ushort)(CH1_HighPeriod << 8 | CH1_LowPeriod);
         }
         public void CH1_WriteNR14(byte b)
         {
             IO.NR14 = b;
+
             CH1_HighPeriod = (byte)(b & 7);
             CH1_Period = (ushort)(CH1_HighPeriod << 8 | CH1_LowPeriod);
             CH1_LengthEnable = Binary.ReadBit(b, 6);
+            CH1_EnvVolumeEnable = CH1_InitialVolume != 0 && CH1_SweepPace != 0;
 
             if (Binary.ReadBit(b, 7))
             DAC1 = true;
-
-            if (Binary.ReadBit(IO.NR52, 7))
-            CH1_InitNR();
         }
 
         // Get value for x position in buffer
@@ -173,7 +149,6 @@ namespace Emulator
                 {
                     DAC1 = false;
                     CH1_Pace = 0;
-                    Binary.SetBit(ref IO.NR52, 0, false);
                     return 0;
                 }
 
@@ -228,47 +203,31 @@ namespace Emulator
             return 0;
         }
 
+        #endregion
 
-        // Channel 2
-        // ---------
+        #region Channel 2
 
         // Channel 2 params
         private ushort CH2_IndexSample = 0;
         private byte CH2_WaveForm = 0;
-        private byte CH2_InitialLengthTimer = 0;
-        private double CH2_WaveLength = 0;
+        private byte CH2_InitialLengthTimer = 0x3F;
+        private double CH2_WaveLength = 0.00390625;
         private byte CH2_InitialVolume = 0;
         private bool CH2_EnvDir = false;
         private byte CH2_SweepPace = 0;
         private double CH2_LengthVolume = 0;
         private double CH2_LengthVolumeElapsed = 0;
         private bool CH2_EnvVolumeEnable = false;
-        private byte CH2_LowPeriod = 0;
-        private byte CH2_HighPeriod = 0;
-        private ushort CH2_Period = 0;
+        private byte CH2_LowPeriod = 0xFF;
+        private byte CH2_HighPeriod = 7;
+        private ushort CH2_Period = 0x7FF;
         private bool CH2_LengthEnable = false;
 
-        // Channel 2 IO init
-        private void CH2_InitNR()
-        {
-            CH2_WaveForm = (byte)(IO.NR21 >> 6 & 3);
-            CH2_InitialLengthTimer = (byte)(IO.NR21 & 0x3F);
-            CH2_WaveLength = (64 - CH2_InitialLengthTimer) * (1.0f / 256.0f);
-            CH2_InitialVolume = (byte)(IO.NR22 >> 4 & 0x0F);
-            CH2_EnvDir = Binary.ReadBit(IO.NR22, 3);
-            CH2_SweepPace = (byte)(IO.NR22 & 7);
-            CH2_LengthVolume = CH2_SweepPace * (1.0f / 64.0f);
-            CH2_LengthVolumeElapsed = 0;
-            CH2_EnvVolumeEnable = CH2_InitialVolume != 0 && CH2_SweepPace != 0;
-            CH2_LowPeriod = IO.NR23;
-            CH2_HighPeriod = (byte)(IO.NR24 & 7);
-            CH2_Period = (ushort)(CH2_HighPeriod << 8 | CH2_LowPeriod);
-            CH2_LengthEnable = Binary.ReadBit(IO.NR24, 6);
-        }
-
+        // IO Write
         public void CH2_WriteNR21(byte b)
         {
             IO.NR21 = b;
+
             CH2_InitialLengthTimer = (byte)(b & 0x3F);
             CH2_WaveForm = (byte)(b >> 6 & 3);
 
@@ -278,6 +237,7 @@ namespace Emulator
         public void CH2_WriteNR22(byte b)
         {
             IO.NR22 = b;
+
             CH2_InitialVolume = (byte)(b >> 4 & 0x0F);
             CH2_EnvDir = Binary.ReadBit(b, 3);
             CH2_SweepPace = (byte)(b & 7);
@@ -286,21 +246,19 @@ namespace Emulator
         public void CH2_WriteNR23(byte b)
         {
             IO.NR23 = CH2_LowPeriod = b;
+            CH2_Period = (ushort)(CH2_HighPeriod << 8 | CH2_LowPeriod);
         }
         public void CH2_WriteNR24(byte b)
         {
             IO.NR24 = b;
+
             CH2_HighPeriod = (byte)(b & 7);
             CH2_Period = (ushort)(CH2_HighPeriod << 8 | CH2_LowPeriod);
             CH2_LengthEnable = Binary.ReadBit(b, 6);
-
-            IO.NR52 = (byte)((CH2_SweepPace != 0) ? IO.NR52 | 2 : IO.NR52 & 0xFD);
+            CH2_EnvVolumeEnable = CH2_InitialVolume != 0 && CH2_SweepPace != 0;
 
             if (Binary.ReadBit(b, 7))
             DAC2 = true;
-
-            if (Binary.ReadBit(IO.NR52, 7))
-            CH2_InitNR();
         }
 
         // Get value for x position in buffer
@@ -369,26 +327,22 @@ namespace Emulator
             return 0;
         }
 
-        // Channel 3
-        // ---------
+        #endregion
+
+        #region Channel 3
 
         // Channel 3 params
         private ushort CH3_IndexSample = 0;
         public bool CH3_DAC_Enable = false;
         private byte CH3_InitialLengthTimer = 0xFF;
-        private double CH3_WaveLength = 0;
+        private double CH3_WaveLength = 0.00390625;
         private byte CH3_OutputLevel = 0;
         private byte CH3_LowPeriod = 0xFF;
         private byte CH3_HighPeriod = 7;
         private ushort CH3_Period = 0;
         private bool CH3_LengthEnable = false;
 
-        // Channel 3 IO init
-        private void CH3_start()
-        {
-            DAC3 = true;
-        }
-
+        // IO Write
         public void CH3_WriteNR30(byte b)
         {
             IO.NR30 = b;
@@ -411,8 +365,6 @@ namespace Emulator
         public void CH3_WriteNR33(byte b)
         {
             IO.NR33 = CH3_LowPeriod = b;
-
-            CH3_HighPeriod = (byte)(IO.NR34 & 7);
             CH3_Period = (ushort)(CH3_HighPeriod << 8 | CH3_LowPeriod);
         }
 
@@ -425,9 +377,7 @@ namespace Emulator
             CH3_LengthEnable = Binary.ReadBit(b, 6);
 
             if (Binary.ReadBit(b, 7))
-            {
-                CH3_start();
-            }
+            DAC3 = true;
         }
 
         // Get value for x position in buffer
@@ -478,16 +428,134 @@ namespace Emulator
             return 0;
         }
 
-        // Channel 4
-        // ---------
+        #endregion
 
-        // Noise channel
-        private void Channel4()
+        #region Channel 4
+
+        // Channel 4 params
+        private ushort CH4_IndexSample = 0;
+        private byte CH4_InitialLengthTimer = 0x3F;
+        private double CH4_WaveLength = 0.00390625;
+        private byte CH4_InitialVolume = 0;
+        private bool CH4_EnvDir = false;
+        private byte CH4_SweepPace = 0;
+        private double CH4_LengthVolume = 0;
+        private double CH4_LengthVolumeElapsed = 0;
+        private ushort CH4_ClockShift = 0;
+        private bool CH4_LFSRwidth = false;
+        private byte CH4_ClockDivider = 0;
+        private double CH4_Frequency = 0;
+        private bool CH4_EnvVolumeEnable = false;
+        private bool CH4_LengthEnable = false;
+
+        // IO Write
+        public void CH3_WriteNR41(byte b)
         {
-            if (Binary.ReadBit(IO.NR52, 3))
-            {
-                //Console.WriteLine("Channel4");
-            }
+            IO.NR41 = b;
+            CH4_InitialLengthTimer = (byte)(b & 0x3F);
+
+            if (CH4_LengthEnable)
+            CH4_WaveLength = (64 - CH4_InitialLengthTimer) * (1.0f / 256.0f);
         }
+
+        public void CH3_WriteNR42(byte b)
+        {
+            IO.NR42 = b;
+
+            CH4_InitialVolume = (byte)(b >> 4 & 0x0F);
+            CH4_EnvDir = Binary.ReadBit(b, 3);
+            CH4_SweepPace = (byte)(b & 7);
+            CH4_LengthVolume = CH4_SweepPace * (1.0f / 64.0f);
+        }
+
+        public void CH3_WriteNR43(byte b)
+        {
+            IO.NR43 = b;
+
+            CH4_ClockShift = (byte)(b >> 4);
+            CH4_LFSRwidth = Binary.ReadBit(b, 3);
+            CH4_ClockDivider = (byte)(b & 7);
+            CH4_Frequency = 262144.0f / (CH4_ClockDivider * 2 ^ CH4_ClockShift);
+        }
+
+        public void CH3_WriteNR44(byte b)
+        {
+            IO.NR44 = b;
+            CH4_LengthEnable = Binary.ReadBit(b, 6);
+
+            if (Binary.ReadBit(b, 7))
+            DAC4 = true;
+        }
+
+
+        // Get value for x position in buffer
+        private short CH4_GetValue()
+        {
+            if (DAC4)
+            {
+                // Delay for stop
+                if (CH4_LengthEnable & CH4_WaveLength <= 0)
+                {
+                    CH4_WaveLength -= CycleDuration;
+
+                    if (CH4_WaveLength <= 0)
+                    {
+                        CH4_LengthEnable = false;
+                        DAC4 = false;
+                    }
+                }
+
+                // Volume
+                if (CH4_EnvVolumeEnable && CH4_SweepPace != 0)
+                {
+                    CH4_LengthVolumeElapsed += CycleDuration;
+
+                    if (CH4_LengthVolumeElapsed >= CH4_LengthVolume)
+                    {
+                        CH4_LengthVolumeElapsed -= CH4_LengthVolume;
+
+                        if (CH4_EnvDir)
+                        {
+                            if (CH4_InitialVolume < 15)
+                            CH4_InitialVolume++;
+                            else
+                            CH4_SweepPace = 0;
+                        }
+                        else
+                        {
+                            if (CH4_InitialVolume > 0)
+                            CH4_InitialVolume--;
+                            else
+                            {
+                                DAC4 = false;
+                                return 0;
+                            }
+                        }
+                    }
+                }
+
+                int Volume = (int)Math.Round(CH4_InitialVolume * VolumeRatio);
+
+                // Noise generation
+                bool shiftResult = (CH4_ClockShift & 0x1) != 0;
+                CH4_ClockShift >>= 1;
+                CH4_ClockShift |= (ushort)(shiftResult ? 0x4000 : 0x0000);
+
+                // Apply frequency
+                CH4_IndexSample++;
+
+                double Ratio = Math.PI * CH4_Frequency / Audio.Frequency;
+                double Sample = Math.PI / Ratio;
+
+                if (CH4_IndexSample >= Sample)
+                CH4_IndexSample = 0;
+
+                return (short)(shiftResult ? Volume : -Volume);
+            }
+
+            return 0;
+        }
+
+        #endregion
     }
 }
