@@ -423,13 +423,6 @@ namespace Emulator
 
                 double x = CH3_IndexSample * 30.0f / Sample;
 
-/*                if (x >= 32)
-                {
-                    Console.WriteLine(x);
-                    CH3_IndexSample = 0;
-                    return 0;
-                }*/
-
                 if (x % 2 == 0)
                 return (short)((IO.WaveRAM[(byte)x / 2] >> 4) * VolumeRatio / CH3_OutputLevel);
                 else
@@ -460,29 +453,42 @@ namespace Emulator
         private bool CH4_LengthEnable = false;
 
         // Noise sound
-        private readonly short[] Noise7Bit = new short[Audio.MaxSamplesPerUpdate];
-        private readonly short[] Noise15Bit = new short[Audio.MaxSamplesPerUpdate];
+        private short[] Noise7Bit = new short[44100];
+        private short[] Noise15Bit = new short[44100];
+
+        private short[] GenerateNoise(int amplitude, int bitDepth)
+        {
+            Random random = new();
+            short[] noise = new short[44100];
+
+            for (int i = 0; i < noise.Length; i++)
+            {
+                int sample = 0;
+
+                for (int j = 0; j < bitDepth; j++)
+                sample |= random.Next(2) << j;
+
+                noise[i] = (short)(sample * amplitude / Math.Pow(2, bitDepth - 1));
+            }
+
+            return noise;
+        }
 
         private void NoiseSound()
         {
-            Random random = new();
-
-            for (int i = 0; i < Audio.MaxSamplesPerUpdate; i++)
-            Noise7Bit[i] = (short)((random.Next(15) - 7) << 1);
-
-            for (int i = 0; i < Audio.MaxSamplesPerUpdate; i++)
-            Noise15Bit[i] = (short)(random.Next(15) - 7);
+            Noise7Bit = GenerateNoise(32767, 7);
+            Noise15Bit = GenerateNoise(32767, 15);
         }
 
         // IO Write
-        public void CH3_WriteNR41(byte b)
+        public void CH4_WriteNR41(byte b)
         {
             IO.NR41 = b;
             CH4_InitialLengthTimer = (byte)(b & 0x3F);
             CH4_WaveLength = (64 - CH4_InitialLengthTimer) * (1.0f / 256.0f);
         }
 
-        public void CH3_WriteNR42(byte b)
+        public void CH4_WriteNR42(byte b)
         {
             IO.NR42 = b;
 
@@ -493,7 +499,7 @@ namespace Emulator
             CH4_EnvVolumeEnable = CH4_InitialVolume != 0 && CH4_SweepPace != 0;
         }
 
-        public void CH3_WriteNR43(byte b)
+        public void CH4_WriteNR43(byte b)
         {
             IO.NR43 = b;
 
@@ -505,13 +511,13 @@ namespace Emulator
             CH4_Frequency /= Audio.Frequency;
         }
 
-        public void CH3_WriteNR44(byte b)
+        public void CH4_WriteNR44(byte b)
         {
             IO.NR44 = b;
             CH4_LengthEnable = Binary.ReadBit(b, 6);
 
-            /*CH4_Frequency = 262144.0f / ((CH4_ClockDivider == 0 ? 0.5f : CH4_ClockDivider) * Math.Pow(2, CH4_ClockShift));
-            CH4_Frequency /= Audio.Frequency;*/
+            CH4_Frequency = 262144.0f / ((CH4_ClockDivider == 0 ? 0.5f : CH4_ClockDivider) * Math.Pow(2, CH4_ClockShift));
+            CH4_Frequency /= Audio.Frequency;
 
             if (Binary.ReadBit(b, 7) && CH4_InitialVolume > 0)
             DAC4 = true;
@@ -566,8 +572,10 @@ namespace Emulator
                     }
                 }
 
-                int Volume = (int)Math.Round(CH4_InitialVolume * VolumeRatio);
+                if(CH4_InitialVolume == 0)
+                return 0;
 
+                double Volume = 1.0f / (16 - CH4_InitialVolume);
 
                 // Apply frequency
                 CH4_IndexSample++;
@@ -578,19 +586,12 @@ namespace Emulator
                 if (CH4_IndexSample >= Sample)
                 CH4_IndexSample = 0;
 
-                double x = CH4_IndexSample * Audio.MaxSamplesPerUpdate / Sample;
-
- /*               if (x >= Audio.MaxSamplesPerUpdate)
-                {
-                    //Console.WriteLine(x);
-                    //CH4_IndexSample = 0;
-                    //return 0;
-                }*/
+                double x = CH4_IndexSample * 44100.0f / Sample;
 
                 if (!CH4_LFSRwidth)
-                return (short)(Noise7Bit[(int)x] * Volume);
+                return (short)(Noise7Bit[(int)x] * Volume * 4.0f);
                 else
-                return (short)(Noise15Bit[(int)x] * Volume);
+                return (short)(Noise15Bit[(int)x] * Volume * 4.0f);
             }
 
             return 0;
