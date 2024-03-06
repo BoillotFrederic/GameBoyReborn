@@ -17,6 +17,9 @@ namespace Emulator
         {
             // Relation
             IO = Emulation.IO;
+
+            // Noise sound
+            NoiseSound();
         }
 
         // Cycles
@@ -39,9 +42,18 @@ namespace Emulator
         {
             // Update buffers
             for (ushort indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
-            //Audio.AudioBuffer[indexBuffer] = (short)((CH1_GetValue() + CH2_GetValue() + CH3_GetValue()) / 3);
-            Audio.AudioBuffer[indexBuffer] = CH4_GetValue();
+            Audio.AudioBuffer[indexBuffer] = (short)((CH1_GetValue() + CH2_GetValue() + CH3_GetValue() + CH4_GetValue()) / 4);
+            //Audio.AudioBuffer[indexBuffer] = CH4_GetValue();
         }
+
+/*        // NR52
+        public void NR52(byte b)
+        {
+            DAC1 = Binary.ReadBit(b, 0);
+            DAC2 = Binary.ReadBit(b, 1);
+            DAC3 = Binary.ReadBit(b, 2);
+            DAC4 = Binary.ReadBit(b, 3);
+        }*/
 
         #region Channel 1
 
@@ -108,7 +120,7 @@ namespace Emulator
             CH1_LengthEnable = Binary.ReadBit(b, 6);
             CH1_EnvVolumeEnable = CH1_InitialVolume != 0 && CH1_SweepPace != 0;
 
-            if (Binary.ReadBit(b, 7))
+            if (Binary.ReadBit(b, 7) && CH1_InitialVolume > 0)
             DAC1 = true;
         }
 
@@ -192,12 +204,11 @@ namespace Emulator
                 double Frequency = 131072.0f / (2048 - CH1_Period);
                 double Ratio = Math.PI * Frequency / Audio.Frequency;
                 double Sample = Math.PI / Ratio;
-                short Value = (short)(CH1_IndexSample * Ratio < WaveDutyCycle[CH1_WaveForm] ? 1 * Volume : -1 * Volume);
 
                 if (CH1_IndexSample >= Sample)
                 CH1_IndexSample = 0;
 
-                return Value;
+                return (short)(CH1_IndexSample * Ratio < WaveDutyCycle[CH1_WaveForm] ? 1 * Volume : -1 * Volume);
             }
 
             return 0;
@@ -257,7 +268,7 @@ namespace Emulator
             CH2_LengthEnable = Binary.ReadBit(b, 6);
             CH2_EnvVolumeEnable = CH2_InitialVolume != 0 && CH2_SweepPace != 0;
 
-            if (Binary.ReadBit(b, 7))
+            if (Binary.ReadBit(b, 7) && CH2_InitialVolume > 0)
             DAC2 = true;
         }
 
@@ -316,12 +327,11 @@ namespace Emulator
                 double Frequency = 131072.0f / (2048 - CH2_Period);
                 double Ratio = Math.PI * Frequency / Audio.Frequency;
                 double Sample = Math.PI / Ratio;
-                short Value = (short)(CH2_IndexSample * Ratio < WaveDutyCycle[CH2_WaveForm] ? 1 * Volume : -1 * Volume);
 
                 if (CH2_IndexSample >= Sample)
                 CH2_IndexSample = 0;
 
-                return Value;
+                return (short)(CH2_IndexSample * Ratio < WaveDutyCycle[CH2_WaveForm] ? 1 * Volume : -1 * Volume);
             }
 
             return 0;
@@ -408,21 +418,22 @@ namespace Emulator
                 double Ratio = Math.PI * Frequency / Audio.Frequency;
                 double Sample = Math.PI / Ratio;
 
-                int x = (int)(CH3_IndexSample * 30.0f / Sample);
-
                 if (CH3_IndexSample >= Sample)
                 CH3_IndexSample = 0;
 
-                if (x >= 32)
+                double x = CH3_IndexSample * 30.0f / Sample;
+
+/*                if (x >= 32)
                 {
-                    //Console.WriteLine(x);
+                    Console.WriteLine(x);
+                    CH3_IndexSample = 0;
                     return 0;
-                }
+                }*/
 
                 if (x % 2 == 0)
-                return (short)((IO.WaveRAM[x / 2] >> 4) * VolumeRatio / CH3_OutputLevel);
+                return (short)((IO.WaveRAM[(byte)x / 2] >> 4) * VolumeRatio / CH3_OutputLevel);
                 else
-                return (short)((IO.WaveRAM[x / 2] & 15) * VolumeRatio / CH3_OutputLevel);
+                return (short)((IO.WaveRAM[(byte)x / 2] & 15) * VolumeRatio / CH3_OutputLevel);
             }
 
             return 0;
@@ -448,13 +459,26 @@ namespace Emulator
         private bool CH4_EnvVolumeEnable = false;
         private bool CH4_LengthEnable = false;
 
+        // Noise sound
+        private readonly short[] Noise7Bit = new short[Audio.MaxSamplesPerUpdate];
+        private readonly short[] Noise15Bit = new short[Audio.MaxSamplesPerUpdate];
+
+        private void NoiseSound()
+        {
+            Random random = new();
+
+            for (int i = 0; i < Audio.MaxSamplesPerUpdate; i++)
+            Noise7Bit[i] = (short)((random.Next(15) - 7) << 1);
+
+            for (int i = 0; i < Audio.MaxSamplesPerUpdate; i++)
+            Noise15Bit[i] = (short)(random.Next(15) - 7);
+        }
+
         // IO Write
         public void CH3_WriteNR41(byte b)
         {
             IO.NR41 = b;
             CH4_InitialLengthTimer = (byte)(b & 0x3F);
-
-            if (CH4_LengthEnable)
             CH4_WaveLength = (64 - CH4_InitialLengthTimer) * (1.0f / 256.0f);
         }
 
@@ -466,6 +490,7 @@ namespace Emulator
             CH4_EnvDir = Binary.ReadBit(b, 3);
             CH4_SweepPace = (byte)(b & 7);
             CH4_LengthVolume = CH4_SweepPace * (1.0f / 64.0f);
+            CH4_EnvVolumeEnable = CH4_InitialVolume != 0 && CH4_SweepPace != 0;
         }
 
         public void CH3_WriteNR43(byte b)
@@ -475,7 +500,9 @@ namespace Emulator
             CH4_ClockShift = (byte)(b >> 4);
             CH4_LFSRwidth = Binary.ReadBit(b, 3);
             CH4_ClockDivider = (byte)(b & 7);
-            CH4_Frequency = 262144.0f / (CH4_ClockDivider * 2 ^ CH4_ClockShift);
+
+            CH4_Frequency = 262144.0f / ((CH4_ClockDivider == 0 ? 0.5f : CH4_ClockDivider) * Math.Pow(2, CH4_ClockShift));
+            CH4_Frequency /= Audio.Frequency;
         }
 
         public void CH3_WriteNR44(byte b)
@@ -483,7 +510,10 @@ namespace Emulator
             IO.NR44 = b;
             CH4_LengthEnable = Binary.ReadBit(b, 6);
 
-            if (Binary.ReadBit(b, 7))
+            /*CH4_Frequency = 262144.0f / ((CH4_ClockDivider == 0 ? 0.5f : CH4_ClockDivider) * Math.Pow(2, CH4_ClockShift));
+            CH4_Frequency /= Audio.Frequency;*/
+
+            if (Binary.ReadBit(b, 7) && CH4_InitialVolume > 0)
             DAC4 = true;
         }
 
@@ -494,7 +524,7 @@ namespace Emulator
             if (DAC4)
             {
                 // Delay for stop
-                if (CH4_LengthEnable & CH4_WaveLength <= 0)
+                if (CH4_LengthEnable)
                 {
                     CH4_WaveLength -= CycleDuration;
 
@@ -502,6 +532,8 @@ namespace Emulator
                     {
                         CH4_LengthEnable = false;
                         DAC4 = false;
+
+                        return 0;
                     }
                 }
 
@@ -536,10 +568,6 @@ namespace Emulator
 
                 int Volume = (int)Math.Round(CH4_InitialVolume * VolumeRatio);
 
-                // Noise generation
-                bool shiftResult = (CH4_ClockShift & 0x1) != 0;
-                CH4_ClockShift >>= 1;
-                CH4_ClockShift |= (ushort)(shiftResult ? 0x4000 : 0x0000);
 
                 // Apply frequency
                 CH4_IndexSample++;
@@ -550,7 +578,19 @@ namespace Emulator
                 if (CH4_IndexSample >= Sample)
                 CH4_IndexSample = 0;
 
-                return (short)(shiftResult ? Volume : -Volume);
+                double x = CH4_IndexSample * Audio.MaxSamplesPerUpdate / Sample;
+
+ /*               if (x >= Audio.MaxSamplesPerUpdate)
+                {
+                    //Console.WriteLine(x);
+                    //CH4_IndexSample = 0;
+                    //return 0;
+                }*/
+
+                if (!CH4_LFSRwidth)
+                return (short)(Noise7Bit[(int)x] * Volume);
+                else
+                return (short)(Noise15Bit[(int)x] * Volume);
             }
 
             return 0;
