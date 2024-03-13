@@ -1,6 +1,6 @@
-﻿// ---
-// APU
-// ---
+﻿// ---------------------
+// Audio Processing Unit
+// ---------------------
 using GameBoyReborn;
 
 #pragma warning disable CS0414
@@ -19,11 +19,16 @@ namespace Emulator
             IO = Emulation.IO;
 
             // Noise sound
-            NoiseSound();
+            Noise7Bit = GenerateNoise(32767, 7);
+            Noise15Bit = GenerateNoise(32767, 15);
         }
 
+        // Precalculations
+        private const int AudioFrequency = Audio.Frequency * 2;
+        private const double WaveRef = Math.PI * 2;
+
         // Cycles
-        private const double CycleDuration = 1.0f / Audio.Frequency;
+        private const double CycleDuration = 1.0f / AudioFrequency;
 
         // DACs
         private bool DAC1 = false;
@@ -31,29 +36,66 @@ namespace Emulator
         private bool DAC3 = false;
         private bool DAC4 = false;
 
-        private readonly double[] WaveDutyCycle = new double[4]{ 12.5f/100.0f*Math.PI, 25.0f/100.0f*Math.PI, 50.0f/100.0f*Math.PI, 75.0f/100.0f*Math.PI };
+        private readonly double[] WaveDutyCycle = new double[4]{ 12.5f/100.0f*WaveRef, 25.0f/100.0f*WaveRef, 50.0f/100.0f*WaveRef, 75.0f/100.0f*WaveRef };
 
         // Volume
         private const double VolumeRatio = 32767.0f / 15.0f;
-        // int MasterVolume
 
-        // Execution
-        public void Execution()
+        // Output
+        private bool OutputRight = false;
+
+        /// <summary>
+        /// Execution (APU ticks)
+        /// </summary>
+        public unsafe void Execution(short* buffer, uint frames)
         {
-            // Update buffers
-            for (ushort indexBuffer = 0; indexBuffer < Audio.MaxSamplesPerUpdate; indexBuffer++)
-            Audio.AudioBuffer[indexBuffer] = (short)((CH1_GetValue() + CH2_GetValue() + CH3_GetValue() + CH4_GetValue()) / 4);
-            //Audio.AudioBuffer[indexBuffer] = CH4_GetValue();
+            if (Binary.ReadBit(IO.NR52, 7))
+            {
+                for (ushort indexBuffer = 0; indexBuffer < frames * 2; indexBuffer++)
+                {
+                    // Get channels
+                    short CH1_Value = CH1_GetValue();
+                    short CH2_Value = CH2_GetValue();
+                    short CH3_Value = CH3_GetValue();
+                    short CH4_Value = CH4_GetValue();
+
+                    // Output right
+                    if (OutputRight)
+                    {
+                        CH1_Value = (short)(Binary.ReadBit(IO.NR51, 0) ? CH1_Value : 0);
+                        CH2_Value = (short)(Binary.ReadBit(IO.NR51, 1) ? CH2_Value : 0);
+                        CH3_Value = (short)(Binary.ReadBit(IO.NR51, 2) ? CH3_Value : 0);
+                        CH4_Value = (short)(Binary.ReadBit(IO.NR51, 3) ? CH4_Value : 0);
+
+                        short value = (short)((CH1_Value + CH2_Value + CH3_Value + CH4_Value) / 4);
+                        bool VIN_right = Binary.ReadBit(IO.NR50, 3);
+                        double volumeRight = (byte)(((IO.NR50 & 7) + 1) / 8);
+
+                        value = (short)(VIN_right ? value * volumeRight : value);
+
+                        buffer[indexBuffer] = value;
+                        OutputRight = false;
+                    }
+                    // Output left
+                    else
+                    {
+                        CH1_Value = (short)(Binary.ReadBit(IO.NR51, 4) ? CH1_Value : 0);
+                        CH2_Value = (short)(Binary.ReadBit(IO.NR51, 5) ? CH2_Value : 0);
+                        CH3_Value = (short)(Binary.ReadBit(IO.NR51, 6) ? CH3_Value : 0);
+                        CH4_Value = (short)(Binary.ReadBit(IO.NR51, 7) ? CH4_Value : 0);
+
+                        short value = (short)((CH1_Value + CH2_Value + CH3_Value + CH4_Value) / 4);
+                        bool VIN_right = Binary.ReadBit(IO.NR50, 7);
+                        double volumeRight = (byte)((((IO.NR50) >> 4 & 7) + 1) / 8);
+
+                        value = (short)(VIN_right ? value * volumeRight : value);
+
+                        buffer[indexBuffer] = value;
+                        OutputRight = true;
+                    }
+                }
+            }
         }
-
-/*        // NR52
-        public void NR52(byte b)
-        {
-            DAC1 = Binary.ReadBit(b, 0);
-            DAC2 = Binary.ReadBit(b, 1);
-            DAC3 = Binary.ReadBit(b, 2);
-            DAC4 = Binary.ReadBit(b, 3);
-        }*/
 
         #region Channel 1
 
@@ -121,7 +163,10 @@ namespace Emulator
             CH1_EnvVolumeEnable = CH1_InitialVolume != 0 && CH1_SweepPace != 0;
 
             if (Binary.ReadBit(b, 7) && CH1_InitialVolume > 0)
-            DAC1 = true;
+            {
+                Binary.SetBit(ref IO.NR52, 0, true);
+                DAC1 = true;
+            }
         }
 
         // Get value for x position in buffer
@@ -138,6 +183,7 @@ namespace Emulator
                     {
                         CH1_LengthEnable = false;
                         DAC1 = false;
+                        Binary.SetBit(ref IO.NR52, 0, false);
                     }
                 }
 
@@ -157,10 +203,11 @@ namespace Emulator
                     }
                 }
 
-                if ((!CH1_Direction && NewPeriod > 0x7FF) || (CH1_Direction && NewPeriod <= 0))
+                if (!CH1_Direction && NewPeriod > 0x7FF)
                 {
                     DAC1 = false;
                     CH1_Pace = 0;
+                    Binary.SetBit(ref IO.NR52, 0, false);
                     return 0;
                 }
 
@@ -189,6 +236,7 @@ namespace Emulator
                             else
                             {
                                 DAC1 = false;
+                                Binary.SetBit(ref IO.NR52, 0, false);
                                 return 0;
                             }
                         }
@@ -202,8 +250,8 @@ namespace Emulator
                 CH1_IndexSample++;
 
                 double Frequency = 131072.0f / (2048 - CH1_Period);
-                double Ratio = Math.PI * Frequency / Audio.Frequency;
-                double Sample = Math.PI / Ratio;
+                double Ratio = WaveRef * Frequency / AudioFrequency;
+                double Sample = WaveRef / Ratio;
 
                 if (CH1_IndexSample >= Sample)
                 CH1_IndexSample = 0;
@@ -269,7 +317,10 @@ namespace Emulator
             CH2_EnvVolumeEnable = CH2_InitialVolume != 0 && CH2_SweepPace != 0;
 
             if (Binary.ReadBit(b, 7) && CH2_InitialVolume > 0)
-            DAC2 = true;
+            {
+                Binary.SetBit(ref IO.NR52, 1, true);
+                DAC2 = true;
+            }
         }
 
         // Get value for x position in buffer
@@ -286,6 +337,7 @@ namespace Emulator
                     {
                         CH2_LengthEnable = false;
                         DAC2 = false;
+                        Binary.SetBit(ref IO.NR52, 1, false);
                     }
                 }
 
@@ -312,6 +364,7 @@ namespace Emulator
                             else
                             {
                                 DAC2 = false;
+                                Binary.SetBit(ref IO.NR52, 1, false);
                                 return 0;
                             }
                         }
@@ -325,8 +378,8 @@ namespace Emulator
                 CH2_IndexSample++;
 
                 double Frequency = 131072.0f / (2048 - CH2_Period);
-                double Ratio = Math.PI * Frequency / Audio.Frequency;
-                double Sample = Math.PI / Ratio;
+                double Ratio = WaveRef * Frequency / AudioFrequency;
+                double Sample = WaveRef / Ratio;
 
                 if (CH2_IndexSample >= Sample)
                 CH2_IndexSample = 0;
@@ -387,7 +440,10 @@ namespace Emulator
             CH3_LengthEnable = Binary.ReadBit(b, 6);
 
             if (Binary.ReadBit(b, 7))
-            DAC3 = true;
+            {
+                Binary.SetBit(ref IO.NR52, 2, true);
+                DAC3 = true;
+            }
         }
 
         // Get value for x position in buffer
@@ -404,6 +460,7 @@ namespace Emulator
                     {
                         CH3_LengthEnable = false;
                         DAC3 = false;
+                        Binary.SetBit(ref IO.NR52, 2, false);
                     }
                 }
 
@@ -415,8 +472,8 @@ namespace Emulator
                 CH3_IndexSample++;
 
                 double Frequency = 65536.0f / (2048.0f - CH3_Period);
-                double Ratio = Math.PI * Frequency / Audio.Frequency;
-                double Sample = Math.PI / Ratio;
+                double Ratio = WaveRef * Frequency / AudioFrequency;
+                double Sample = WaveRef / Ratio;
 
                 if (CH3_IndexSample >= Sample)
                 CH3_IndexSample = 0;
@@ -453,13 +510,13 @@ namespace Emulator
         private bool CH4_LengthEnable = false;
 
         // Noise sound
-        private short[] Noise7Bit = new short[44100];
-        private short[] Noise15Bit = new short[44100];
+        private readonly short[] Noise7Bit = new short[44100 * 2];
+        private readonly short[] Noise15Bit = new short[44100 * 2];
 
-        private short[] GenerateNoise(int amplitude, int bitDepth)
+        private static short[] GenerateNoise(int amplitude, int bitDepth)
         {
             Random random = new();
-            short[] noise = new short[44100];
+            short[] noise = new short[44100 * 2];
 
             for (int i = 0; i < noise.Length; i++)
             {
@@ -472,12 +529,6 @@ namespace Emulator
             }
 
             return noise;
-        }
-
-        private void NoiseSound()
-        {
-            Noise7Bit = GenerateNoise(32767, 7);
-            Noise15Bit = GenerateNoise(32767, 15);
         }
 
         // IO Write
@@ -508,7 +559,7 @@ namespace Emulator
             CH4_ClockDivider = (byte)(b & 7);
 
             CH4_Frequency = 262144.0f / ((CH4_ClockDivider == 0 ? 0.5f : CH4_ClockDivider) * Math.Pow(2, CH4_ClockShift));
-            CH4_Frequency /= Audio.Frequency;
+            CH4_Frequency /= AudioFrequency;
         }
 
         public void CH4_WriteNR44(byte b)
@@ -517,10 +568,13 @@ namespace Emulator
             CH4_LengthEnable = Binary.ReadBit(b, 6);
 
             CH4_Frequency = 262144.0f / ((CH4_ClockDivider == 0 ? 0.5f : CH4_ClockDivider) * Math.Pow(2, CH4_ClockShift));
-            CH4_Frequency /= Audio.Frequency;
+            CH4_Frequency /= AudioFrequency;
 
             if (Binary.ReadBit(b, 7) && CH4_InitialVolume > 0)
-            DAC4 = true;
+            {
+                Binary.SetBit(ref IO.NR52, 3, true);
+                DAC4 = true;
+            }
         }
 
 
@@ -538,7 +592,7 @@ namespace Emulator
                     {
                         CH4_LengthEnable = false;
                         DAC4 = false;
-
+                        Binary.SetBit(ref IO.NR52, 3, false);
                         return 0;
                     }
                 }
@@ -566,6 +620,7 @@ namespace Emulator
                             else
                             {
                                 DAC4 = false;
+                                Binary.SetBit(ref IO.NR52, 3, false);
                                 return 0;
                             }
                         }
@@ -580,13 +635,13 @@ namespace Emulator
                 // Apply frequency
                 CH4_IndexSample++;
 
-                double Ratio = Math.PI * CH4_Frequency / Audio.Frequency;
-                double Sample = Math.PI / Ratio;
+                double Ratio = WaveRef * CH4_Frequency / AudioFrequency;
+                double Sample = WaveRef / Ratio;
 
                 if (CH4_IndexSample >= Sample)
                 CH4_IndexSample = 0;
 
-                double x = CH4_IndexSample * 44100.0f / Sample;
+                double x = CH4_IndexSample * (44100.0f * 2) / Sample;
 
                 if (!CH4_LFSRwidth)
                 return (short)(Noise7Bit[(int)x] * Volume * 4.0f);

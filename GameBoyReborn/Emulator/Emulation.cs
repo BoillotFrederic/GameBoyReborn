@@ -5,6 +5,7 @@
 #pragma warning disable CS8618
 
 using Raylib_cs;
+using GameBoyReborn;
 
 namespace Emulator
 {

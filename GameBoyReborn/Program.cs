@@ -54,7 +54,6 @@ namespace GameBoyReborn
                 Raylib.BeginDrawing();
                 Input.Set();
                 Emulation.Loop();
-                Audio.Loop();
                 Drawing.Screen();
             }
 
