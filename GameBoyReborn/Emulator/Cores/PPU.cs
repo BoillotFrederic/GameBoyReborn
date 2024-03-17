@@ -8,16 +8,11 @@ namespace Emulator
 {
     public class PPU
     {
-        // Construct
+        #region Construct
+
         private readonly Memory Memory;
         private readonly IO IO;
         private readonly CPU CPU;
-        private bool DMA_InProgress = false;
-        private short DMA_cycles = 0;
-        private readonly Color[] ColorMap = new Color[4] { Color.RAYWHITE, Color.GRAY, Color.DARKGRAY, Color.BLACK };
-        private byte[] BG_TileData = new byte[16];
-        private byte[] WIN_TileData = new byte[16];
-        private byte[] OBJ_TileData = new byte[32];
 
         public PPU(Emulation Emulation)
         {
@@ -27,8 +22,12 @@ namespace Emulator
             CPU = Emulation.CPU;
 
             // Init registers
-            InitRegisters();
+            Init();
         }
+
+        #endregion
+
+        #region PPU ticks
 
         // Registers
         private bool LCD_and_PPU_enable;
@@ -45,9 +44,6 @@ namespace Emulator
         private bool Mode_0_int_select;
         private bool LYC_equal_LY;
         private byte Mode_PPU;
-        private readonly Color?[] BGP_pal = new Color?[4];
-        private readonly Color?[] OBP0_pal = new Color?[4];
-        private readonly Color?[] OBP1_pal = new Color?[4];
 
         // Check append frame
         public bool CompletedFrame;
@@ -60,8 +56,8 @@ namespace Emulator
         private bool Enable = false;
         private bool Reenable = false;
 
-        // Init all PPU registers
-        private void InitRegisters()
+        // Init
+        private void Init()
         {
             Enable = true;
             LCD_and_PPU_enable = Binary.ReadBit(IO.LCDC, 7);
@@ -80,11 +76,14 @@ namespace Emulator
             Mode_PPU = (byte)(IO.STAT & 3);
         }
 
-        // PPU IO write
+        // IO write registers
+        // ------------------
+
+        /// <summary>
+        /// LCD control
+        /// </summary>
         public void LCDC(byte b)
         {
-            IO.LCDC = b;
-
             // Handle enable screen
             if (!Binary.ReadBit(b, 7))
             {
@@ -133,9 +132,12 @@ namespace Emulator
                 Set_Mode_PPU(0);
             }*/
         }
+
+        /// <summary>
+        /// LCD status
+        /// </summary>
         public void STAT(byte b)
         {
-            IO.STAT = b;
             LYC_int_select = Binary.ReadBit(b, 6);
             Mode_2_int_select = Binary.ReadBit(b, 5);
             Mode_1_int_select = Binary.ReadBit(b, 4);
@@ -143,38 +145,51 @@ namespace Emulator
             LYC_equal_LY = Binary.ReadBit(b, 2);
             Mode_PPU = (byte)(b & 3);
         }
-        public void Set_LYC_equal_LY(bool enable)
-        {
-            Binary.SetBit(ref IO.STAT, 2, enable);
-            LYC_equal_LY = enable;
-        }
-        public void Set_Mode_PPU(byte mode)
-        {
-            IO.STAT = (byte)((IO.STAT & 0xFC) | mode);
-            Mode_PPU = mode;
-        }
 
+        /// <summary>
+        /// BG palette data
+        /// </summary>
         public void BGP(byte b)
         {
-            IO.BGP = b;
             BGP_pal[0] = ColorMap[b & 3];
             BGP_pal[1] = ColorMap[(b >> 2) & 3];
             BGP_pal[2] = ColorMap[(b >> 4) & 3];
             BGP_pal[3] = ColorMap[(b >> 6) & 3];
         }
+
+        /// <summary>
+        /// OBJ palette 0 data
+        /// </summary>
         public void OBP0(byte b)
         {
-            IO.OBP0 = b;
             OBP0_pal[1] = ColorMap[(b >> 2) & 3];
             OBP0_pal[2] = ColorMap[(b >> 4) & 3];
             OBP0_pal[3] = ColorMap[(b >> 6) & 3];
         }
+
+        /// <summary>
+        /// OBJ palette 1 data
+        /// </summary>
         public void OBP1(byte b)
         {
-            IO.OBP1 = b;
             OBP1_pal[1] = ColorMap[(b >> 2) & 3];
             OBP1_pal[2] = ColorMap[(b >> 4) & 3];
             OBP1_pal[3] = ColorMap[(b >> 6) & 3];
+        }
+
+
+        // LYC == LY
+        public void Set_LYC_equal_LY(bool enable)
+        {
+            Binary.SetBit(ref IO.STAT, 2, enable);
+            LYC_equal_LY = enable;
+        }
+
+        // Set mode
+        public void Set_Mode_PPU(byte mode)
+        {
+            IO.STAT = (byte)((IO.STAT & 0xFC) | mode);
+            Mode_PPU = mode;
         }
 
         // Execution
@@ -340,6 +355,21 @@ namespace Emulator
             }
         }
 
+        #endregion
+
+        #region Draw handle
+
+        private readonly Color[] ColorMap = new Color[4] { Color.RAYWHITE, Color.GRAY, Color.DARKGRAY, Color.BLACK };
+        private readonly Color?[] BGP_pal = new Color?[4];
+        private readonly Color?[] OBP0_pal = new Color?[4];
+        private readonly Color?[] OBP1_pal = new Color?[4];
+        private byte[] BG_TileData = new byte[16];
+        private byte[] WIN_TileData = new byte[16];
+        private byte[] OBJ_TileData = new byte[32];
+
+        // Drawing
+        // -------
+
         // Draw tile
         private static byte DrawTile(byte X, byte Y, Color?[] Pal, byte Msb, byte Lsb, byte ShiftX, bool Flip)
         {
@@ -481,10 +511,11 @@ namespace Emulator
         // --------------
 
         // DMA Transfer
+        private bool DMA_InProgress = false;
+        private short DMA_cycles = 0;
+
         public void DMATransfer(byte b)
         {
-            IO.DMA = b;
-
             DMA_InProgress = true;
             DMA_cycles = 640;
             Array.Clear(Memory.OAM);
@@ -514,5 +545,7 @@ namespace Emulator
                 }
             }
         }
+
+        #endregion
     }
 }

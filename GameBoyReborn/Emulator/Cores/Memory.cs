@@ -1,34 +1,16 @@
 ﻿// ------
 // Memory
 // ------
-using GameBoyReborn;
 
 namespace Emulator
 {
     public class Memory
     {
-        public byte[][] VideoRam_nn;
-        public byte[] ExternalRam = new byte[0x2000];
-        public byte[] WorkRam = new byte[0x1000];
-        public byte[][] WorkRamCGB;
-        public byte[] EchoRam = new byte[0x1E00];
-        public byte[] OAM = new byte[0xA0];
-        public byte[] NotUsable = new byte[0x60];
-        public byte[] HighRAM = new byte[0x7F];
-
-        public ushort selectedRomBank00 = 0;
-        public ushort selectedRomBank = 1;
-        public byte selectedRamBank = 0;
-        public byte selectedVideoBank = 0;
-        public byte selectedWorkBank = 0;
-
-        private byte[] RomBoot = new byte[256];
-        public bool booting = false;
+        #region Construct
 
         private readonly IO IO;
         private readonly Cartridge Cartridge;
 
-        // Init ram
         public Memory(Emulation Emulation)
         {
             // Relation
@@ -49,7 +31,31 @@ namespace Emulator
             WorkRamCGB[i] = new byte[0x1000];
         }
 
-        // Read memory
+        #endregion
+
+        #region Memory operating variables
+
+        // Main memory
+        public byte[][] VideoRam_nn;
+        public byte[] WorkRam = new byte[0x1000];
+        public byte[][] WorkRamCGB;
+        public byte[] EchoRam = new byte[0x1E00];
+        public byte[] OAM = new byte[0xA0];
+        public byte[] NotUsable = new byte[0x60];
+        public byte[] HighRAM = new byte[0x7F];
+
+        // CGB
+        public byte selectedVideoBank = 0;
+        public byte selectedWorkBank = 0;
+
+        // Boot
+        private byte[] RomBoot = new byte[256];
+        public bool booting = false;
+
+        #endregion
+
+        #region Memory read
+
         public byte Read(ushort at)
         {
             // Rom boot
@@ -96,7 +102,10 @@ namespace Emulator
             return 0x00;
         }
 
-        // Write memory
+        #endregion
+
+        #region Memory write
+
         public void Write(ushort at, byte b)
         {
             // Rom boot
@@ -140,7 +149,10 @@ namespace Emulator
             HighRAM[at - 0xFF80] = b;
         }
 
-        // Rom boot
+        #endregion
+
+        #region Load rom boot
+
         private void LoadRomBoot()
         {
             if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Boot/DMG_ROM.bin"))
@@ -149,5 +161,7 @@ namespace Emulator
             else
             booting = false;
         }
+
+        #endregion
     }
 }

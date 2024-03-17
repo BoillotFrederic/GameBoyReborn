@@ -51,6 +51,9 @@ namespace Emulator
                 IO.Timer = Timer;
                 IO.Cartridge = Cartridge;
 
+                // Init
+                IO.Init();
+
                 // Headers show
                 Console.WriteLine("Load rom");
                 Console.WriteLine("--------");

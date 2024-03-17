@@ -7,7 +7,8 @@ namespace Emulator
 {
     public class IO
     {
-        // Construct
+        #region Construct
+
         public PPU PPU;
         public APU APU;
         public Timer Timer;
@@ -15,84 +16,107 @@ namespace Emulator
 
         public IO(Emulation Emulation)
         {
+            // Relation
             PPU = Emulation.PPU;
             APU = Emulation.APU;
             Timer = Emulation.Timer;
             Cartridge = Emulation.Cartridge;
         }
 
+        #endregion
+
+        #region IO operating variables
+
         //JOYP	Joypad
         public byte P1 = 0xCF;
 
         // Serial transfer
-        public byte SB = 0x00;
-        public byte SC = 0x7E;
+        public byte SB,SC;
 
         // Timer
-        public byte DIV = 0xAB;
-        public byte TIMA = 0x00;
-        public byte TMA = 0x00;
-        public byte TAC = 0xF8;
+        public byte DIV, TIMA, TMA, TAC;
 
         // Interrupt
-        public byte IF = 0xE1;
-        public byte IE = 0x00;
+        public byte IF, IE;
 
         // Sound
-        public byte NR10 = 0x80;
-        public byte NR11 = 0xBF;
-        public byte NR12 = 0xF3;
-        public byte NR13 = 0xFF;
-        public byte NR14 = 0xBF;
-        public byte NR21 = 0x3F;
-        public byte NR22 = 0x00;
-        public byte NR23 = 0xFF;
-        public byte NR24 = 0xBF;
-        public byte NR30 = 0x7F;
-        public byte NR31 = 0xFF;
-        public byte NR32 = 0x9F;
-        public byte NR33 = 0xFF;
-        public byte NR34 = 0xBF;
-        public byte NR41 = 0xFF;
-        public byte NR42 = 0x00;
-        public byte NR43 = 0x00;
-        public byte NR44 = 0xBF;
-        public byte NR50 = 0x77;
-        public byte NR51 = 0xF3;
-        public byte NR52 = 0xF1;
-        public byte PCM12;
-        public byte PCM34;
+        public byte NR10, NR11, NR12, NR13, NR14, NR21, NR22, NR23, NR24, NR30, NR31, NR32, NR33, 
+                    NR34, NR41, NR42, NR43, NR44, NR50, NR51, NR52, PCM12, PCM34;
         public byte[] WaveRAM = new byte[0x10];
 
         // Graphic
-        public byte LCDC = 0x91;
-        public byte STAT = 0x81;
-        public byte SCY = 0x00;
-        public byte SCX = 0x00;
-        public byte LY = 0x91;
-        public byte LYC = 0x00;
-        public byte DMA = 0xFF;
-        public byte BGP = 0xFC;
-        public byte OBP0 = 0x00;
-        public byte OBP1 = 0x00;
-        public byte WY = 0x00;
-        public byte WX = 0x00;
-        public byte VBK = 0xFF;
-        public byte HDMA1 = 0xFF;
-        public byte HDMA2 = 0xFF;
-        public byte HDMA3 = 0xFF;
-        public byte HDMA4 = 0xFF;
-        public byte HDMA5 = 0xFF;
-        public byte BCPS_BGPI = 0xFF;
-        public byte BCPD_BGPD = 0xFF;
-        public byte OCPS_OBPI = 0xFF;
-        public byte OCPD_OBPD = 0xFF;
-        public byte OPRI;
+        public byte LCDC, STAT, SCY, SCX, LY, LYC, DMA, BGP, OBP0, OBP1, WY, WX, VBK, HDMA1, HDMA2, 
+                    HDMA3, HDMA4, HDMA5, BCPS_BGPI, BCPD_BGPD, OCPS_OBPI, OCPD_OBPD, OPRI;
 
         // Other
-        public byte KEY1 = 0xFF; // Prepare speed switch
-        public byte SVBK = 0xFF; // WRAM bank
-        public byte RP = 0xFF; // Infrared communications port
+        public byte KEY1; // Prepare speed switch
+        public byte SVBK; // WRAM bank
+        public byte RP; // Infrared communications port
+
+        /// <summary>
+        /// Init hardware registers
+        /// </summary>
+        public void Init()
+        {
+            P1 = Cartridge.PUS.P1;
+            SB = Cartridge.PUS.SB;
+            SC = Cartridge.PUS.SC;
+            DIV = Cartridge.PUS.DIV;
+            TIMA = Cartridge.PUS.TIMA;
+            TMA = Cartridge.PUS.TMA;
+            TAC = Cartridge.PUS.TAC;
+            IF = Cartridge.PUS.IF;
+            IE = Cartridge.PUS.IE;
+            NR10 = Cartridge.PUS.NR10;
+            NR11 = Cartridge.PUS.NR11;
+            NR12 = Cartridge.PUS.NR12;
+            NR13 = Cartridge.PUS.NR13;
+            NR14 = Cartridge.PUS.NR14;
+            NR21 = Cartridge.PUS.NR21;
+            NR22 = Cartridge.PUS.NR22;
+            NR23 = Cartridge.PUS.NR23;
+            NR24 = Cartridge.PUS.NR24;
+            NR30 = Cartridge.PUS.NR30;
+            NR31 = Cartridge.PUS.NR31;
+            NR32 = Cartridge.PUS.NR32;
+            NR33 = Cartridge.PUS.NR33;
+            NR34 = Cartridge.PUS.NR34;
+            NR41 = Cartridge.PUS.NR41;
+            NR42 = Cartridge.PUS.NR42;
+            NR43 = Cartridge.PUS.NR43;
+            NR44 = Cartridge.PUS.NR44;
+            NR50 = Cartridge.PUS.NR50;
+            NR51 = Cartridge.PUS.NR51;
+            NR52 = Cartridge.PUS.NR52;
+            LCDC = Cartridge.PUS.LCDC;
+            STAT = Cartridge.PUS.STAT;
+            SCY = Cartridge.PUS.SCY;
+            SCX = Cartridge.PUS.SCX;
+            LY = Cartridge.PUS.LY;
+            LYC = Cartridge.PUS.LYC;
+            DMA = Cartridge.PUS.DMA;
+            BGP = Cartridge.PUS.BGP;
+            OBP0 = Cartridge.PUS.OPB0;
+            OBP1 = Cartridge.PUS.OBP1;
+            WY = Cartridge.PUS.WY;
+            WX = Cartridge.PUS.WX;
+            VBK = Cartridge.PUS.VBK;
+            HDMA1 = Cartridge.PUS.HDMA1;
+            HDMA2 = Cartridge.PUS.HDMA2;
+            HDMA3 = Cartridge.PUS.HDMA3;
+            HDMA4 = Cartridge.PUS.HDMA4;
+            HDMA5 = Cartridge.PUS.HDMA5;
+            BCPS_BGPI = Cartridge.PUS.BCPS;
+            BCPD_BGPD = Cartridge.PUS.BCPD;
+            OCPS_OBPI = Cartridge.PUS.OCPS;
+            OCPD_OBPD = Cartridge.PUS.OCPD;
+            KEY1 = Cartridge.PUS.KEY1;
+            RP = Cartridge.PUS.RP;
+        }
+
+        #endregion
+
+        #region IO read
 
         public byte Read(byte at)
         {
@@ -173,6 +197,10 @@ namespace Emulator
             else return 0xFF;
         }
 
+        #endregion
+
+        #region IO write
+
         public void Write(byte at, byte b)
         {
             bool CGB_Support = Cartridge != null && (Cartridge.CGB_Flag != 0x80 || Cartridge.CGB_Flag != 0xC0);
@@ -188,31 +216,31 @@ namespace Emulator
             else if (at == 0x04) Timer.DIV(b);
             else if (at == 0x05) TIMA = b;
             else if (at == 0x06) TMA = b;
-            else if (at == 0x07) Timer.TAC((byte)(b | 0xF8));
+            else if (at == 0x07) { b = (byte)(b | 0xF8); TAC = b;  Timer.TAC(b); }
 
             // Interrupt
             else if (at == 0x0F) IF = (byte)(b | 0xE0);
             else if (at == 0xFF) IE = b;
 
             // Sound
-            else if (at == 0x10) APU.CH1_WriteNR10((byte)(b | 0x80));
-            else if (at == 0x11) APU.CH1_WriteNR11(b);
-            else if (at == 0x12) APU.CH1_WriteNR12(b);
-            else if (at == 0x13) APU.CH1_WriteNR13(b);
-            else if (at == 0x14) APU.CH1_WriteNR14(b);
-            else if (at == 0x16) APU.CH2_WriteNR21(b);
-            else if (at == 0x17) APU.CH2_WriteNR22(b);
-            else if (at == 0x18) APU.CH2_WriteNR23(b);
-            else if (at == 0x19) APU.CH2_WriteNR24(b);
-            else if (at == 0x1A) APU.CH3_WriteNR30((byte)(b | 0x7F));
-            else if (at == 0x1B) APU.CH3_WriteNR31(b);
-            else if (at == 0x1C) APU.CH3_WriteNR32((byte)(b | 0x9F));
-            else if (at == 0x1D) APU.CH3_WriteNR33(b);
-            else if (at == 0x1E) APU.CH3_WriteNR34(b);
-            else if (at == 0x20) APU.CH4_WriteNR41((byte)(b | 0xC0));
-            else if (at == 0x21) APU.CH4_WriteNR42(b);
-            else if (at == 0x22) APU.CH4_WriteNR43(b);
-            else if (at == 0x23) APU.CH4_WriteNR44((byte)(b | 0x3F));
+            else if (at == 0x10) { b = (byte)(b | 0x80); NR10 = b; APU.NR10(b); }
+            else if (at == 0x11) { NR11 = b; APU.NR11(b); }
+            else if (at == 0x12) { NR12 = b; APU.NR12(b); }
+            else if (at == 0x13) { NR13 = b; APU.NR13(b); }
+            else if (at == 0x14) { NR14 = b; APU.NR14(b); }
+            else if (at == 0x16) { NR21 = b; APU.NR21(b); }
+            else if (at == 0x17) { NR22 = b; APU.NR22(b); }
+            else if (at == 0x18) { NR23 = b; APU.NR23(b); }
+            else if (at == 0x19) { NR24 = b; APU.NR24(b); }
+            else if (at == 0x1A) { b = (byte)(b | 0x7F); NR30 = b; APU.NR30(b); }
+            else if (at == 0x1B) { NR31 = b; APU.NR31(b); }
+            else if (at == 0x1C) { b = (byte)(b | 0x9F); NR32 = b; APU.NR32(b); }
+            else if (at == 0x1D) { NR33 = b; APU.NR33(b); }
+            else if (at == 0x1E) { NR34 = b; APU.NR34(b); }
+            else if (at == 0x20) { b = (byte)(b | 0xC0); NR41 = b; APU.NR41(b); }
+            else if (at == 0x21) { NR42 = b; APU.NR42(b); }
+            else if (at == 0x22) { NR43 = b; APU.NR43(b); }
+            else if (at == 0x23) { b = (byte)(b | 0x3F); NR44 = b; APU.NR44(b); }
             else if (at == 0x24) NR50 = b;
             else if (at == 0x25) NR51 = b;
             else if (at == 0x26) NR52 = (byte)(b | 0x70);
@@ -221,16 +249,16 @@ namespace Emulator
             else if (at >= 0x30 && at <= 0x3F) WaveRAM[at - 0x30] = b;
 
             // Graphic
-            else if (at == 0x40) PPU.LCDC(b);
-            else if (at == 0x41) PPU.STAT((byte)(b | 0x80));
+            else if (at == 0x40) { LCDC = b; PPU.LCDC(b); }
+            else if (at == 0x41) { b = (byte)(b | 0x80); STAT = b; PPU.STAT(b); }
             else if (at == 0x42) SCY = b;
             else if (at == 0x43) SCX = b;
             else if (at == 0x44) LY = b;
             else if (at == 0x45) LYC = b;
-            else if (at == 0x46) PPU.DMATransfer(b);
-            else if (at == 0x47) PPU.BGP(b);
-            else if (at == 0x48) PPU.OBP0(b);
-            else if (at == 0x49) PPU.OBP1(b);
+            else if (at == 0x46) { DMA = b; PPU.DMATransfer(b); }
+            else if (at == 0x47) { BGP = b; PPU.BGP(b); }
+            else if (at == 0x48) { OBP0 = b; PPU.OBP0(b); }
+            else if (at == 0x49) { OBP1 = b; PPU.OBP1(b); }
             else if (at == 0x4A) WY = b;
             else if (at == 0x4B) WX = b;
             else if (at == 0x4F) VBK = (byte)(CGB_Support ? 0xFF : b);
@@ -250,5 +278,7 @@ namespace Emulator
             else if (at == 0x56) RP = (byte)(CGB_Support ? 0xFF : b);
             else if (at == 0x70) SVBK = (byte)(CGB_Support ? 0xFF : b);
         }
+
+        #endregion
     }
 }

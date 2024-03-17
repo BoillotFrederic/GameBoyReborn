@@ -3,14 +3,12 @@
 // ---------------------
 using GameBoyReborn;
 
-#pragma warning disable CS0414
-#pragma warning disable CS0169
-
 namespace Emulator
 {
     public class APU
     {
-        // Construct
+        #region Construct
+
         private readonly IO IO;
 
         public APU(Emulation Emulation)
@@ -22,6 +20,74 @@ namespace Emulator
             Noise7Bit = GenerateNoise(32767, 7);
             Noise15Bit = GenerateNoise(32767, 15);
         }
+
+        #endregion
+
+        #region APU ticks
+
+        private bool OutputRight = false;
+
+        /// <summary>
+        /// Execution (APU ticks)
+        /// </summary>
+        public unsafe void Execution(short* buffer, uint frames)
+        {
+            if (Binary.ReadBit(IO.NR52, 7))
+            {
+                for (ushort indexBuffer = 0; indexBuffer < frames * 2; indexBuffer++)
+                {
+                    // Get channels
+                    // ------------
+
+                    short CH1_Value = CH1_GetValue();
+                    short CH2_Value = CH2_GetValue();
+                    short CH3_Value = CH3_GetValue();
+                    short CH4_Value = CH4_GetValue();
+
+                    // Output
+                    // ------
+
+                    bool VIN;
+                    double volume;
+
+                    // Right
+                    if (OutputRight)
+                    {
+                        CH1_Value = (short)(Binary.ReadBit(IO.NR51, 0) ? CH1_Value : 0);
+                        CH2_Value = (short)(Binary.ReadBit(IO.NR51, 1) ? CH2_Value : 0);
+                        CH3_Value = (short)(Binary.ReadBit(IO.NR51, 2) ? CH3_Value : 0);
+                        CH4_Value = (short)(Binary.ReadBit(IO.NR51, 3) ? CH4_Value : 0);
+
+                        VIN = Binary.ReadBit(IO.NR50, 3);
+                        volume = (byte)(((IO.NR50 & 7) + 1) / 8);
+
+                        OutputRight = false;
+                    }
+
+                    // Left
+                    else
+                    {
+                        CH1_Value = (short)(Binary.ReadBit(IO.NR51, 4) ? CH1_Value : 0);
+                        CH2_Value = (short)(Binary.ReadBit(IO.NR51, 5) ? CH2_Value : 0);
+                        CH3_Value = (short)(Binary.ReadBit(IO.NR51, 6) ? CH3_Value : 0);
+                        CH4_Value = (short)(Binary.ReadBit(IO.NR51, 7) ? CH4_Value : 0);
+
+                        VIN = Binary.ReadBit(IO.NR50, 7);
+                        volume = (byte)((((IO.NR50) >> 4 & 7) + 1) / 8);
+
+                        OutputRight = true;
+                    }
+
+                    // Final value
+                    short value = (short)((CH1_Value + CH2_Value + CH3_Value + CH4_Value) / 4);
+                    buffer[indexBuffer] = (short)(VIN ? value * volume : value);
+                }
+            }
+        }
+
+        #endregion
+
+        #region APU operating variables
 
         // Precalculations
         private const int AudioFrequency = Audio.Frequency * 2;
@@ -36,70 +102,19 @@ namespace Emulator
         private bool DAC3 = false;
         private bool DAC4 = false;
 
-        private readonly double[] WaveDutyCycle = new double[4]{ 12.5f/100.0f*WaveRef, 25.0f/100.0f*WaveRef, 50.0f/100.0f*WaveRef, 75.0f/100.0f*WaveRef };
+        // Wave duty
+        private readonly double[] WaveDutyCycle = new double[4] { 12.5f / 100.0f * WaveRef, 25.0f / 100.0f * WaveRef, 50.0f / 100.0f * WaveRef, 75.0f / 100.0f * WaveRef };
 
         // Volume
         private const double VolumeRatio = 32767.0f / 15.0f;
 
-        // Output
-        private bool OutputRight = false;
-
-        /// <summary>
-        /// Execution (APU ticks)
-        /// </summary>
-        public unsafe void Execution(short* buffer, uint frames)
-        {
-            if (Binary.ReadBit(IO.NR52, 7))
-            {
-                for (ushort indexBuffer = 0; indexBuffer < frames * 2; indexBuffer++)
-                {
-                    // Get channels
-                    short CH1_Value = CH1_GetValue();
-                    short CH2_Value = CH2_GetValue();
-                    short CH3_Value = CH3_GetValue();
-                    short CH4_Value = CH4_GetValue();
-
-                    // Output right
-                    if (OutputRight)
-                    {
-                        CH1_Value = (short)(Binary.ReadBit(IO.NR51, 0) ? CH1_Value : 0);
-                        CH2_Value = (short)(Binary.ReadBit(IO.NR51, 1) ? CH2_Value : 0);
-                        CH3_Value = (short)(Binary.ReadBit(IO.NR51, 2) ? CH3_Value : 0);
-                        CH4_Value = (short)(Binary.ReadBit(IO.NR51, 3) ? CH4_Value : 0);
-
-                        short value = (short)((CH1_Value + CH2_Value + CH3_Value + CH4_Value) / 4);
-                        bool VIN_right = Binary.ReadBit(IO.NR50, 3);
-                        double volumeRight = (byte)(((IO.NR50 & 7) + 1) / 8);
-
-                        value = (short)(VIN_right ? value * volumeRight : value);
-
-                        buffer[indexBuffer] = value;
-                        OutputRight = false;
-                    }
-                    // Output left
-                    else
-                    {
-                        CH1_Value = (short)(Binary.ReadBit(IO.NR51, 4) ? CH1_Value : 0);
-                        CH2_Value = (short)(Binary.ReadBit(IO.NR51, 5) ? CH2_Value : 0);
-                        CH3_Value = (short)(Binary.ReadBit(IO.NR51, 6) ? CH3_Value : 0);
-                        CH4_Value = (short)(Binary.ReadBit(IO.NR51, 7) ? CH4_Value : 0);
-
-                        short value = (short)((CH1_Value + CH2_Value + CH3_Value + CH4_Value) / 4);
-                        bool VIN_right = Binary.ReadBit(IO.NR50, 7);
-                        double volumeRight = (byte)((((IO.NR50) >> 4 & 7) + 1) / 8);
-
-                        value = (short)(VIN_right ? value * volumeRight : value);
-
-                        buffer[indexBuffer] = value;
-                        OutputRight = true;
-                    }
-                }
-            }
-        }
+        #endregion
 
         #region Channel 1
 
-        // Channel 1 params
+        // Registers
+        // ---------
+
         private ushort CH1_IndexSample = 0;
         private byte CH1_Pace = 0;
         private bool CH1_Direction = false;
@@ -119,44 +134,57 @@ namespace Emulator
         private ushort CH1_Period = 0x7FF;
         private bool CH1_LengthEnable = false;
 
-        // IO write
-        public void CH1_WriteNR10(byte b)
-        {
-            IO.NR10 = b;
+        // IO write registers
+        // ------------------
 
+        /// <summary>
+        /// Channel 1 sweep
+        /// </summary>
+        public void NR10(byte b)
+        {
             CH1_Pace = (byte)(b >> 4 & 0x07);
             CH1_Direction = Binary.ReadBit(b, 3);
             CH1_IndividualStep = (byte)(b & 0x07);
             CH1_SweepTime = CH1_Pace * (1.0f / 128.0f);
         }
-        public void CH1_WriteNR11(byte b)
-        {
-            IO.NR11 = b;
 
+        /// <summary>
+        /// Channel 1 length timer and duty cycle
+        /// </summary>
+        public void NR11(byte b)
+        {
             CH1_InitialLengthTimer = (byte)(b & 0x3F);
             CH1_WaveForm = (byte)(b >> 6 & 3);
 
             if (CH1_LengthEnable)
             CH1_WaveLength = (64 - CH1_InitialLengthTimer) * (1.0f / 256.0f);
         }
-        public void CH1_WriteNR12(byte b)
-        {
-            IO.NR12 = b;
 
+        /// <summary>
+        /// Channel 1 volume and envelope
+        /// </summary>
+        public void NR12(byte b)
+        {
             CH1_InitialVolume = (byte)(b >> 4 & 0x0F);
             CH1_EnvDir = Binary.ReadBit(b, 3);
             CH1_SweepPace = (byte)(b & 7);
             CH1_LengthVolume = CH1_SweepPace * (1.0f / 64.0f);
         }
-        public void CH1_WriteNR13(byte b)
+
+        /// <summary>
+        /// Channel 1 period low
+        /// </summary>
+        public void NR13(byte b)
         {
-            IO.NR13 = CH1_LowPeriod = b;
+            CH1_LowPeriod = b;
             CH1_Period = (ushort)(CH1_HighPeriod << 8 | CH1_LowPeriod);
         }
-        public void CH1_WriteNR14(byte b)
-        {
-            IO.NR14 = b;
 
+        /// <summary>
+        /// Channel 1 period high and control
+        /// </summary>
+        public void NR14(byte b)
+        {
             CH1_HighPeriod = (byte)(b & 7);
             CH1_Period = (ushort)(CH1_HighPeriod << 8 | CH1_LowPeriod);
             CH1_LengthEnable = Binary.ReadBit(b, 6);
@@ -170,6 +198,8 @@ namespace Emulator
         }
 
         // Get value for x position in buffer
+        // ----------------------------------
+
         private short CH1_GetValue()
         {
             if (DAC1)
@@ -245,7 +275,6 @@ namespace Emulator
 
                 int Volume = (int)Math.Round(CH1_InitialVolume * VolumeRatio);
 
-
                 // Apply frequency
                 CH1_IndexSample++;
 
@@ -266,7 +295,9 @@ namespace Emulator
 
         #region Channel 2
 
-        // Channel 2 params
+        // Registers
+        // ---------
+
         private ushort CH2_IndexSample = 0;
         private byte CH2_WaveForm = 0;
         private byte CH2_InitialLengthTimer = 0x3F;
@@ -282,35 +313,46 @@ namespace Emulator
         private ushort CH2_Period = 0x7FF;
         private bool CH2_LengthEnable = false;
 
-        // IO Write
-        public void CH2_WriteNR21(byte b)
-        {
-            IO.NR21 = b;
+        // IO write registers
+        // ------------------
 
+        /// <summary>
+        /// Channel 2 length timer and duty cycle
+        /// </summary>
+        public void NR21(byte b)
+        {
             CH2_InitialLengthTimer = (byte)(b & 0x3F);
             CH2_WaveForm = (byte)(b >> 6 & 3);
 
             if (CH2_LengthEnable)
             CH2_WaveLength = (64 - CH2_InitialLengthTimer) * (1.0f / 256.0f);
         }
-        public void CH2_WriteNR22(byte b)
-        {
-            IO.NR22 = b;
 
+        /// <summary>
+        /// Channel 2 volume and envelope
+        /// </summary>
+        public void NR22(byte b)
+        {
             CH2_InitialVolume = (byte)(b >> 4 & 0x0F);
             CH2_EnvDir = Binary.ReadBit(b, 3);
             CH2_SweepPace = (byte)(b & 7);
             CH2_LengthVolume = CH2_SweepPace * (1.0f / 64.0f);
         }
-        public void CH2_WriteNR23(byte b)
+
+        /// <summary>
+        /// Channel 2 period low
+        /// </summary>
+        public void NR23(byte b)
         {
-            IO.NR23 = CH2_LowPeriod = b;
+            CH2_LowPeriod = b;
             CH2_Period = (ushort)(CH2_HighPeriod << 8 | CH2_LowPeriod);
         }
-        public void CH2_WriteNR24(byte b)
-        {
-            IO.NR24 = b;
 
+        /// <summary>
+        /// Channel 2 period high and control
+        /// </summary>
+        public void NR24(byte b)
+        {
             CH2_HighPeriod = (byte)(b & 7);
             CH2_Period = (ushort)(CH2_HighPeriod << 8 | CH2_LowPeriod);
             CH2_LengthEnable = Binary.ReadBit(b, 6);
@@ -324,6 +366,8 @@ namespace Emulator
         }
 
         // Get value for x position in buffer
+        // ----------------------------------
+
         private short CH2_GetValue()
         {
             if (DAC2)
@@ -373,7 +417,6 @@ namespace Emulator
 
                 int Volume = (int)Math.Round(CH2_InitialVolume * VolumeRatio);
 
-
                 // Apply frequency
                 CH2_IndexSample++;
 
@@ -394,7 +437,9 @@ namespace Emulator
 
         #region Channel 3
 
-        // Channel 3 params
+        // Registers
+        // ---------
+
         private ushort CH3_IndexSample = 0;
         public bool CH3_DAC_Enable = false;
         private byte CH3_InitialLengthTimer = 0xFF;
@@ -405,36 +450,48 @@ namespace Emulator
         private ushort CH3_Period = 0;
         private bool CH3_LengthEnable = false;
 
-        // IO Write
-        public void CH3_WriteNR30(byte b)
-        {
-            IO.NR30 = b;
+        // IO write registers
+        // ------------------
 
+        /// <summary>
+        /// Channel 3 DAC enable
+        /// </summary>
+        public void NR30(byte b)
+        {
             CH3_DAC_Enable = Binary.ReadBit(b, 7);
         }
 
-        public void CH3_WriteNR31(byte b)
+        /// <summary>
+        /// Channel 3 length timer
+        /// </summary>
+        public void NR31(byte b)
         {
-            IO.NR31 = CH3_InitialLengthTimer = b;
+            CH3_InitialLengthTimer = b;
             CH3_WaveLength = (256 - CH3_InitialLengthTimer) * (1.0f / 256.0f);
         }
 
-        public void CH3_WriteNR32(byte b)
+        /// <summary>
+        /// Channel 3 output level
+        /// </summary>
+        public void NR32(byte b)
         {
-            IO.NR32 = b;
             CH3_OutputLevel = (byte)((b >> 5) & 3);
         }
 
-        public void CH3_WriteNR33(byte b)
+        /// <summary>
+        /// Channel 3 period low
+        /// </summary>
+        public void NR33(byte b)
         {
-            IO.NR33 = CH3_LowPeriod = b;
+            CH3_LowPeriod = b;
             CH3_Period = (ushort)(CH3_HighPeriod << 8 | CH3_LowPeriod);
         }
 
-        public void CH3_WriteNR34(byte b)
+        /// <summary>
+        /// Channel 3 period high and control
+        /// </summary>
+        public void NR34(byte b)
         {
-            IO.NR34 = b;
-
             CH3_HighPeriod = (byte)(b & 7);
             CH3_Period = (ushort)(CH3_HighPeriod << 8 | CH3_LowPeriod);
             CH3_LengthEnable = Binary.ReadBit(b, 6);
@@ -447,6 +504,8 @@ namespace Emulator
         }
 
         // Get value for x position in buffer
+        // ----------------------------------
+
         private short CH3_GetValue()
         {
             if (DAC3 && CH3_DAC_Enable)
@@ -493,7 +552,33 @@ namespace Emulator
 
         #region Channel 4
 
-        // Channel 4 params
+        // Noise sound
+        // -----------
+
+        private readonly short[] Noise7Bit = new short[44100 * 2];
+        private readonly short[] Noise15Bit = new short[44100 * 2];
+
+        private static short[] GenerateNoise(int amplitude, int bitDepth)
+        {
+            Random random = new();
+            short[] noise = new short[44100 * 2];
+
+            for (int i = 0; i < noise.Length; i++)
+            {
+                int sample = 0;
+
+                for (int j = 0; j < bitDepth; j++)
+                    sample |= random.Next(2) << j;
+
+                noise[i] = (short)(sample * amplitude / Math.Pow(2, bitDepth - 1));
+            }
+
+            return noise;
+        }
+
+        // Registers
+        // ---------
+
         private ushort CH4_IndexSample = 0;
         private byte CH4_InitialLengthTimer = 0x3F;
         private double CH4_WaveLength = 0.00390625;
@@ -509,40 +594,23 @@ namespace Emulator
         private bool CH4_EnvVolumeEnable = false;
         private bool CH4_LengthEnable = false;
 
-        // Noise sound
-        private readonly short[] Noise7Bit = new short[44100 * 2];
-        private readonly short[] Noise15Bit = new short[44100 * 2];
+        // IO write registers
+        // ------------------
 
-        private static short[] GenerateNoise(int amplitude, int bitDepth)
+        /// <summary>
+        /// Channel 4 length timer
+        /// </summary>
+        public void NR41(byte b)
         {
-            Random random = new();
-            short[] noise = new short[44100 * 2];
-
-            for (int i = 0; i < noise.Length; i++)
-            {
-                int sample = 0;
-
-                for (int j = 0; j < bitDepth; j++)
-                sample |= random.Next(2) << j;
-
-                noise[i] = (short)(sample * amplitude / Math.Pow(2, bitDepth - 1));
-            }
-
-            return noise;
-        }
-
-        // IO Write
-        public void CH4_WriteNR41(byte b)
-        {
-            IO.NR41 = b;
             CH4_InitialLengthTimer = (byte)(b & 0x3F);
             CH4_WaveLength = (64 - CH4_InitialLengthTimer) * (1.0f / 256.0f);
         }
 
-        public void CH4_WriteNR42(byte b)
+        /// <summary>
+        /// Channel 4 volume and envelope
+        /// </summary>
+        public void NR42(byte b)
         {
-            IO.NR42 = b;
-
             CH4_InitialVolume = (byte)(b >> 4 & 0x0F);
             CH4_EnvDir = Binary.ReadBit(b, 3);
             CH4_SweepPace = (byte)(b & 7);
@@ -550,10 +618,11 @@ namespace Emulator
             CH4_EnvVolumeEnable = CH4_InitialVolume != 0 && CH4_SweepPace != 0;
         }
 
-        public void CH4_WriteNR43(byte b)
+        /// <summary>
+        /// Channel 4 frequency and randomness
+        /// </summary>
+        public void NR43(byte b)
         {
-            IO.NR43 = b;
-
             CH4_ClockShift = (byte)(b >> 4);
             CH4_LFSRwidth = Binary.ReadBit(b, 3);
             CH4_ClockDivider = (byte)(b & 7);
@@ -562,9 +631,11 @@ namespace Emulator
             CH4_Frequency /= AudioFrequency;
         }
 
-        public void CH4_WriteNR44(byte b)
+        /// <summary>
+        /// Channel 4 control
+        /// </summary>
+        public void NR44(byte b)
         {
-            IO.NR44 = b;
             CH4_LengthEnable = Binary.ReadBit(b, 6);
 
             CH4_Frequency = 262144.0f / ((CH4_ClockDivider == 0 ? 0.5f : CH4_ClockDivider) * Math.Pow(2, CH4_ClockShift));
@@ -577,8 +648,9 @@ namespace Emulator
             }
         }
 
-
         // Get value for x position in buffer
+        // ----------------------------------
+
         private short CH4_GetValue()
         {
             if (DAC4)
@@ -641,7 +713,7 @@ namespace Emulator
                 if (CH4_IndexSample >= Sample)
                 CH4_IndexSample = 0;
 
-                double x = CH4_IndexSample * (44100.0f * 2) / Sample;
+                double x = CH4_IndexSample * (double)AudioFrequency / Sample;
 
                 if (!CH4_LFSRwidth)
                 return (short)(Noise7Bit[(int)x] * Volume * 4.0f);

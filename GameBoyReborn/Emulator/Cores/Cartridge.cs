@@ -14,6 +14,9 @@ namespace Emulator
     {
         #region Headers
 
+        // Power up sequence
+        public PUS PUS;
+
         // Attribute of Cartridge
         private readonly string FileName;
         private readonly byte[] RomData;
@@ -33,7 +36,7 @@ namespace Emulator
         public string DestinationCode;
         public byte OldLicenseeCode;
         private byte MaskRomVersionNumber;
-        private byte HeaderChecksum;
+        private static byte HeaderChecksum;
         private ushort GlobalChecksum;
         public bool HeaderChecksumTest;
         public bool GlobalChecksumTest;
@@ -96,6 +99,9 @@ namespace Emulator
 
             HeaderChecksumTest = cs == HeaderChecksum;
             //GlobalChecksumTest = RomData.Sum(x => (int)x) == GlobalChecksum;
+
+            // Set power up sequence (DMG0=0, DMG=1, MGB=2, SGB=3, SGB2=4, CGB=5, AGB=6)
+            PUS = new(1, HeaderChecksum != 0);
 
             // Check if MBC1M
             if((Type == 0x01 || Type == 0x02 || Type == 0x03) && RomBankCount > 0x10)
@@ -351,275 +357,397 @@ namespace Emulator
 
         #region Memory bank controller
 
-        // Rom/ram set
-        private ushort selectedRomBank00 = 0;
-        private ushort selectedRomBank = 1;
-        public byte selectedRamBank = 0;
+        #region External ram handle
 
-        // Delegate
-        public delegate byte ReadDelegate(ushort at);
-        public ReadDelegate Read;
-        public delegate void WriteDelegate(ushort at, byte b);
-        public WriteDelegate Write;
-
-        // External ram handle
+        // External ram
         public byte[][] ExternalRam;
-        private void LoadExternalRam()
-        {
-            string pathExternalRam = AppDomain.CurrentDomain.BaseDirectory + "ExternalRam/" + FileName + ".er";
-            bool checkExternalRam = File.Exists(pathExternalRam);
-            byte[] ? bytesExternalRam = checkExternalRam ? File.ReadAllBytes(pathExternalRam) : null;
 
-            ExternalRam = new byte[RamBankCount][];
-
-            for (byte i = 0; i < RamBankCount; i++)
-            {
-                ExternalRam[i] = new byte[0x2000];
-
-                if (checkExternalRam && bytesExternalRam != null)
-                Array.Copy(bytesExternalRam, 0x2000 * i, ExternalRam[i], 0, 0x2000);
-            }
-        }
-        public void SaveExternalRam()
-        {
-            if (Regex.Match(TypeDescription, "BATTERY", RegexOptions.IgnoreCase).Success)
+            /// <summary>
+            /// Load external ram if it exist (directory = ExternalRam)
+            /// </summary>
+            private void LoadExternalRam()
             {
                 string pathExternalRam = AppDomain.CurrentDomain.BaseDirectory + "ExternalRam/" + FileName + ".er";
-                byte[] externalRamBytes = new byte[0x2000 * RamBankCount];
+                bool checkExternalRam = File.Exists(pathExternalRam);
+                byte[]? bytesExternalRam = checkExternalRam ? File.ReadAllBytes(pathExternalRam) : null;
+
+                ExternalRam = new byte[RamBankCount][];
 
                 for (byte i = 0; i < RamBankCount; i++)
-                Array.Copy(ExternalRam[i], 0, externalRamBytes, 0x2000 * i, 0x2000);
+                {
+                    ExternalRam[i] = new byte[0x2000];
 
-                File.WriteAllBytes(pathExternalRam, externalRamBytes);
+                    if (checkExternalRam && bytesExternalRam != null)
+                    Array.Copy(bytesExternalRam, 0x2000 * i, ExternalRam[i], 0, 0x2000);
+                }
             }
-        }
 
-        // MBCs handle
-        private void MBCs()
-        {
-            // Set MBC
-            switch (Type)
+            /// <summary>
+            /// Save external ram (directory = ExternalRam)
+            /// </summary>
+            public void SaveExternalRam()
             {
-                // No MBC
-                // ------
-                case 0x00: case 0x08: case 0x09:
+                if (Regex.Match(TypeDescription, "BATTERY", RegexOptions.IgnoreCase).Success)
                 {
-                    Read = NO_MBC_read;
-                    Write = NO_MBC_write;
-                    break;
-                }
+                    string pathExternalRam = AppDomain.CurrentDomain.BaseDirectory + "ExternalRam/" + FileName + ".er";
+                    byte[] externalRamBytes = new byte[0x2000 * RamBankCount];
 
-                // MBC1
-                // ----
-                case 0x01: case 0x02: case 0x03:
-                {
-                    Read = MBC1_read;
-                    Write = MBC1_write;
-                    break;
-                }
+                    for (byte i = 0; i < RamBankCount; i++)
+                    Array.Copy(ExternalRam[i], 0, externalRamBytes, 0x2000 * i, 0x2000);
 
-                // MBC2
-                // ----
-                case 0x05: case 0x06:
-                {
-
-                    break;
-                }
-
-                // MBC3
-                // ----
-                case 0x0F: case 0x10: case 0x11: case 0x12: case 0x13:
-                {
-
-                    break;
-                }
-
-                // MBC5
-                // ----
-                case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E:
-                {
-
-                    break;
-                }
-
-                // MBC6
-                // ----
-                case 0x20:
-                {
-
-                    break;
-                }
-
-                // MBC7
-                // ----
-                case 0x22:
-                {
-
-                    break;
-                }
-
-                // MMM01
-                // -----
-                case 0x0B: case 0x0C: case 0x0D:
-                {
-
-                    break;
-                }
-
-                // HuC1
-                // ----
-                case 0xFF:
-                {
-
-                    break;
-                }
-
-                // HuC3
-                // ----
-                case 0xFE:
-                {
-
-                    break;
-                }
-
-                // Other
-                // -----
-                default:
-                {
-                    Read = NO_MBC_read;
-                    Write = NO_MBC_write;
-                    break;
+                    File.WriteAllBytes(pathExternalRam, externalRamBytes);
                 }
             }
-        }
 
-        // No MBC
-        // ------
+            #endregion
 
-        // Read
-        private byte NO_MBC_read(ushort at)
-        {
-            // Rom bank 00
-            if (at >= 0 && at <= 0x3FFF)
-            return RomData[at];
+            #region MBCs handle
 
-            // Rom bank 01~NN
-            else if (at >= 0x4000 && at <= 0x7FFF)
-            return RomData[at];
+            // Delegate
+            public delegate byte ReadDelegate(ushort at);
+            public ReadDelegate Read;
+            public delegate void WriteDelegate(ushort at, byte b);
+            public WriteDelegate Write;
 
-            // External RAM
-            else
-            return ExternalRam[0][at - 0xA000];
-        }
-
-        // Write
-        private void NO_MBC_write(ushort at, byte b)
-        {
-        }
-
-        // MBC 1
-        // -----
-
-        // MBCs Registers
-        private byte MBC1_LowRegister = 0;
-        private byte MBC1_HighRegister = 0;
-        private bool MBC1_RamEnable = false;
-        private bool MBC1_BankingModeSelect = false;
-
-        // MBC1 or MBC1M
-        private readonly byte MBC1_M_Shift = 5;
-        private readonly byte MBC1_M_LowRegisterMask = 0x1F;
-
-        // Read
-        private byte MBC1_read(ushort at)
-        {
-            // Rom bank 00
-            if (at >= 0 && at <= 0x3FFF)
+            /// <summary>
+            /// MBC type selection
+            /// </summary>
+            private void MBCs()
             {
-                int atInBank = 0x4000 * selectedRomBank00 + at;
-                return RomData[atInBank];
-            }
-
-            // Rom bank 01~NN
-            else if (at >= 0x4000 && at <= 0x7FFF)
-            {
-                // 00
-                if (MBC1_LowRegister == 0)
-                MBC1_LowRegister |= 1;
-
-                // Set
-                selectedRomBank = (byte)((MBC1_HighRegister << MBC1_M_Shift) | (MBC1_LowRegister & MBC1_M_LowRegisterMask));
-
-                // Max banks
-                selectedRomBank = (byte)(selectedRomBank & RomBankMask);
-
-                int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
-
-                if (RomData.Length > atInBank)
-                return RomData[atInBank];
-
-                else
-                return 0;
-            }
-
-            // External RAM
-            else
-            {
-                if (MBC1_RamEnable)
-                return ExternalRam[selectedRamBank][at - 0xA000];
-                else
-                return 0xFF;
-            }
-        }
-
-        // Write
-        private void MBC1_write(ushort at, byte b)
-        {
-            // Ram enable
-            if (at >= 0 && at <= 0x1FFF)
-            MBC1_RamEnable = (b & 0x0F) == 0x0A;
-
-            // ROM Bank Number - Low bits
-            else if (at >= 0x2000 && at <= 0x3FFF)
-            MBC1_LowRegister = (byte)(b & 0x1F);
-
-            // ROM Bank Number - High bits
-            else if (at >= 0x4000 && at <= 0x5FFF)
-            {
-                if (!MBC1_BankingModeSelect)
+                // Set MBC
+                switch (Type)
                 {
-                    MBC1_HighRegister = (byte)(b & 3);
+                    // No MBC
+                    // ------
+                    case 0x00: case 0x08: case 0x09:
+                    {
+                        Read = NO_MBC_read;
+                        Write = NO_MBC_write;
+                        break;
+                    }
 
-                    // RomBank00 and RamBank = 0
-                    selectedRomBank00 = 0;
-                    selectedRamBank = 0;
+                    // MBC1
+                    // ----
+                    case 0x01: case 0x02: case 0x03:
+                    {
+                        Read = MBC1_read;
+                        Write = MBC1_write;
+                        break;
+                    }
+
+                    // MBC2
+                    // ----
+                    case 0x05: case 0x06:
+                    {
+
+                        break;
+                    }
+
+                    // MBC3
+                    // ----
+                    case 0x0F: case 0x10: case 0x11: case 0x12: case 0x13:
+                    {
+
+                        break;
+                    }
+
+                    // MBC5
+                    // ----
+                    case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E:
+                    {
+
+                        break;
+                    }
+
+                    // MBC6
+                    // ----
+                    case 0x20:
+                    {
+
+                        break;
+                    }
+
+                    // MBC7
+                    // ----
+                    case 0x22:
+                    {
+
+                        break;
+                    }
+
+                    // MMM01
+                    // -----
+                    case 0x0B: case 0x0C: case 0x0D:
+                    {
+
+                        break;
+                    }
+
+                    // HuC1
+                    // ----
+                    case 0xFF:
+                    {
+
+                        break;
+                    }
+
+                    // HuC3
+                    // ----
+                    case 0xFE:
+                    {
+
+                        break;
+                    }
+
+                    // Other
+                    // -----
+                    default:
+                    {
+                        Read = NO_MBC_read;
+                        Write = NO_MBC_write;
+                        break;
+                    }
+                }
+            }
+
+            #endregion
+
+            #region MBCs operating variables
+
+            // Rom/ram set
+            private ushort selectedRomBank00 = 0;
+            private ushort selectedRomBank = 1;
+            public byte selectedRamBank = 0;
+
+            #endregion
+
+            #region MBCs read and write
+
+                #region No MBC
+
+                // Read
+                private byte NO_MBC_read(ushort at)
+                {
+                    // Rom bank 00
+                    if (at >= 0 && at <= 0x3FFF)
+                    return RomData[at];
+
+                    // Rom bank 01~NN
+                    else if (at >= 0x4000 && at <= 0x7FFF)
+                    return RomData[at];
+
+                    // External RAM
+                    else
+                    return ExternalRam[0][at - 0xA000];
                 }
 
-                else
+                // Write
+                private void NO_MBC_write(ushort at, byte b)
                 {
-                    // Set RomBank00
-                    selectedRomBank00 = (byte)((b & 3) << MBC1_M_Shift);
-
-                    // Max banks
-                    selectedRomBank00 = (byte)(selectedRomBank00 & RomBankMask);
-
-                    MBC1_HighRegister = (byte)(selectedRomBank00 >> MBC1_M_Shift);
-
-                    // Set RamBank
-                    selectedRamBank = (byte)(b & 3);
-                    selectedRamBank = (byte)(selectedRamBank & RamBankMask);
                 }
-            }
 
-            // Banking Mode Select
-            else if (at >= 0x6000 && at <= 0x7FFF)
-            MBC1_BankingModeSelect = Binary.ReadBit(b, 0);
+                #endregion
 
-            // Exteral ram
-            else if (at >= 0xA000 && at <= 0xBFFF && MBC1_RamEnable)
-            ExternalRam[selectedRamBank][at - 0xA000] = b;
-        }
+                #region MBC1
+
+                // MBCs Registers
+                private byte MBC1_LowRegister = 0;
+                private byte MBC1_HighRegister = 0;
+                private bool MBC1_RamEnable = false;
+                private bool MBC1_BankingModeSelect = false;
+
+                // MBC1 or MBC1M
+                private readonly byte MBC1_M_Shift = 5;
+                private readonly byte MBC1_M_LowRegisterMask = 0x1F;
+
+                // Read
+                private byte MBC1_read(ushort at)
+                {
+                    // Rom bank 00
+                    if (at >= 0 && at <= 0x3FFF)
+                    {
+                        int atInBank = 0x4000 * selectedRomBank00 + at;
+                        return RomData[atInBank];
+                    }
+
+                    // Rom bank 01~NN
+                    else if (at >= 0x4000 && at <= 0x7FFF)
+                    {
+                        // 00
+                        if (MBC1_LowRegister == 0)
+                        MBC1_LowRegister |= 1;
+
+                        // Set
+                        selectedRomBank = (byte)((MBC1_HighRegister << MBC1_M_Shift) | (MBC1_LowRegister & MBC1_M_LowRegisterMask));
+
+                        // Max banks
+                        selectedRomBank = (byte)(selectedRomBank & RomBankMask);
+
+                        int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
+
+                        if (RomData.Length > atInBank)
+                        return RomData[atInBank];
+
+                        else
+                        return 0;
+                    }
+
+                    // External RAM
+                    else
+                    {
+                        if (MBC1_RamEnable)
+                        return ExternalRam[selectedRamBank][at - 0xA000];
+                        else
+                        return 0xFF;
+                    }
+                }
+
+                // Write
+                private void MBC1_write(ushort at, byte b)
+                {
+                    // Ram enable
+                    if (at >= 0 && at <= 0x1FFF)
+                    MBC1_RamEnable = (b & 0x0F) == 0x0A;
+
+                    // ROM Bank Number - Low bits
+                    else if (at >= 0x2000 && at <= 0x3FFF)
+                    MBC1_LowRegister = (byte)(b & 0x1F);
+
+                    // ROM Bank Number - High bits
+                    else if (at >= 0x4000 && at <= 0x5FFF)
+                    {
+                        if (!MBC1_BankingModeSelect)
+                        {
+                            MBC1_HighRegister = (byte)(b & 3);
+
+                            // RomBank00 and RamBank = 0
+                            selectedRomBank00 = 0;
+                            selectedRamBank = 0;
+                        }
+
+                        else
+                        {
+                            // Set RomBank00
+                            selectedRomBank00 = (byte)((b & 3) << MBC1_M_Shift);
+
+                            // Max banks
+                            selectedRomBank00 = (byte)(selectedRomBank00 & RomBankMask);
+
+                            MBC1_HighRegister = (byte)(selectedRomBank00 >> MBC1_M_Shift);
+
+                            // Set RamBank
+                            selectedRamBank = (byte)(b & 3);
+                            selectedRamBank = (byte)(selectedRamBank & RamBankMask);
+                        }
+                    }
+
+                    // Banking Mode Select
+                    else if (at >= 0x6000 && at <= 0x7FFF)
+                    MBC1_BankingModeSelect = Binary.ReadBit(b, 0);
+
+                    // Exteral ram
+                    else if (at >= 0xA000 && at <= 0xBFFF && MBC1_RamEnable)
+                    ExternalRam[selectedRamBank][at - 0xA000] = b;
+                }
+
+                #endregion 
+
+            #endregion
 
         #endregion
     }
+
+    #region Power up sequence
+
+    public class PUS
+    {
+        // Registers
+        public byte A, B, C, D, E, H, L;
+
+        // Flags
+        public bool FlagZ, FlagN, FlagH, FlagC;
+
+        // Hardware registers
+        public byte P1, SB, SC, DIV, TIMA, TMA, TAC, IF, NR10, NR11, NR12, NR13, NR14, NR21, NR22, NR23, NR24,
+                    NR30, NR31, NR32, NR33, NR34, NR41, NR42, NR43, NR44, NR50, NR51, NR52, LCDC, STAT, SCY,
+                    SCX, LY, LYC, DMA, BGP, OPB0, OBP1, WY, WX, KEY1, VBK, HDMA1, HDMA2, HDMA3, HDMA4, HDMA5,
+                    RP, BCPS, BCPD, OCPS, OCPD, SVBK, IE;
+
+        public PUS(byte PUS_select, bool HCn0)
+        {
+            // Registers          DMG0   DMG    MGB    SGB    SGB2   CGB    AGB
+            A     = new byte[7] { 0x01,  0x01,  0xFF,  0x01,  0xFF,  0x11,  0x11 }[PUS_select];
+            B     = new byte[7] { 0xFF,  0x00,  0x00,  0x00,  0x00,  0x00,  0x01 }[PUS_select];
+            C     = new byte[7] { 0x13,  0x13,  0x13,  0x14,  0x14,  0x00,  0x00 }[PUS_select];
+            D     = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0xFF,  0xFF }[PUS_select];
+            E     = new byte[7] { 0xC1,  0xD8,  0xD8,  0x00,  0x00,  0x56,  0x56 }[PUS_select];
+            H     = new byte[7] { 0x84,  0x01,  0x01,  0xC0,  0xC0,  0x00,  0x00 }[PUS_select];
+            L     = new byte[7] { 0x03,  0x4D,  0x4D,  0x60,  0x60,  0x0D,  0x0D }[PUS_select];
+
+            // Flags
+            FlagZ = new bool[7] { false, true,  true,  false, false, true,  false }[PUS_select];
+            FlagN = new bool[7] { false, false, false, false, false, false, false }[PUS_select];
+            FlagH = new bool[7] { false, HCn0,  HCn0,  false, false, false, false }[PUS_select];
+            FlagC = new bool[7] { false, HCn0,  HCn0,  false, false, false, false }[PUS_select];
+
+            // Hardware registers
+            P1    = new byte[7] { 0xCF,  0xCF,  0xCF,  0xC7,  0xCF,  0xC7,  0xCF }[PUS_select];
+            SB    = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            SC    = new byte[7] { 0x7E,  0x7E,  0x7E,  0x7E,  0x7E,  0x7F,  0x7F }[PUS_select];
+            DIV   = new byte[7] { 0x18,  0xAB,  0xAB,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            TIMA  = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            TMA   = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            TAC   = new byte[7] { 0xF8,  0xF8,  0xF8,  0xF8,  0xF8,  0xF8,  0xF8 }[PUS_select];
+            IF    = new byte[7] { 0xE1,  0xE1,  0xE1,  0xE1,  0xE1,  0xE1,  0xE1 }[PUS_select];
+            NR10  = new byte[7] { 0x80,  0x80,  0x80,  0x80,  0x80,  0x80,  0x80 }[PUS_select];
+            NR11  = new byte[7] { 0xBF,  0xBF,  0xBF,  0xBF,  0xBF,  0xBF,  0xBF }[PUS_select];
+            NR12  = new byte[7] { 0xF3,  0xF3,  0xF3,  0xF3,  0xF3,  0xF3,  0xF3 }[PUS_select];
+            NR13  = new byte[7] { 0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF }[PUS_select];
+            NR14  = new byte[7] { 0xBF,  0xBF,  0xBF,  0xBF,  0xBF,  0xBF,  0xBF }[PUS_select];
+            NR21  = new byte[7] { 0x3F,  0x3F,  0x3F,  0x3F,  0x3F,  0x3F,  0x3F }[PUS_select];
+            NR22  = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            NR23  = new byte[7] { 0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF }[PUS_select];
+            NR24  = new byte[7] { 0xBF,  0xBF,  0xBF,  0xBF,  0xBF,  0xBF,  0xBF }[PUS_select];
+            NR30  = new byte[7] { 0x7F,  0x7F,  0x7F,  0x7F,  0x7F,  0x7F,  0x7F }[PUS_select];
+            NR31  = new byte[7] { 0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF }[PUS_select];
+            NR32  = new byte[7] { 0x9F,  0x9F,  0x9F,  0x9F,  0x9F,  0x9F,  0x9F }[PUS_select];
+            NR33  = new byte[7] { 0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF }[PUS_select];
+            NR34  = new byte[7] { 0xBF,  0xBF,  0xBF,  0xBF,  0xBF,  0xBF,  0xBF }[PUS_select];
+            NR41  = new byte[7] { 0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF }[PUS_select];
+            NR42  = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            NR43  = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            NR44  = new byte[7] { 0xBF,  0xBF,  0xBF,  0xBF,  0xBF,  0xBF,  0xBF }[PUS_select];
+            NR50  = new byte[7] { 0x77,  0x77,  0x77,  0x77,  0x77,  0x77,  0x77 }[PUS_select];
+            NR51  = new byte[7] { 0xF3,  0xF3,  0xF3,  0xF3,  0xF3,  0xF3,  0xF3 }[PUS_select];
+            NR52  = new byte[7] { 0xF1,  0xF1,  0xF1,  0xF0,  0xF0,  0xF1,  0xF1 }[PUS_select];
+            LCDC  = new byte[7] { 0x91,  0x91,  0x91,  0x91,  0x91,  0x91,  0x91 }[PUS_select];
+            STAT  = new byte[7] { 0x81,  0x85,  0x85,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            SCY   = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            SCX   = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            LY    = new byte[7] { 0x91,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            LYC   = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            DMA   = new byte[7] { 0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0x00,  0x00 }[PUS_select];
+            BGP   = new byte[7] { 0xFC,  0xFC,  0xFC,  0xFC,  0xFC,  0xFC,  0xFC }[PUS_select];
+            OPB0  = new byte[7] { 0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF }[PUS_select];
+            OBP1  = new byte[7] { 0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF,  0xFF }[PUS_select];
+            WY    = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            WX    = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            KEY1  = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x7E,  0x7E }[PUS_select];
+            VBK   = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0xFE,  0xFE }[PUS_select];
+            HDMA1 = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0xFF,  0xFF }[PUS_select];
+            HDMA2 = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0xFF,  0xFF }[PUS_select];
+            HDMA3 = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0xFF,  0xFF }[PUS_select];
+            HDMA4 = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0xFF,  0xFF }[PUS_select];
+            HDMA5 = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0xFF,  0xFF }[PUS_select];
+            RP    = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x3E,  0x3E }[PUS_select];
+            BCPS  = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            BCPD  = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            OCPS  = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            OCPD  = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            SVBK  = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+            IE    = new byte[7] { 0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00 }[PUS_select];
+        }
+    }
+
+    #endregion
 }

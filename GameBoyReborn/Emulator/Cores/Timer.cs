@@ -24,10 +24,8 @@ namespace Emulator
 
         public void TAC(byte b)
         {
-            IO.TAC = b;
-
-            Enable = GameBoyReborn.Binary.ReadBit(IO.TAC, 2);
-            TmaClock = IO.TAC & 3 switch
+            Enable = GameBoyReborn.Binary.ReadBit(b, 2);
+            TmaClock = b & 3 switch
             {
                 0 => 69,
                 1 => 4389,
