@@ -15,7 +15,9 @@ namespace GameBoyReborn
 
         // Init
         unsafe delegate void AudioCallbackDelegate(short* data, uint framesCount);
-        public static void Init(Emulation Emulation)
+        private static AudioCallbackDelegate ? callback;
+
+        public static void Init()
         {
             Raylib.InitAudioDevice();
 
@@ -26,10 +28,10 @@ namespace GameBoyReborn
             Raylib.PlayAudioStream(AudioStream);
 
             // Audio loop
-            if (Emulation != null)
+            if (Program.Emulation != null)
             unsafe
             {
-                AudioCallbackDelegate callback = Emulation.APU.Execution;
+                callback = Program.Emulation.APU.Execution;
                 IntPtr callbackPtr = Marshal.GetFunctionPointerForDelegate(callback);
 
                 delegate* unmanaged[Cdecl]<void*, uint, void> ptr = (delegate* unmanaged[Cdecl]<void*, uint, void>)callbackPtr.ToPointer();

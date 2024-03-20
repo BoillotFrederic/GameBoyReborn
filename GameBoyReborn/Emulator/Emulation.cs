@@ -4,7 +4,6 @@
 
 #pragma warning disable CS8618
 
-using Raylib_cs;
 using GameBoyReborn;
 
 namespace Emulator
@@ -81,13 +80,37 @@ namespace Emulator
         {
             if (RomData != null)
             {
-                PPU.CompletedFrame = false;
+                PPU.CompletedFrame = Program.OneByOne;
+
+                #region If debug enable
+                if (Program.DebugEnable)
+                {
+                    if (Input.XabyPadY)
+                    Program.OneByOne = true;
+
+                    if (Input.XabyPadX)
+                    Program.OneByOne = false;
+
+                    if (Input.MiddlePadLeft)
+                    {
+                        PPU.CompletedFrame = false;
+                    }
+                }
+                #endregion
 
                 while (!PPU.CompletedFrame)
                 {
                     CPU.Execution();
                     PPU.Execution();
                     Timer.Execution();
+
+                    #region If debug enable
+                    if (Program.DebugEnable && Program.OneByOne)
+                    {
+                        PPU.CompletedFrame = true;
+                        Thread.Sleep(100);
+                    }
+                    #endregion
                 }
             }
         }

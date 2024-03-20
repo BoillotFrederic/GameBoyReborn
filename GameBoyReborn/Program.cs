@@ -1,6 +1,9 @@
 ﻿// -------------
 // Start program
 // -------------
+
+#pragma warning disable CA2211
+
 using Raylib_cs;
 using Emulator;
 
@@ -10,12 +13,16 @@ namespace GameBoyReborn
     {
         public const int SystemWidth = 160;
         public const int SystemHeight = 144;
+        public const int WindowWidth = 800;
+        public const int WindowHeight = 600;
+        public const bool DebugEnable = true;
+        public static bool OneByOne = false;
+        public const int DrawWidth = DebugEnable ? WindowWidth / 2 : WindowWidth;
+        public const int DrawHeight = DebugEnable ? WindowHeight / 2 : WindowHeight;
+        public static Emulation ? Emulation = null;
 
         public static Task Main(string[] args)
         {
-            // Emulation
-            Emulation ? Emulation = null;
-
             // Exit handle
             Log.Start();
             AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
@@ -46,7 +53,7 @@ namespace GameBoyReborn
             Emulation = new Emulation(args.Length > 0 ? args[0] : "Roms/Tetris.gb");
 
             // Init audio
-            Audio.Init(Emulation);
+            Audio.Init();
 
             // Game loop
             while (!Raylib.WindowShouldClose())
