@@ -91,10 +91,8 @@ namespace Emulator
                     if (Input.XabyPadX)
                     Program.OneByOne = false;
 
-                    if (Input.MiddlePadLeft)
-                    {
-                        PPU.CompletedFrame = false;
-                    }
+                    if (Input.TriggerPadRB)
+                    PPU.CompletedFrame = false;
                 }
                 #endregion
 
@@ -108,7 +106,7 @@ namespace Emulator
                     if (Program.DebugEnable && Program.OneByOne)
                     {
                         PPU.CompletedFrame = true;
-                        Thread.Sleep(100);
+                        Thread.Sleep(150);
                     }
                     #endregion
                 }

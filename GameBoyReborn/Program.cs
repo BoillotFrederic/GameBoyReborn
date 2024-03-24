@@ -15,10 +15,8 @@ namespace GameBoyReborn
         public const int SystemHeight = 144;
         public const int WindowWidth = 800;
         public const int WindowHeight = 600;
-        public const bool DebugEnable = true;
+        public static bool DebugEnable = false;
         public static bool OneByOne = false;
-        public const int DrawWidth = DebugEnable ? WindowWidth / 2 : WindowWidth;
-        public const int DrawHeight = DebugEnable ? WindowHeight / 2 : WindowHeight;
         public static Emulation ? Emulation = null;
 
         public static Task Main(string[] args)

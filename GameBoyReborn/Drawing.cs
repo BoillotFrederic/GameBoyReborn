@@ -23,12 +23,17 @@ namespace GameBoyReborn
         }
 
         // Draw screen
+        private static int DrawWidth;
+        private static int DrawHeight;
+
         public static void Screen()
         {
             // Clear
             Raylib.ClearBackground(Color.WHITE);
 
             // Draw screen
+            DrawWidth = DebugEnable ? WindowWidth / 2 : WindowWidth;
+            DrawHeight = DebugEnable ? WindowHeight / 2 : WindowHeight;
             UpdateScreenImage();
             Texture2D screenTexture = Raylib.LoadTextureFromImage(ScreenImage);
             screenTexture.Width = DrawWidth;

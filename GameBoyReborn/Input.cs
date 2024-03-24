@@ -48,6 +48,8 @@ namespace GameBoyReborn
         private static bool _AxisRightPadLeft = false;
         private static bool _AxisRightPadRight = false;
         private static bool _AxisRightPadUp = false;
+        private static bool _AxisLS = false;
+        private static bool _AxisRS = false;
 
         // Getter / setter
         // ---------------
@@ -101,6 +103,11 @@ namespace GameBoyReborn
         public static bool AxisRightPadLeft { get { return _AxisRightPadLeft; } }
         public static bool AxisRightPadRight { get { return _AxisRightPadRight; } }
         public static bool AxisRightPadUp { get { return _AxisRightPadUp; } }
+        public static bool AxisLS { get { return _AxisLS; } }
+        public static bool AxisRS { get { return _AxisRS; } }
+
+        // NoRepeat
+        private static bool DebugEnableNoRepeat = false;
 
         public static void Set()
         {
@@ -139,6 +146,8 @@ namespace GameBoyReborn
             _AxisRightPadLeft = false;
             _AxisRightPadRight = false;
             _AxisRightPadUp = false;
+            _AxisLS = false;
+            _AxisRS = false;
 
             // Keyboards
             // ---------
@@ -209,6 +218,19 @@ namespace GameBoyReborn
                 if (AxisRightY < (-1.0f * (_DeadZoneStickRight / 100.0f)) && AxisRightY < 0) _AxisRightPadUp = true;
                 if (AxisRightX > 1 * (_DeadZoneStickRight / 100.0f) && AxisRightX > 0) _AxisRightPadRight = true;
                 if (AxisRightX < -1 * (_DeadZoneStickRight / 100.0f) && AxisRightX < 0) _AxisRightPadLeft = true;
+                if (Raylib.IsGamepadButtonDown(Gamepad, GamepadButton.GAMEPAD_BUTTON_LEFT_THUMB)) _AxisLS = true;
+                if (Raylib.IsGamepadButtonDown(Gamepad, GamepadButton.GAMEPAD_BUTTON_RIGHT_THUMB)) _AxisRS = true;
+
+                // Debug enable/disable
+                if (_XabyPadA && _XabyPadB && _XabyPadX && _XabyPadY && _TriggerPadLB && _TriggerPadRB && _TriggerPadLT && _TriggerPadRT && _AxisRS)
+                {
+                    if(!DebugEnableNoRepeat)
+                    Program.DebugEnable = !Program.DebugEnable;
+
+                    DebugEnableNoRepeat = true;
+                }
+                else
+                DebugEnableNoRepeat = false;
             }
         }
 
