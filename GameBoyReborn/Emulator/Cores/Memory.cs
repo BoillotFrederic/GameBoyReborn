@@ -155,9 +155,26 @@ namespace Emulator
 
         private void LoadRomBoot()
         {
-            if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Boot/DMG_ROM.bin"))
-            RomBoot = File.ReadAllBytes(AppDomain.CurrentDomain.BaseDirectory + "Boot/DMG_ROM.bin");
+            if(Cartridge != null)
+            {
+                string path = Cartridge.PUS.RomBoot switch
+                {
+                    0 => AppDomain.CurrentDomain.BaseDirectory + "Boot/DMG0_ROM.bin",
+                    1 => AppDomain.CurrentDomain.BaseDirectory + "Boot/DMG_ROM.bin",
+                    2 => AppDomain.CurrentDomain.BaseDirectory + "Boot/MGB_ROM.bin",
+                    3 => AppDomain.CurrentDomain.BaseDirectory + "Boot/SGB_ROM.bin",
+                    4 => AppDomain.CurrentDomain.BaseDirectory + "Boot/SGB2_ROM.bin",
+                    5 => AppDomain.CurrentDomain.BaseDirectory + "Boot/CGB_ROM.bin",
+                    6 => AppDomain.CurrentDomain.BaseDirectory + "Boot/CGB_AGB_ROM.bin",
+                    _ => "",
+                };
 
+                if (File.Exists(path))
+                RomBoot = File.ReadAllBytes(path);
+
+                else
+                booting = false;
+            }
             else
             booting = false;
         }

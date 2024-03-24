@@ -203,7 +203,7 @@ namespace Emulator
 
         public void Write(byte at, byte b)
         {
-            bool CGB_Support = Cartridge != null && (Cartridge.CGB_Flag != 0x80 || Cartridge.CGB_Flag != 0xC0);
+            bool CGB_Support = Cartridge != null && Cartridge.PUS.GameBoyGen == 2;
 
             //JOYP	Joypad
             if (at == 0x00) { P1 = (byte)((P1 & 0xCF) | (b & 0x30)); Input.InputToByteGB(P1); }

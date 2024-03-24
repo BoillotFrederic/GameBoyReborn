@@ -101,7 +101,16 @@ namespace Emulator
             //GlobalChecksumTest = RomData.Sum(x => (int)x) == GlobalChecksum;
 
             // Set power up sequence (DMG0=0, DMG=1, MGB=2, SGB=3, SGB2=4, CGB=5, AGB=6)
-            PUS = new(1, HeaderChecksum != 0);
+            byte pusSelect;
+
+            if (SGB_Flag == 0x03)
+            pusSelect = 4;
+            else if (CGB_Flag == 0x80 || CGB_Flag == 0xC0)
+            pusSelect = 5;
+            else
+            pusSelect = 1;
+
+            PUS = new(pusSelect, HeaderChecksum != 0);
 
             // Check if MBC1M
             if((Type == 0x01 || Type == 0x02 || Type == 0x03) && RomBankCount > 0x10)
@@ -244,7 +253,7 @@ namespace Emulator
             {
                 0x00 => "No SGB functions (Normal Gameboy or CGB only game)",
                 0x03 => "Game supports SGB functions",
-                _ => "Only DMG",
+                _ => "No SGB functions (Normal Gameboy or CGB only game)",
             };
         }
 
@@ -661,6 +670,12 @@ namespace Emulator
 
     public class PUS
     {
+        // GameBoy generation
+        public byte GameBoyGen = 0;
+
+        // Rom boot
+        public byte RomBoot = 0;
+
         // Registers
         public byte A, B, C, D, E, H, L;
 
@@ -675,6 +690,18 @@ namespace Emulator
 
         public PUS(byte PUS_select, bool HCn0)
         {
+            // Gameboy generation set
+            if(PUS_select >= 0 && PUS_select <= 2)
+            GameBoyGen = 0;
+            else if(PUS_select >= 3 && PUS_select <= 4)
+            GameBoyGen = 1;
+            else if(PUS_select >= 5 && PUS_select <= 6)
+            GameBoyGen = 2;
+
+
+            // Rom boot set
+            RomBoot = PUS_select;
+
             // Registers          DMG0   DMG    MGB    SGB    SGB2   CGB    AGB
             A     = new byte[7] { 0x01,  0x01,  0xFF,  0x01,  0xFF,  0x11,  0x11 }[PUS_select];
             B     = new byte[7] { 0xFF,  0x00,  0x00,  0x00,  0x00,  0x00,  0x01 }[PUS_select];
