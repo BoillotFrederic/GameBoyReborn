@@ -88,9 +88,12 @@ namespace Emulator
 
         #region CPU operating varaibles
 
+        // Frequency
+        public int Frequency;
+
         // Cycles
         public byte Cycles;
-        public long LoopAccumulator = 0;
+        public long LoopAccumulator;
 
         // Program counter
         public ushort PC;
@@ -119,11 +122,19 @@ namespace Emulator
         public bool FlagC;
 
         // Opcode
-        public byte Opcode = 0;
-        public byte LastOpcode = 0;
+        public byte Opcode;
+        public byte LastOpcode;
 
         private void Init()
         {
+            Frequency = Cartridge.PUS.GameBoyGen switch
+            {
+                0 => 4194304,
+                1 => 4295500,
+                2 => 8388608,
+                _ => 4295500,
+            };
+
             PC = (ushort)(Memory.booting ? 0x0000 : 0x0100);
             SP = 0xFFFE;
             A = Cartridge.PUS.A;
@@ -1503,6 +1514,7 @@ namespace Emulator
             /// </summary>
             private void STOP()
             {
+                IO.DIV = 0x00;
                 Stop = true;
             }
 

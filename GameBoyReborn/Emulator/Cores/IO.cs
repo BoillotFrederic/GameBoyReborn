@@ -213,10 +213,10 @@ namespace Emulator
             else if (at == 0x02) SC = 0x7E;
 
             // Timer
-            else if (at == 0x04) Timer.DIV(b);
+            else if (at == 0x04) Timer.DIV();
             else if (at == 0x05) TIMA = b;
             else if (at == 0x06) TMA = b;
-            else if (at == 0x07) { b = (byte)(b | 0xF8); TAC = b;  Timer.TAC(b); }
+            else if (at == 0x07) { b = (byte)(b | 0xF8); TAC = b; Timer.TAC(b); }
 
             // Interrupt
             else if (at == 0x0F) IF = (byte)(b | 0xE0);
