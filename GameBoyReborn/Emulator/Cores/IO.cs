@@ -120,6 +120,8 @@ namespace Emulator
 
         public byte Read(byte at)
         {
+            bool CGB_Support = Cartridge != null && Cartridge.PUS.GameBoyGen == 2;
+
             //JOYP	Joypad
             if (at == 0x00) return Input.InputToByteGB(P1);
 
@@ -131,14 +133,14 @@ namespace Emulator
             else if (at == 0x04) return DIV;
             else if (at == 0x05) return TIMA;
             else if (at == 0x06) return TMA;
-            else if (at == 0x07) return TAC;
+            else if (at == 0x07) return (byte)(TAC | 0xF8);
 
             // Interrupt
-            else if (at == 0x0F) return IF;
+            else if (at == 0x0F) return (byte)(IF | 0xE0);
             else if (at == 0xFF) return IE;
 
             // Sound
-            else if (at == 0x10) return NR10;
+            else if (at == 0x10) return (byte)(NR10 | 0x80);
             else if (at == 0x11) return NR11;
             else if (at == 0x12) return NR12;
             else if (at == 0x13) return NR13;
@@ -147,25 +149,25 @@ namespace Emulator
             else if (at == 0x17) return NR22;
             else if (at == 0x18) return NR23;
             else if (at == 0x19) return NR24;
-            else if (at == 0x1A) return NR30;
+            else if (at == 0x1A) return (byte)(NR30 | 0x7F);
             else if (at == 0x1B) return NR31;
-            else if (at == 0x1C) return NR32;
+            else if (at == 0x1C) return (byte)(NR32 | 0x9F);
             else if (at == 0x1D) return NR33;
             else if (at == 0x1E) return NR34;
-            else if (at == 0x20) return NR41;
+            else if (at == 0x20) return (byte)(NR41 | 0xC0);
             else if (at == 0x21) return NR42;
             else if (at == 0x22) return NR43;
-            else if (at == 0x23) return NR44;
+            else if (at == 0x23) return (byte)(NR44 | 0x3F);
             else if (at == 0x24) return NR50;
             else if (at == 0x25) return NR51;
-            else if (at == 0x26) return NR52;
-            else if (at == 0x76) return PCM12;
-            else if (at == 0x77) return PCM34;
+            else if (at == 0x26) return (byte)(NR52 | 0x70);
+            else if (at == 0x76) return (byte)(!CGB_Support ? 0xFF : PCM12);
+            else if (at == 0x77) return (byte)(!CGB_Support ? 0xFF : PCM34);
             else if (at >= 0x30 && at <= 0x3F) return WaveRAM[at - 0x30];
 
             // Graphic
             else if (at == 0x40) return LCDC;
-            else if (at == 0x41) return STAT;
+            else if (at == 0x41) return (byte)(STAT | 0x80);
             else if (at == 0x42) return SCY;
             else if (at == 0x43) return SCX;
             else if (at == 0x44) return LY;
@@ -176,22 +178,22 @@ namespace Emulator
             else if (at == 0x49) return OBP1;
             else if (at == 0x4A) return WY;
             else if (at == 0x4B) return WX;
-            else if (at == 0x4F) return VBK;
-            else if (at == 0x51) return HDMA1;
-            else if (at == 0x52) return HDMA2;
-            else if (at == 0x53) return HDMA3;
-            else if (at == 0x54) return HDMA4;
-            else if (at == 0x55) return HDMA5;
-            else if (at == 0x68) return BCPS_BGPI;
-            else if (at == 0x69) return BCPD_BGPD;
-            else if (at == 0x6A) return OCPS_OBPI;
-            else if (at == 0x6B) return OCPD_OBPD;
-            else if (at == 0x6C) return OPRI;
+            else if (at == 0x4F) return (byte)(!CGB_Support ? 0xFF : VBK);
+            else if (at == 0x51) return (byte)(!CGB_Support ? 0xFF : HDMA1);
+            else if (at == 0x52) return (byte)(!CGB_Support ? 0xFF : HDMA2);
+            else if (at == 0x53) return (byte)(!CGB_Support ? 0xFF : HDMA2);
+            else if (at == 0x54) return (byte)(!CGB_Support ? 0xFF : HDMA4);
+            else if (at == 0x55) return (byte)(!CGB_Support ? 0xFF : HDMA5);
+            else if (at == 0x68) return (byte)(!CGB_Support ? 0xFF : BCPS_BGPI);
+            else if (at == 0x69) return (byte)(!CGB_Support ? 0xFF : BCPD_BGPD);
+            else if (at == 0x6A) return (byte)(!CGB_Support ? 0xFF : OCPS_OBPI);
+            else if (at == 0x6B) return (byte)(!CGB_Support ? 0xFF : OCPD_OBPD);
+            else if (at == 0x6C) return (byte)(!CGB_Support ? 0xFF : OPRI);
 
             // Other
-            else if (at == 0x4D) return KEY1;
-            else if (at == 0x56) return RP;
-            else if (at == 0x70) return SVBK;
+            else if (at == 0x4D) return (byte)(!CGB_Support ? 0xFF : KEY1);
+            else if (at == 0x56) return (byte)(!CGB_Support ? 0xFF : RP);
+            else if (at == 0x70) return (byte)(!CGB_Support ? 0xFF : SVBK);
 
             // None
             else return 0xFF;
@@ -203,8 +205,6 @@ namespace Emulator
 
         public void Write(byte at, byte b)
         {
-            bool CGB_Support = Cartridge != null && Cartridge.PUS.GameBoyGen == 2;
-
             //JOYP	Joypad
             if (at == 0x00) { P1 = (byte)((P1 & 0xCF) | (b & 0x30)); Input.InputToByteGB(P1); }
 
@@ -215,15 +215,15 @@ namespace Emulator
             // Timer
             else if (at == 0x04) Timer.DIV();
             else if (at == 0x05) TIMA = b;
-            else if (at == 0x06) TMA = b;
-            else if (at == 0x07) { b = (byte)(b | 0xF8); TAC = b; Timer.TAC(b); }
+            else if (at == 0x06) { TMA = b; }
+            else if (at == 0x07) { TAC = b; Timer.TAC(b); }
 
             // Interrupt
-            else if (at == 0x0F) IF = (byte)(b | 0xE0);
+            else if (at == 0x0F) IF = b;
             else if (at == 0xFF) IE = b;
 
             // Sound
-            else if (at == 0x10) { b = (byte)(b | 0x80); NR10 = b; APU.NR10(b); }
+            else if (at == 0x10) { NR10 = b; APU.NR10(b); }
             else if (at == 0x11) { NR11 = b; APU.NR11(b); }
             else if (at == 0x12) { NR12 = b; APU.NR12(b); }
             else if (at == 0x13) { NR13 = b; APU.NR13(b); }
@@ -232,25 +232,25 @@ namespace Emulator
             else if (at == 0x17) { NR22 = b; APU.NR22(b); }
             else if (at == 0x18) { NR23 = b; APU.NR23(b); }
             else if (at == 0x19) { NR24 = b; APU.NR24(b); }
-            else if (at == 0x1A) { b = (byte)(b | 0x7F); NR30 = b; APU.NR30(b); }
+            else if (at == 0x1A) { NR30 = b; APU.NR30(b); }
             else if (at == 0x1B) { NR31 = b; APU.NR31(b); }
-            else if (at == 0x1C) { b = (byte)(b | 0x9F); NR32 = b; APU.NR32(b); }
+            else if (at == 0x1C) { NR32 = b; APU.NR32(b); }
             else if (at == 0x1D) { NR33 = b; APU.NR33(b); }
             else if (at == 0x1E) { NR34 = b; APU.NR34(b); }
-            else if (at == 0x20) { b = (byte)(b | 0xC0); NR41 = b; APU.NR41(b); }
+            else if (at == 0x20) { NR41 = b; APU.NR41(b); }
             else if (at == 0x21) { NR42 = b; APU.NR42(b); }
             else if (at == 0x22) { NR43 = b; APU.NR43(b); }
-            else if (at == 0x23) { b = (byte)(b | 0x3F); NR44 = b; APU.NR44(b); }
+            else if (at == 0x23) { NR44 = b; APU.NR44(b); }
             else if (at == 0x24) NR50 = b;
             else if (at == 0x25) NR51 = b;
-            else if (at == 0x26) NR52 = (byte)(b | 0x70);
-            else if (at == 0x76) PCM12 = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x77) PCM34 = (byte)(CGB_Support ? 0xFF : b);
+            else if (at == 0x26) NR52 = b;
+            else if (at == 0x76) PCM12 = b;
+            else if (at == 0x77) PCM34 = b;
             else if (at >= 0x30 && at <= 0x3F) WaveRAM[at - 0x30] = b;
 
             // Graphic
             else if (at == 0x40) { LCDC = b; PPU.LCDC(b); }
-            else if (at == 0x41) { b = (byte)(b | 0x80); STAT = b; PPU.STAT(b); }
+            else if (at == 0x41) { STAT = b; PPU.STAT(b); }
             else if (at == 0x42) SCY = b;
             else if (at == 0x43) SCX = b;
             else if (at == 0x44) LY = b;
@@ -261,22 +261,22 @@ namespace Emulator
             else if (at == 0x49) { OBP1 = b; PPU.OBP1(b); }
             else if (at == 0x4A) WY = b;
             else if (at == 0x4B) WX = b;
-            else if (at == 0x4F) VBK = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x51) HDMA1 = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x52) HDMA2 = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x53) HDMA3 = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x54) HDMA4 = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x55) HDMA5 = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x68) BCPS_BGPI = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x69) BCPD_BGPD = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x6A) OCPS_OBPI = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x6B) OCPD_OBPD = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x6C) OPRI = (byte)(CGB_Support ? 0xFF : b);
+            else if (at == 0x4F) VBK = b;
+            else if (at == 0x51) HDMA1 = b;
+            else if (at == 0x52) HDMA2 = b;
+            else if (at == 0x53) HDMA3 = b;
+            else if (at == 0x54) HDMA4 = b;
+            else if (at == 0x55) HDMA5 = b;
+            else if (at == 0x68) BCPS_BGPI = b;
+            else if (at == 0x69) BCPD_BGPD = b;
+            else if (at == 0x6A) OCPS_OBPI = b;
+            else if (at == 0x6B) OCPD_OBPD = b;
+            else if (at == 0x6C) OPRI = b;
 
             // Other
-            else if (at == 0x4D) KEY1 = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x56) RP = (byte)(CGB_Support ? 0xFF : b);
-            else if (at == 0x70) SVBK = (byte)(CGB_Support ? 0xFF : b);
+            else if (at == 0x4D) KEY1 = b;
+            else if (at == 0x56) RP = b;
+            else if (at == 0x70) SVBK = b;
         }
 
         #endregion

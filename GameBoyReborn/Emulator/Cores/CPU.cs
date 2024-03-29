@@ -1482,7 +1482,6 @@ namespace Emulator
             private void HALT()
             {
                 Halt = true;
-
     /*            if (IME < 0)
                 {
                     Halt = true;
@@ -1514,7 +1513,8 @@ namespace Emulator
             /// </summary>
             private void STOP()
             {
-                IO.DIV = 0x00;
+                //Console.WriteLine("INTR STOP");
+                //IO.DIV = 0x00;
                 Stop = true;
             }
 
@@ -1535,7 +1535,7 @@ namespace Emulator
             /// </summary>
             private void EI()
             {
-                Cycles += 1;
+                Cycles++;
                 IME = 1;
             }
 
