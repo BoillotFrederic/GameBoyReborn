@@ -105,7 +105,7 @@ namespace Emulator
 
             if (SGB_Flag == 0x03)
             pusSelect = 4;
-            else if (CGB_Flag == 0x80 || CGB_Flag == 0xC0)
+            else if (/*CGB_Flag == 0x80 || */CGB_Flag == 0xC0)
             pusSelect = 5;
             else
             pusSelect = 1;
@@ -126,11 +126,11 @@ namespace Emulator
                 }
             }
 
-            // External ram
-            LoadExternalRam();
-
             // Delegate read/write
             MBCs();
+
+            // External ram
+            LoadExternalRam();
         }
 
         private static string GetLicense(ushort hex)
@@ -369,6 +369,8 @@ namespace Emulator
         #region External ram handle
 
         // External ram
+        private int ExternalRamSize;
+
         public byte[][] ExternalRam;
 
             /// <summary>
@@ -384,10 +386,10 @@ namespace Emulator
 
                 for (byte i = 0; i < RamBankCount; i++)
                 {
-                    ExternalRam[i] = new byte[0x2000];
+                    ExternalRam[i] = new byte[ExternalRamSize];
 
                     if (checkExternalRam && bytesExternalRam != null)
-                    Array.Copy(bytesExternalRam, 0x2000 * i, ExternalRam[i], 0, 0x2000);
+                    Array.Copy(bytesExternalRam, ExternalRamSize * i, ExternalRam[i], 0, ExternalRamSize);
                 }
             }
 
@@ -399,10 +401,10 @@ namespace Emulator
                 if (Regex.Match(TypeDescription, "BATTERY", RegexOptions.IgnoreCase).Success)
                 {
                     string pathExternalRam = AppDomain.CurrentDomain.BaseDirectory + "ExternalRam/" + FileName + ".er";
-                    byte[] externalRamBytes = new byte[0x2000 * RamBankCount];
+                    byte[] externalRamBytes = new byte[ExternalRamSize * RamBankCount];
 
                     for (byte i = 0; i < RamBankCount; i++)
-                    Array.Copy(ExternalRam[i], 0, externalRamBytes, 0x2000 * i, 0x2000);
+                    Array.Copy(ExternalRam[i], 0, externalRamBytes, ExternalRamSize * i, ExternalRamSize);
 
                     File.WriteAllBytes(pathExternalRam, externalRamBytes);
                 }
@@ -430,6 +432,7 @@ namespace Emulator
                     // ------
                     case 0x00: case 0x08: case 0x09:
                     {
+                        ExternalRamSize = 0x2000;
                         Read = NO_MBC_read;
                         Write = NO_MBC_write;
                         break;
@@ -439,6 +442,7 @@ namespace Emulator
                     // ----
                     case 0x01: case 0x02: case 0x03:
                     {
+                        ExternalRamSize = 0x2000;
                         Read = MBC1_read;
                         Write = MBC1_write;
                         break;
@@ -448,7 +452,10 @@ namespace Emulator
                     // ----
                     case 0x05: case 0x06:
                     {
-
+                        RamBankCount = 1;
+                        ExternalRamSize = 0x200;
+                        Read = MBC2_read;
+                        Write = MBC2_write;
                         break;
                     }
 
@@ -512,6 +519,7 @@ namespace Emulator
                     // -----
                     default:
                     {
+                        ExternalRamSize = 0x2000;
                         Read = NO_MBC_read;
                         Write = NO_MBC_write;
                         break;
@@ -659,6 +667,79 @@ namespace Emulator
                     ExternalRam[selectedRamBank][at - 0xA000] = b;
                 }
 
+                #endregion
+
+                #region MBC2
+
+                // MBCs Registers
+                private bool MBC2_RamEnable = false;
+
+                // Read
+                private byte MBC2_read(ushort at)
+                {
+                    // Rom bank 00
+                    if (at >= 0 && at <= 0x3FFF)
+                    return RomData[at];
+
+                    // Rom bank 01~NN
+                    else if (at >= 0x4000 && at <= 0x7FFF)
+                    {
+                        // 00
+                        if (selectedRomBank == 0)
+                        selectedRomBank |= 1;
+
+                        // Max banks
+                        selectedRomBank = (byte)(selectedRomBank & RomBankMask);
+
+                        int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
+
+                        if (RomData.Length > atInBank)
+                        return RomData[atInBank];
+
+                        else
+                        return 0;
+                    }
+
+                    // Built-in RAM
+                    else if (at >= 0xA000 && at <= 0xA1FF)
+                    {
+                        if (MBC2_RamEnable)
+                        return (byte)((0xF << 4) | (ExternalRam[selectedRamBank][at - 0xA000] & 0xF));
+                        else
+                        return 0xFF;
+                    }
+
+                    // Echoes” of A000–A1FF
+                    else
+                    {
+                        if (MBC2_RamEnable)
+                        return (byte)((0xF << 4) | (ExternalRam[selectedRamBank][at & 0x1FF] & 0xF));
+                        else
+                        return 0xFF;
+                    }
+                }
+
+                // Write
+                private void MBC2_write(ushort at, byte b)
+                {
+                    // Ram enable
+                    if (at >= 0 && at <= 0x3FFF)
+                    {
+                        if(((at >> 8) & 1) == 1)
+                        selectedRomBank = (byte)(b & 0xF);
+                        else
+                        MBC2_RamEnable = (b & 0xF) == 0xA;
+                    }
+
+                    // Built-in RAM
+                    else if (at >= 0xA000 && at <= 0xA1FF && MBC2_RamEnable)
+                    ExternalRam[selectedRamBank][at - 0xA000] = (byte)((0xF << 4) | (b & 0xF));
+
+                    // Echoes” of A000–A1FF
+                    else if (at >= 0xA200 && at <= 0xBFFF && MBC2_RamEnable)
+                    ExternalRam[selectedRamBank][at & 0x1FF] = (byte)((0xF << 4) | (b & 0xF));
+                }
+
                 #endregion 
 
             #endregion
@@ -697,7 +778,6 @@ namespace Emulator
             GameBoyGen = 1;
             else if(PUS_select >= 5 && PUS_select <= 6)
             GameBoyGen = 2;
-
 
             // Rom boot set
             RomBoot = PUS_select;
