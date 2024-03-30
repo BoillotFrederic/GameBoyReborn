@@ -3,6 +3,7 @@
 // ---------
 
 #pragma warning disable CS8618
+#pragma warning disable CS0414
 
 using GameBoyReborn;
 using System.Text;
@@ -219,6 +220,9 @@ namespace Emulator
                 0x0D => "MMM01+RAM+BATTERY",
                 0x0F => "MBC3+TIMER+BATTERY",
                 0x10 => "MBC3+TIMER+RAM+BATTERY",
+                0x11 => "MBC3",
+                0x12 => "MBC3+RAM",
+                0x13 => "MBC3+RAM+BATTERY",
                 0x19 => "MBC5",
                 0x1A => "MBC5+RAM",
                 0x1B => "MBC5+RAM+BATTERY",
@@ -463,7 +467,9 @@ namespace Emulator
                     // ----
                     case 0x0F: case 0x10: case 0x11: case 0x12: case 0x13:
                     {
-
+                        ExternalRamSize = 0x2000;
+                        Read = MBC3_read;
+                        Write = MBC3_write;
                         break;
                     }
 
@@ -704,7 +710,7 @@ namespace Emulator
                     else if (at >= 0xA000 && at <= 0xA1FF)
                     {
                         if (MBC2_RamEnable)
-                        return (byte)((0xF << 4) | (ExternalRam[selectedRamBank][at - 0xA000] & 0xF));
+                        return (byte)(0xF0 | (ExternalRam[selectedRamBank][at - 0xA000] & 0xF));
                         else
                         return 0xFF;
                     }
@@ -713,7 +719,7 @@ namespace Emulator
                     else
                     {
                         if (MBC2_RamEnable)
-                        return (byte)((0xF << 4) | (ExternalRam[selectedRamBank][at & 0x1FF] & 0xF));
+                        return (byte)(0xF0 | (ExternalRam[selectedRamBank][at & 0x1FF] & 0xF));
                         else
                         return 0xFF;
                     }
@@ -733,14 +739,120 @@ namespace Emulator
 
                     // Built-in RAM
                     else if (at >= 0xA000 && at <= 0xA1FF && MBC2_RamEnable)
-                    ExternalRam[selectedRamBank][at - 0xA000] = (byte)((0xF << 4) | (b & 0xF));
+                    ExternalRam[selectedRamBank][at - 0xA000] = (byte)(0xF0 | (b & 0xF));
 
                     // Echoes” of A000–A1FF
                     else if (at >= 0xA200 && at <= 0xBFFF && MBC2_RamEnable)
-                    ExternalRam[selectedRamBank][at & 0x1FF] = (byte)((0xF << 4) | (b & 0xF));
+                    ExternalRam[selectedRamBank][at & 0x1FF] = (byte)(0xF0 | (b & 0xF));
                 }
 
                 #endregion 
+
+                #region MBC3
+
+                // MBCs Registers
+                private bool MBC3_RamEnable = false;
+                private bool MBC3_TimerEnable = false;
+                private byte MBC3_RTCRegisterSelect = 0;
+                private byte MBC3_LatchClockData = 0;
+                private byte MBC3_LatchClockDataLastWriteValue = 0;
+                private byte MBC3_ClockCounterRegisters = 0;
+
+                // TIMER Registers
+                private byte MBC3_RTC_S = 0;
+                private byte MBC3_RTC_M = 0;
+                private byte MBC3_RTC_H = 0;
+                private byte MBC3_RTC_DL = 0;
+                private byte MBC3_RTC_DH = 0;
+
+                // Read
+                private byte MBC3_read(ushort at)
+                {
+                    // Rom bank 00
+                    if (at >= 0 && at <= 0x3FFF)
+                    return RomData[at];
+
+                    // Rom bank 01~NN
+                    else if (at >= 0x4000 && at <= 0x7FFF)
+                    {
+                        // Max banks
+                        selectedRomBank = (byte)(selectedRomBank & RomBankMask);
+
+                        // 00
+                        if (selectedRomBank == 0)
+                        selectedRomBank |= 1;
+
+                        int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
+
+                        if (RomData.Length > atInBank)
+                        return RomData[atInBank];
+
+                        else
+                        return 0;
+                    }
+
+                    // External RAM or RTC Register
+                    else
+                    {
+                        if (MBC3_RamEnable)
+                        return ExternalRam[selectedRamBank][at - 0xA000];
+                        else
+                        return 0xFF;
+                    }
+                }
+
+                // Write
+                private void MBC3_write(ushort at, byte b)
+                {
+                    // Ram and timer enable
+                    if (at >= 0 && at <= 0x1FFF)
+                    {
+                        if((b & 0x0F) == 0x0A)
+                        {
+                            MBC3_RamEnable = true;
+                            MBC3_TimerEnable = true;
+                        }
+                        else
+                        {
+                            MBC3_RamEnable = false;
+                            MBC3_TimerEnable = false;
+                        }
+                    }
+
+                    // ROM Bank Number
+                    else if (at >= 0x2000 && at <= 0x3FFF)
+                    selectedRomBank = (byte)(b & 0x7F);
+
+                    // RAM Bank Number or RTC Register Select
+                    else if (at >= 0x4000 && at <= 0x5FFF)
+                    {
+                        if(b <= 3)
+                        {
+                            selectedRamBank = (byte)(b & 3);
+                            selectedRamBank = (byte)(selectedRamBank & RamBankMask);
+                        }
+                        else if(b >= 0x08 && b <= 0x0C)
+                        MBC3_RTCRegisterSelect = b; 
+                    }
+
+                    // Latch Clock Data
+                    else if (at >= 0x6000 && at <= 0x7FFF)
+                    {
+                        // Latched
+                        if(MBC3_LatchClockDataLastWriteValue == 0x00 && b == 0x01)
+                        {
+
+                        }
+
+                        MBC3_LatchClockDataLastWriteValue = b;
+                    }
+
+                    // Exteral ram
+                    else if (at >= 0xA000 && at <= 0xBFFF && MBC3_RamEnable)
+                    ExternalRam[selectedRamBank][at - 0xA000] = b;
+                }
+
+                #endregion
 
             #endregion
 
