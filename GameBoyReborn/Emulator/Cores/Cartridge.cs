@@ -475,9 +475,11 @@ namespace Emulator
 
                     // MBC5
                     // ----
-                    case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E:
+                    case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E:
                     {
-
+                        ExternalRamSize = 0x2000;
+                        Read = MBC5_read;
+                        Write = MBC5_write;
                         break;
                     }
 
@@ -849,6 +851,74 @@ namespace Emulator
 
                     // Exteral ram
                     else if (at >= 0xA000 && at <= 0xBFFF && MBC3_RamEnable)
+                    ExternalRam[selectedRamBank][at - 0xA000] = b;
+                }
+
+                #endregion
+
+                #region MBC5
+
+                // MBCs Registers
+                private byte MBC5_LowRegister = 1;
+                private byte MBC5_HighRegister = 0;
+                private bool MBC5_RamEnable = false;
+
+                // Read
+                private byte MBC5_read(ushort at)
+                {
+                    // Rom bank 00
+                    if (at >= 0 && at <= 0x3FFF)
+                    return RomData[at];
+
+                    // Rom bank 01~NNN
+                    else if (at >= 0x4000 && at <= 0x7FFF)
+                    {
+                        // Set
+                        selectedRomBank = (byte)((MBC5_HighRegister << 8) | MBC5_LowRegister);
+
+                        // Max banks
+                        selectedRomBank = (byte)(selectedRomBank & RomBankMask);
+
+                        int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
+
+                        if (RomData.Length > atInBank)
+                        return RomData[atInBank];
+
+                        else
+                        return 0;
+                    }
+
+                    // External RAM
+                    else
+                    {
+                        if (MBC5_RamEnable)
+                        return ExternalRam[selectedRamBank][at - 0xA000];
+                        else
+                        return 0xFF;
+                    }
+                }
+
+                // Write
+                private void MBC5_write(ushort at, byte b)
+                {
+                    // Ram enable
+                    if (at >= 0 && at <= 0x1FFF)
+                    MBC5_RamEnable = (b & 0x0F) == 0x0A;
+
+                    // ROM Bank Number - Low bits
+                    else if (at >= 0x2000 && at <= 0x2FFF)
+                    MBC5_LowRegister = b;
+
+                    // ROM Bank Number - High bits
+                    else if (at >= 0x3000 && at <= 0x3FFF)
+                    MBC5_HighRegister = (byte)(b & 1);
+
+                    // RAM Bank Number
+                    else if (at >= 0x4000 && at <= 0x5FFF)
+                    selectedRamBank = (byte)(b & 0x0F);
+
+                    // Exteral ram
+                    else if (at >= 0xA000 && at <= 0xBFFF && MBC5_RamEnable)
                     ExternalRam[selectedRamBank][at - 0xA000] = b;
                 }
 
