@@ -536,7 +536,9 @@ namespace Emulator
                     // ----
                     case 0x22:
                     {
-
+                        ExternalRamSize = 0x2000;
+                        Read = MBC7_read;
+                        Write = MBC7_write;
                         break;
                     }
 
@@ -1075,11 +1077,11 @@ namespace Emulator
 
                     // Flash Enable
                     else if (at >= 0x0800 && at <= 0x0BFF && MBC6_FlashWriteEnable)
-                    MBC6_FlashEnable = (b & 1)  == 1;
+                    MBC6_FlashEnable = (b & 1) == 1;
 
                     // Flash Write Enable
                     else if (at == 0x1000)
-                    MBC6_FlashWriteEnable = (b & 1)  == 1;
+                    MBC6_FlashWriteEnable = (b & 1) == 1;
 
                     // ROM/Flash Bank A Number
                     else if (at >= 0x2000 && at <= 0x27FF)
@@ -1098,6 +1100,113 @@ namespace Emulator
                     else if (at >= 0x3800 && at <= 0x3FFF)
                     if(b == 0) MBC6_RomOrFlashBSelect = false;
                     else if(b == 0x08) MBC6_RomOrFlashBSelect = true;
+                }
+
+                #endregion
+
+                #region MBC7
+
+                // MBCs Registers
+                private bool MBC7_RamEnable1 = false;
+                private bool MBC7_RamEnable2 = false;
+                private ushort MBC7_X = 0;
+                private ushort MBC7_Y = 0;
+                private ushort MBC7_LockX = 0;
+                private ushort MBC7_LockY = 0;
+
+                // Read
+                private byte MBC7_read(ushort at)
+                {
+                    // Rom bank 00
+                    if (at >= 0 && at <= 0x3FFF)
+                    return RomData[at];
+
+                    // Rom bank 01~NN
+                    else if (at >= 0x4000 && at <= 0x7FFF)
+                    {
+                        // Max banks
+                        selectedRomBank = (byte)(selectedRomBank & RomBankMask);
+
+                        int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
+
+                        if (RomData.Length > atInBank)
+                        return RomData[atInBank];
+
+                        else
+                        return 0;
+                    }
+
+                    // Registers
+                    else if(at >= 0xA000 && at <= 0xAFFF && MBC7_RamEnable1 && MBC7_RamEnable2)
+                    {
+                        if((at & 0xF0F0) == 0xA000 || (at & 0xF0F0) == 0xA010)
+                        return 0xFF;
+
+                        else if((at & 0xF0F0) == 0xA020)
+                        return Binary.Lsb(MBC7_LockX);
+                        
+                        else if((at & 0xF0F0) == 0xA030)
+                        return Binary.Msb(MBC7_LockX);
+
+                        else if((at & 0xF0F0) == 0xA040)
+                        return Binary.Lsb(MBC7_LockY);
+                        
+                        else if((at & 0xF0F0) == 0xA050)
+                        return Binary.Msb(MBC7_LockY);
+
+                        else if((at & 0xF0F0) == 0xA060)
+                        return 0;
+                        
+                        else if((at & 0xF0F0) == 0xA070)
+                        return 0xFF;
+
+                        else if((at & 0xF0F0) == 0xA080)
+                        return 0xFF;
+
+                        else if((at & 0xF0F0) == 0xA090 || (at & 0xF0F0) == 0xA0F0)
+                        return 0xFF;
+
+                        else
+                        return 0xFF;
+                    }
+                    else if(at >= 0xB000 && at <= 0xBFFF)
+                    return 0xFF;
+                    else
+                    return 0xFF;
+                }
+
+                // Write
+                private void MBC7_write(ushort at, byte b)
+                {
+                    // Ram enable
+                    if (at >= 0 && at <= 0x1FFF)
+                    MBC7_RamEnable1 = (b & 0x0F) == 0x0A;
+
+                    // ROM Bank Number - Low bits
+                    else if (at >= 0x2000 && at <= 0x3FFF)
+                    selectedRomBank = b;
+
+                    // ROM Bank Number - High bits
+                    else if (at >= 0x4000 && at <= 0x5FFF)
+                    MBC7_RamEnable2 = (b & 0x0F) == 0x40;
+
+                    // Registers
+                    else if (at >= 0xA000 && at <= 0xAFFF)
+                    {
+                        if((at & 0xF0F0) == 0xA000 || (at & 0xF0F0) == 0xA010)
+                        {
+                            if(b == 0x55)
+                            {
+                                MBC7_X = 0x8000;
+                                MBC7_Y = 0x8000;
+                            }
+                            else if (b == 0xAA)
+                            {
+                                MBC7_LockX = MBC7_X;
+                                MBC7_LockY = MBC7_Y;
+                            }
+                        }
+                    }
                 }
 
                 #endregion
