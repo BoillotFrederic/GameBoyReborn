@@ -520,7 +520,15 @@ namespace Emulator
                     // ----
                     case 0x20:
                     {
+                        for(int i = 0; i < 64; i++)
+                        {
+                            MBC6_RomFlashA[i] = new byte[0x2000];
+                            MBC6_RomFlashB[i] = new byte[0x2000];
+                        }
 
+                        ExternalRamSize = 0x2000;
+                        Read = MBC6_read;
+                        Write = MBC6_write;
                         break;
                     }
 
@@ -959,6 +967,137 @@ namespace Emulator
                     // Exteral ram
                     else if (at >= 0xA000 && at <= 0xBFFF && MBC5_RamEnable)
                     ExternalRam[selectedRamBank][at - 0xA000] = b;
+                }
+
+                #endregion
+
+                #region MBC6
+
+                // MBCs Registers
+                private byte MBC6_RomFBankA = 0;
+                private byte MBC6_RomFBankB = 0;
+                private byte MBC6_RamFBankA = 0;
+                private byte MBC6_RamFBankB = 0;
+                private bool MBC6_FlashEnable = false;
+                private bool MBC6_FlashWriteEnable = false;
+                private bool MBC6_RomOrFlashASelect = false;
+                private bool MBC6_RomOrFlashBSelect = false;
+                private bool MBC6_RamEnable = false;
+
+                // Flash
+                private readonly byte[][] MBC6_RomFlashA = new byte[64][];
+                private readonly byte[][] MBC6_RomFlashB = new byte[64][];
+
+                // Read
+                private byte MBC6_read(ushort at)
+                {
+                    // Rom bank 00
+                    if (at >= 0 && at <= 0x3FFF)
+                    return RomData[at];
+
+                    // ROM/Flash Bank A 00-7F
+                    else if (at >= 0x4000 && at <= 0x5FFF)
+                    {
+                        // Max banks
+                        MBC6_RomFBankA = (byte)(MBC6_RomFBankA & 0x7F);
+
+                        int atInBank = 0x4000 * MBC6_RomFBankA + at - 0x4000;
+
+                        if (RomData.Length > atInBank)
+                        {
+                            if(!MBC6_RomOrFlashASelect)
+                            return RomData[atInBank];
+                            else if(MBC6_FlashEnable)
+                            return MBC6_RomFlashA[MBC6_RomFBankA][at - 0x4000];
+                            else
+                            return 0;
+                        }
+
+                        else
+                        return 0;
+                    }
+
+                    // ROM/Flash Bank B 00-7F
+                    else if (at >= 0x6000 && at <= 0x7FFF)
+                    {
+                        // Max banks
+                        MBC6_RomFBankB = (byte)(MBC6_RomFBankB & 0x7F);
+
+                        int atInBank = 0x6000 * MBC6_RomFBankB + at - 0x6000;
+
+                        if (RomData.Length > atInBank)
+                        {
+                            if(!MBC6_RomOrFlashBSelect)
+                            return RomData[atInBank];
+                            else if(MBC6_FlashEnable)
+                            return MBC6_RomFlashB[MBC6_RomFBankB][at - 0x4000];
+                            else
+                            return 0;
+                        }
+
+                        else
+                        return 0;
+                    }
+
+                    // RAM Bank A 00-07
+                    else if(at >= 0xA000 && at <= 0xAFFF)
+                    {
+                        if (MBC6_RamEnable)
+                        return ExternalRam[MBC6_RamFBankA][at - 0xA000];
+                        else
+                        return 0xFF;
+                    }
+
+                    // RAM Bank B 00-07
+                    else
+                    {
+                        if (MBC6_RamEnable)
+                        return ExternalRam[MBC6_RamFBankB][at - 0xA000];
+                        else
+                        return 0xFF;
+                    }
+                }
+
+                // Write
+                private void MBC6_write(ushort at, byte b)
+                {
+                    // Ram enable
+                    if (at >= 0 && at <= 0x03FF)
+                    MBC6_RamEnable = (b & 0x0F) == 0x0A;
+
+                    // RAM Bank A Number
+                    else if (at >= 0x0400 && at <= 0x07FF)
+                    MBC6_RamFBankA = (byte)(b & 0x7 & 0x07);
+
+                    // RAM Bank B Number
+                    else if (at >= 0x0800 && at <= 0x0BFF)
+                    MBC6_RamFBankB = (byte)(b & 0x7 & 0x07);
+
+                    // Flash Enable
+                    else if (at >= 0x0800 && at <= 0x0BFF && MBC6_FlashWriteEnable)
+                    MBC6_FlashEnable = (b & 1)  == 1;
+
+                    // Flash Write Enable
+                    else if (at == 0x1000)
+                    MBC6_FlashWriteEnable = (b & 1)  == 1;
+
+                    // ROM/Flash Bank A Number
+                    else if (at >= 0x2000 && at <= 0x27FF)
+                    MBC6_RomFBankA = b;
+
+                    // ROM/Flash Bank A Select
+                    else if (at >= 0x2800 && at <= 0x2FFF)
+                    if(b == 0) MBC6_RomOrFlashASelect = false;
+                    else if(b == 0x08) MBC6_RomOrFlashASelect = true;
+
+                    // ROM/Flash Bank B Number
+                    else if (at >= 0x3000 && at <= 0x37FF)
+                    MBC6_RomFBankB = b;
+
+                    // ROM/Flash Bank B Select
+                    else if (at >= 0x3800 && at <= 0x3FFF)
+                    if(b == 0) MBC6_RomOrFlashBSelect = false;
+                    else if(b == 0x08) MBC6_RomOrFlashBSelect = true;
                 }
 
                 #endregion
