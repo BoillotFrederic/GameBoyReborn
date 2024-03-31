@@ -113,10 +113,11 @@ namespace Emulator
             }
         }
 
-        // Save external ram
-        public void SaveExternalRam()
+        // Save external
+        public void SaveExternal()
         {
             Cartridge.SaveExternalRam();
+            Cartridge.SaveExternalTimer();
         }
 
         // Stop emulation

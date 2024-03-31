@@ -2,6 +2,7 @@
 // Input set
 // ---------
 using Raylib_cs;
+using SharpDX.XInput;
 
 namespace GameBoyReborn
 {
@@ -231,6 +232,25 @@ namespace GameBoyReborn
                 }
                 else
                 DebugEnableNoRepeat = false;
+            }
+        }
+
+        // Vibration
+        public static void Vibration(bool enable)
+        {
+            // Initialize XInput
+            var controller = new Controller(UserIndex.One);
+
+            if(controller.IsConnected)
+            {
+                // Set vibration
+                Vibration vibration = new()
+                {
+                    LeftMotorSpeed = (ushort)(enable ? 65535 : 0),
+                    RightMotorSpeed = (ushort)(enable ? 65535 : 0)
+                };
+
+                controller.SetVibration(vibration);
             }
         }
 

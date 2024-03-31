@@ -34,7 +34,7 @@ namespace GameBoyReborn
             AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
             {
                 if(Emulation != null)
-                Emulation.SaveExternalRam();
+                Emulation.SaveExternal();
 
                 Log.Close();
             };

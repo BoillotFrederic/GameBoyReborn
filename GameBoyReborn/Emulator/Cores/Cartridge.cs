@@ -3,7 +3,6 @@
 // ---------
 
 #pragma warning disable CS8618
-#pragma warning disable CS0414
 
 using GameBoyReborn;
 using System.Text;
@@ -130,8 +129,9 @@ namespace Emulator
             // Delegate read/write
             MBCs();
 
-            // External ram
+            // Load external
             LoadExternalRam();
+            LoadExternalTimer();
         }
 
         private static string GetLicense(ushort hex)
@@ -370,12 +370,12 @@ namespace Emulator
 
         #region Memory bank controller
 
-        #region External ram handle
+            #region External ram handle
 
-        // External ram
-        private int ExternalRamSize;
+            // External ram
+            private int ExternalRamSize;
 
-        public byte[][] ExternalRam;
+            public byte[][] ExternalRam;
 
             /// <summary>
             /// Load external ram if it exist (directory = ExternalRam)
@@ -412,6 +412,39 @@ namespace Emulator
 
                     File.WriteAllBytes(pathExternalRam, externalRamBytes);
                 }
+            }
+
+            #endregion
+
+            #region External timer handle
+
+            // External timer
+            private long ExternalTimer;
+
+            /// <summary>
+            /// Load external timer if it exist (directory = ExternalTimer)
+            /// </summary>
+            private void LoadExternalTimer()
+            {
+                string pathExternalTimer = AppDomain.CurrentDomain.BaseDirectory + "ExternalTimer/" + FileName + ".et";
+                bool checkExternalTimer = File.Exists(pathExternalTimer);
+                long ExternalTimerGet = long.Parse(checkExternalTimer ? File.ReadAllText(pathExternalTimer) : "0");
+
+                ExternalTimer = ExternalTimerGet;
+
+                if (ExternalTimerGet == 0)
+                ExternalTimer = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
+            }
+
+            /// <summary>
+            /// Save external timer (directory = ExternalTimer)
+            /// </summary>
+            public void SaveExternalTimer()
+            {
+                string pathExternalTimer = AppDomain.CurrentDomain.BaseDirectory + "ExternalTimer/" + FileName + ".et";
+
+                if (Regex.Match(TypeDescription, "TIMER", RegexOptions.IgnoreCase).Success)
+                File.WriteAllText(pathExternalTimer, ExternalTimer.ToString());
             }
 
             #endregion
@@ -754,18 +787,10 @@ namespace Emulator
 
                 // MBCs Registers
                 private bool MBC3_RamEnable = false;
-                private bool MBC3_TimerEnable = false;
-                private byte MBC3_RTCRegisterSelect = 0;
-                private byte MBC3_LatchClockData = 0;
                 private byte MBC3_LatchClockDataLastWriteValue = 0;
-                private byte MBC3_ClockCounterRegisters = 0;
 
                 // TIMER Registers
-                private byte MBC3_RTC_S = 0;
-                private byte MBC3_RTC_M = 0;
-                private byte MBC3_RTC_H = 0;
-                private byte MBC3_RTC_DL = 0;
-                private byte MBC3_RTC_DH = 0;
+                private readonly byte[] MBC3_RTC = new byte[5];
 
                 // Read
                 private byte MBC3_read(ushort at)
@@ -797,7 +822,16 @@ namespace Emulator
                     else
                     {
                         if (MBC3_RamEnable)
-                        return ExternalRam[selectedRamBank][at - 0xA000];
+                        {
+                            if(selectedRamBank <= (selectedRamBank & RamBankMask))
+                            return ExternalRam[selectedRamBank][at - 0xA000];
+
+                            else if (selectedRamBank >= 0x08 && selectedRamBank <= 0x0C)
+                            return MBC3_RTC[selectedRamBank - 0x08];
+
+                            else
+                            return 0xFF;
+                        }
                         else
                         return 0xFF;
                     }
@@ -808,18 +842,7 @@ namespace Emulator
                 {
                     // Ram and timer enable
                     if (at >= 0 && at <= 0x1FFF)
-                    {
-                        if((b & 0x0F) == 0x0A)
-                        {
-                            MBC3_RamEnable = true;
-                            MBC3_TimerEnable = true;
-                        }
-                        else
-                        {
-                            MBC3_RamEnable = false;
-                            MBC3_TimerEnable = false;
-                        }
-                    }
+                    MBC3_RamEnable = (b & 0x0F) == 0x0A;
 
                     // ROM Bank Number
                     else if (at >= 0x2000 && at <= 0x3FFF)
@@ -827,15 +850,7 @@ namespace Emulator
 
                     // RAM Bank Number or RTC Register Select
                     else if (at >= 0x4000 && at <= 0x5FFF)
-                    {
-                        if(b <= 3)
-                        {
-                            selectedRamBank = (byte)(b & 3);
-                            selectedRamBank = (byte)(selectedRamBank & RamBankMask);
-                        }
-                        else if(b >= 0x08 && b <= 0x0C)
-                        MBC3_RTCRegisterSelect = b; 
-                    }
+                    selectedRamBank = b;
 
                     // Latch Clock Data
                     else if (at >= 0x6000 && at <= 0x7FFF)
@@ -843,7 +858,20 @@ namespace Emulator
                         // Latched
                         if(MBC3_LatchClockDataLastWriteValue == 0x00 && b == 0x01)
                         {
+                            long CurrentTimestamp = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
+                            long timeElapsed = CurrentTimestamp - ExternalTimer;
 
+                            MBC3_RTC[0] = (byte)(timeElapsed % 60); // Seconds
+                            MBC3_RTC[1] = (byte)(timeElapsed / 60 % 60); // Minutes
+                            MBC3_RTC[2] = (byte)(timeElapsed / 3600 % 24); // Hours
+                            MBC3_RTC[3] = (byte)(timeElapsed / 86400); // Lower days
+                            MBC3_RTC[4] = (byte)(((timeElapsed / 86400) >> 8) & 1); // Upper days
+
+                            Binary.SetBit(ref MBC3_RTC[4], 6, false);
+                            Binary.SetBit(ref MBC3_RTC[4], 7, timeElapsed / 86400 > 511);
+
+                            if ((timeElapsed / 86400) > 511)
+                            ExternalTimer = CurrentTimestamp;
                         }
 
                         MBC3_LatchClockDataLastWriteValue = b;
@@ -851,7 +879,10 @@ namespace Emulator
 
                     // Exteral ram
                     else if (at >= 0xA000 && at <= 0xBFFF && MBC3_RamEnable)
-                    ExternalRam[selectedRamBank][at - 0xA000] = b;
+                    {
+                        if(selectedRamBank <= (selectedRamBank & RamBankMask))
+                        ExternalRam[selectedRamBank][at - 0xA000] = b;
+                    }
                 }
 
                 #endregion
@@ -915,7 +946,15 @@ namespace Emulator
 
                     // RAM Bank Number
                     else if (at >= 0x4000 && at <= 0x5FFF)
-                    selectedRamBank = (byte)(b & 0x0F);
+                    {
+                        selectedRamBank = (byte)(b & 0x0F);
+
+                        // Rumble (Not yet tested)
+                        // Input.Vibration(Binary.ReadBit(selectedRamBank, 3));
+
+                        // Max banks
+                        selectedRamBank = (byte)(selectedRamBank & RamBankMask);
+                    }
 
                     // Exteral ram
                     else if (at >= 0xA000 && at <= 0xBFFF && MBC5_RamEnable)
