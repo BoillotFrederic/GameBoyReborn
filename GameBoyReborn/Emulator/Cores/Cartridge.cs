@@ -554,7 +554,9 @@ namespace Emulator
                     // ----
                     case 0xFF:
                     {
-
+                        ExternalRamSize = 0x2000;
+                        Read = HuC1_read;
+                        Write = HuC1_write;
                         break;
                     }
 
@@ -1207,6 +1209,106 @@ namespace Emulator
                             }
                         }
                     }
+                }
+
+                #endregion
+
+                #region HuC1
+
+                // MBCs Registers
+                private byte HuC1_LowRegister = 0;
+                private byte HuC1_HighRegister = 0;
+                private bool HuC1_RamEnable = false;
+                private bool HuC1_BankingModeSelect = false;
+
+                // Read
+                private byte HuC1_read(ushort at)
+                {
+                    // Rom bank 00
+                    if (at >= 0 && at <= 0x3FFF)
+                    {
+                        int atInBank = 0x4000 * selectedRomBank00 + at;
+                        return RomData[atInBank];
+                    }
+
+                    // Rom bank 01~NN
+                    else if (at >= 0x4000 && at <= 0x7FFF)
+                    {
+                        // 00
+                        if (HuC1_LowRegister == 0)
+                        HuC1_LowRegister |= 1;
+
+                        // Set
+                        selectedRomBank = (byte)((HuC1_HighRegister << 6) | (HuC1_LowRegister & 0x3F));
+
+                        // Max banks
+                        selectedRomBank = (byte)(selectedRomBank & RomBankMask);
+
+                        int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
+
+                        if (RomData.Length > atInBank)
+                        return RomData[atInBank];
+
+                        else
+                        return 0;
+                    }
+
+                    // External RAM
+                    else
+                    {
+                        if (HuC1_RamEnable)
+                        return ExternalRam[selectedRamBank][at - 0xA000];
+                        else
+                        return 0xFF;
+                    }
+                }
+
+                // Write
+                private void HuC1_write(ushort at, byte b)
+                {
+                    // Ram enable
+                    if (at >= 0 && at <= 0x1FFF)
+                    HuC1_RamEnable = (b & 0x0F) == 0x0A;
+
+                    // ROM Bank Number - Low bits
+                    else if (at >= 0x2000 && at <= 0x3FFF)
+                    HuC1_LowRegister = (byte)(b & 0x1F);
+
+                    // ROM Bank Number - High bits
+                    else if (at >= 0x4000 && at <= 0x5FFF)
+                    {
+                        if (!HuC1_BankingModeSelect)
+                        {
+                            HuC1_HighRegister = (byte)(b & 3);
+
+                            // RomBank00 and RamBank = 0
+                            selectedRomBank00 = 0;
+                            selectedRamBank = 0;
+                        }
+
+                        else
+                        {
+                            // Set RomBank00
+                            selectedRomBank00 = (byte)((b & 3) << 6);
+
+                            // Max banks
+                            selectedRomBank00 = (byte)(selectedRomBank00 & RomBankMask);
+
+                            HuC1_HighRegister = (byte)(selectedRomBank00 >> 6);
+
+                            // Set RamBank
+                            selectedRamBank = (byte)(b & 3);
+                            selectedRamBank = (byte)(selectedRamBank & RamBankMask);
+                        }
+                    }
+
+                    // Banking Mode Select
+                    else if (at >= 0x6000 && at <= 0x7FFF)
+                    HuC1_BankingModeSelect = Binary.ReadBit(b, 0);
+
+                    // Exteral ram
+                    else if (at >= 0xA000 && at <= 0xBFFF && HuC1_RamEnable)
+                    ExternalRam[selectedRamBank][at - 0xA000] = b;
                 }
 
                 #endregion
