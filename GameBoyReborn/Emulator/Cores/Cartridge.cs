@@ -546,7 +546,9 @@ namespace Emulator
                     // -----
                     case 0x0B: case 0x0C: case 0x0D:
                     {
-
+                        ExternalRamSize = 0x2000;
+                        Read = MMM01_read;
+                        Write = MMM01_write;
                         break;
                     }
 
@@ -1211,6 +1213,115 @@ namespace Emulator
                             }
                         }
                     }
+                }
+
+                #endregion
+
+                #region MMM01
+
+                // MBCs Registers
+                private byte MMM01_LowRegister = 0;
+                private byte MMM01_HighRegister = 0;
+                private bool MMM01_RamEnable = false;
+                private bool MMM01_BankingModeSelect = false;
+                private bool MMM01_Multiplex = false;
+                private byte MMM01_RamBankMask = 0;
+
+                // MMM01 or MMM01M
+                private readonly byte MMM01_M_Shift = 5;
+                private readonly byte MMM01_M_LowRegisterMask = 0x1F;
+
+                // Read
+                private byte MMM01_read(ushort at)
+                {
+                    // Rom bank 00
+                    if (at >= 0 && at <= 0x3FFF)
+                    {
+                        int atInBank = 0x4000 * (MMM01_Multiplex ? selectedRomBank00 : 0) + at;
+                        return RomData[atInBank];
+                    }
+
+                    // Rom bank 01~NN
+                    else if (at >= 0x4000 && at <= 0x7FFF)
+                    {
+                        // 00
+                        if (MMM01_Multiplex && MMM01_LowRegister == 0)
+                        MMM01_LowRegister |= 1;
+
+                        // Set
+                        selectedRomBank = (byte)((MMM01_HighRegister << MMM01_M_Shift) | (MMM01_LowRegister & MMM01_M_LowRegisterMask));
+
+                        // Max banks
+                        selectedRomBank = (byte)(selectedRomBank & RomBankMask);
+
+                        int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
+
+                        if (RomData.Length > atInBank)
+                        return RomData[atInBank];
+
+                        else
+                        return 0;
+                    }
+
+                    // External RAM
+                    else
+                    {
+                        if (MMM01_RamEnable)
+                        return ExternalRam[MMM01_Multiplex ? (selectedRamBank & MMM01_RamBankMask) : selectedRamBank][at - 0xA000];
+                        else
+                        return 0xFF;
+                    }
+                }
+
+                // Write
+                private void MMM01_write(ushort at, byte b)
+                {
+                    // Ram enable
+                    if (at >= 0 && at <= 0x1FFF)
+                    {
+                        MMM01_RamEnable = (b & 0x0F) == 0x0A;
+                        MMM01_RamBankMask = (byte)((b >> 4) & 3);
+                    }
+
+                    // ROM Bank Number - Low bits
+                    else if (at >= 0x2000 && at <= 0x3FFF)
+                    MMM01_LowRegister = (byte)(b & 0x1F);
+
+                    // ROM Bank Number - High bits
+                    else if (at >= 0x4000 && at <= 0x5FFF)
+                    {
+                        if (!MMM01_BankingModeSelect)
+                        {
+                            MMM01_HighRegister = (byte)(b & 3);
+
+                            // RomBank00 and RamBank = 0
+                            selectedRomBank00 = 0;
+                            selectedRamBank = 0;
+                        }
+
+                        else
+                        {
+                            // Set RomBank00
+                            selectedRomBank00 = (byte)((b & 3) << MMM01_M_Shift);
+
+                            // Max banks
+                            selectedRomBank00 = (byte)(selectedRomBank00 & RomBankMask);
+
+                            MMM01_HighRegister = (byte)(selectedRomBank00 >> MMM01_M_Shift);
+
+                            // Set RamBank
+                            selectedRamBank = (byte)(b & 3);
+                            selectedRamBank = (byte)(selectedRamBank & RamBankMask);
+                        }
+                    }
+
+                    // Banking Mode Select
+                    else if (at >= 0x6000 && at <= 0x7FFF)
+                    MMM01_BankingModeSelect = Binary.ReadBit(b, 0);
+
+                    // Exteral ram
+                    else if (at >= 0xA000 && at <= 0xBFFF && MMM01_RamEnable)
+                    ExternalRam[selectedRamBank][at - 0xA000] = b;
                 }
 
                 #endregion
