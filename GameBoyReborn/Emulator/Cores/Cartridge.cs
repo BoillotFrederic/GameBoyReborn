@@ -564,7 +564,9 @@ namespace Emulator
                     // ----
                     case 0xFE:
                     {
-
+                        ExternalRamSize = 0x2000;
+                        Read = HuC3_read;
+                        Write = HuC3_write;
                         break;
                     }
 
@@ -1309,6 +1311,85 @@ namespace Emulator
                     // Exteral ram
                     else if (at >= 0xA000 && at <= 0xBFFF && HuC1_RamEnable)
                     ExternalRam[selectedRamBank][at - 0xA000] = b;
+                }
+
+                #endregion
+
+                #region HuC3
+
+                // MBCs Registers
+                private byte HuC3_1FFFEnable = 0;
+
+                // Read
+                private byte HuC3_read(ushort at)
+                {
+                    // Rom bank 00
+                    if (at >= 0 && at <= 0x3FFF)
+                    return RomData[at];
+
+                    // Rom bank 01~NN
+                    else if (at >= 0x4000 && at <= 0x7FFF)
+                    {
+                        // Max banks
+                        selectedRomBank = (byte)(selectedRomBank & 0x7F);
+
+                        int atInBank = 0x4000 * selectedRomBank + at - 0x4000;
+
+                        if (RomData.Length > atInBank)
+                        return RomData[atInBank];
+
+                        else
+                        return 0;
+                    }
+
+                    // I/O Registers
+                    else
+                    {
+                        // Ram
+                        if (HuC3_1FFFEnable == 0 || HuC3_1FFFEnable == 0xA)
+                        return ExternalRam[selectedRamBank][at - 0xA000];
+                        // RTC command/response
+                        else if(HuC3_1FFFEnable == 0xC)
+                        return 0xFF;
+                        // RTC semaphore
+                        else if(HuC3_1FFFEnable == 0xD)
+                        return 0xFF;
+                        // IR
+                        else if(HuC3_1FFFEnable == 0xE)
+                        return 0xFF;
+                        else
+                        return 0xFF;
+                    }
+                }
+
+                // Write
+                private void HuC3_write(ushort at, byte b)
+                {
+                    // Ram enable
+                    if (at >= 0 && at <= 0x1FFF)
+                    HuC3_1FFFEnable = (byte)(b & 0x0F);
+
+                    // ROM Bank Number
+                    else if (at >= 0x2000 && at <= 0x3FFF)
+                    selectedRomBank = (byte)(b & 0x7F);
+
+                    // RAM Bank Number
+                    else if (at >= 0x4000 && at <= 0x5FFF)
+                    selectedRamBank = (byte)(b & 3);
+
+                    // I/O Registers
+                    else if (at >= 0xA000 && at <= 0xBFFF)
+                    {
+                        // Ram
+                        if (HuC3_1FFFEnable == 0xA)
+                        ExternalRam[selectedRamBank][at - 0xA000] = b;
+                        // RTC Command/Argument
+                        else if (HuC3_1FFFEnable == 0xB) { }
+                        // RTC Semaphore
+                        else if (HuC3_1FFFEnable == 0xD) { }
+                        // IR
+                        else if (HuC3_1FFFEnable == 0xE) { }
+                    }
                 }
 
                 #endregion
