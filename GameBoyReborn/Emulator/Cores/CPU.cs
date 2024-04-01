@@ -165,7 +165,6 @@ namespace Emulator
             if (!Halt && !Stop)
             {
                 // Interrupts handle
-                if (IME >= 0)
                 Interrupts();
 
                 LoopAccumulator++;
@@ -220,53 +219,83 @@ namespace Emulator
         // -----------------
         private void Interrupts()
         {
-            if (IME == 0 && (IO.IE & IO.IF) != 0)
+            if (IME >= 0)
             {
-                PUSH_RR(Binary.Msb(PC), Binary.Lsb(PC));
-                Cycles++;
+                byte IEnIF = (byte)(IO.IE & IO.IF);
 
-                // VBlank interrupt
-                if (Binary.ReadBit(IO.IE, 0) && Binary.ReadBit(IO.IF, 0))
+                if (IME == 0 && IEnIF != 0)
                 {
-                    Binary.SetBit(ref IO.IF, 0, false);
-                    PC = 0x40;
+                    // Push
+                    bool intrCancel = false;
+                    ushort pushMsbAdress = --SP;
+                    byte pushMsb = Binary.Msb(PC);
+                    Write(pushMsbAdress, pushMsb);
+                    Write(--SP, Binary.Lsb(PC));
+                    Cycles += 5;
+
+                    // IE set when pushed
+                    if(pushMsbAdress == 0xFFFF)
+                    {
+                        byte interruptCount = 0;
+
+                        for (byte i = 0; i < 5; i++)
+                        if (Binary.ReadBit(IO.IF, i))
+                        interruptCount++;
+
+                        if(interruptCount == 1)
+                        intrCancel = true;
+
+                        else
+                        IEnIF = (byte)(IO.IE & IO.IF);
+                    }
+
+                    // Interrupt cancel
+                    if(intrCancel)
+                    PC = 0;
+
+                    // VBlank interrupt
+                    else if (Binary.ReadBit(IEnIF, 0))
+                    {
+                        Binary.SetBit(ref IO.IF, 0, false);
+                        PC = 0x40;
+                    }
+
+                    // STAT interrupt
+                    else if (Binary.ReadBit(IEnIF, 1))
+                    {
+                        Binary.SetBit(ref IO.IF, 1, false);
+                        PC = 0x48;
+                    }
+
+                    // Timer interrupt
+                    else if (Binary.ReadBit(IEnIF, 2))
+                    {
+                        Binary.SetBit(ref IO.IF, 2, false);
+                        PC = 0x50;
+                    }
+
+                    // Serial interrupt
+                    else if (Binary.ReadBit(IEnIF, 3))
+                    {
+                        Binary.SetBit(ref IO.IF, 3, false);
+                        PC = 0x58;
+                    }
+
+                    // Joypad interrupt
+                    else if (Binary.ReadBit(IEnIF, 4))
+                    {
+                        Binary.SetBit(ref IO.IF, 4, false);
+                        PC = 0x60;
+                    }
+
+                    //Halt = false;
+                    //Stop = false;
+                    IME = -1;
                 }
 
-                // STAT interrupt
-                else if (Binary.ReadBit(IO.IE, 1) && Binary.ReadBit(IO.IF, 1))
-                {
-                    Binary.SetBit(ref IO.IF, 1, false);
-                    PC = 0x48;
-                }
-
-                // Timer interrupt
-                else if (Binary.ReadBit(IO.IE, 2) && Binary.ReadBit(IO.IF, 2))
-                {
-                    Binary.SetBit(ref IO.IF, 2, false);
-                    PC = 0x50;
-                }
-
-                // Serial interrupt
-                else if (Binary.ReadBit(IO.IE, 3) && Binary.ReadBit(IO.IF, 3))
-                {
-                    Binary.SetBit(ref IO.IF, 3, false);
-                    PC = 0x58;
-                }
-
-                // Joypad interrupt
-                else if (Binary.ReadBit(IO.IE, 4) && Binary.ReadBit(IO.IF, 4))
-                {
-                    Binary.SetBit(ref IO.IF, 4, false);
-                    PC = 0x60;
-                }
-
-                //Halt = false;
-                //Stop = false;
-                IME = -1;
+                if (IME > 0)
+                IME--;
             }
-
-            if (IME > 0)
-            IME--;
         }
 
         #endregion
