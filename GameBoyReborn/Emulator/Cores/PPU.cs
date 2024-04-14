@@ -211,6 +211,8 @@ namespace Emulator
                 DMA_InProgress = false;
             }
 
+            HDMATransfer();
+
             // Screen enable
             if (/*LCD_and_PPU_enable*/ Enable)
             {
@@ -380,7 +382,7 @@ namespace Emulator
             byte pixelValue = (byte)((highBit << 1) | lowBit);
 
             if (X < 160 && Y < 144)
-            Drawing.SetPixel(X, Y, Pal[pixelValue]);
+            DrawingGB.SetPixel(X, Y, Pal[pixelValue]);
 
             return pixelValue;
         }
@@ -510,7 +512,32 @@ namespace Emulator
         // Handle Objects
         // --------------
 
+        // Update objects tile data
+        private void OBJ_UpdateTileData(ref sbyte LastTile, ushort at, ref byte[] TileData)
+        {
+            if (LastTile != (sbyte)at)
+            {
+                LastTile = (sbyte)at;
+
+                if(!OBJ_size)
+                Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], at * 16, TileData, 0, 16);
+                else
+                {
+                    Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (at & 0xFE) * 16, TileData, 0, 16);
+                    Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (at | 1) * 16, TileData, 16, 16);
+                }
+            }
+        }
+
+        #endregion
+
+        #region DMA transfert
+        
+        // DMG
+        // ---
+
         // DMA Transfer
+
         private bool DMA_InProgress = false;
         private short DMA_cycles = 0;
 
@@ -529,23 +556,25 @@ namespace Emulator
             Memory.OAM[r] = Memory.Read((ushort)(startAddress | r));
         }
 
-        // Update objects tile data
-        private void OBJ_UpdateTileData(ref sbyte LastTile, ushort at, ref byte[] TileData)
-        {
-            if (LastTile != (sbyte)at)
-            {
-                LastTile = (sbyte)at;
+        // CGB
+        // ---
 
-                if(!OBJ_size)
-                Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], at * 16, TileData, 0, 16);
-                else
-                {
-                    Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (at & 0xFE) * 16, TileData, 0, 16);
-                    Array.Copy(Memory.VideoRam_nn[Memory.selectedVideoBank], (at | 1) * 16, TileData, 16, 16);
-                }
+        // HDMA Transfer
+
+        private void HDMATransfer()
+        {
+            // General-Purpose DMA
+            if (Mode_PPU == 2 && !Binary.ReadBit(IO.HDMA5, 7))
+            {
+
+            }
+
+            // HBlank DMA
+            else if (Mode_PPU == 0 && Binary.ReadBit(IO.HDMA5, 7))
+            {
             }
         }
-
+        
         #endregion
     }
 }

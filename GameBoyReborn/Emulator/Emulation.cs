@@ -10,6 +10,10 @@ namespace Emulator
 {
     public class Emulation
     {
+        // Debug mode
+        public bool DebugEnable = false;
+        public bool OneByOne = false;
+
         // Construct
         public string FileName;
         public byte[] RomData;
@@ -80,16 +84,16 @@ namespace Emulator
         {
             if (RomData != null)
             {
-                PPU.CompletedFrame = Program.OneByOne;
+                PPU.CompletedFrame = OneByOne;
 
                 #region If debug enable
-                if (Program.DebugEnable)
+                if (DebugEnable)
                 {
                     if (Input.XabyPadY)
-                    Program.OneByOne = true;
+                    OneByOne = true;
 
                     if (Input.XabyPadX)
-                    Program.OneByOne = false;
+                    OneByOne = false;
 
                     if (Input.TriggerPadRB)
                     PPU.CompletedFrame = false;
@@ -103,7 +107,7 @@ namespace Emulator
                     Timer.Execution();
 
                     #region If debug enable
-                    if (Program.DebugEnable && Program.OneByOne)
+                    if (DebugEnable && OneByOne)
                     {
                         PPU.CompletedFrame = true;
                         Thread.Sleep(150);

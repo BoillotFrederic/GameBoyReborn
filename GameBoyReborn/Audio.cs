@@ -2,7 +2,6 @@
 // Audio set
 // ---------
 using Raylib_cs;
-using Emulator;
 using System.Runtime.InteropServices;
 
 namespace GameBoyReborn
@@ -26,6 +25,7 @@ namespace GameBoyReborn
             Raylib.SetMasterVolume(1);
             Raylib.SetAudioStreamVolume(AudioStream, 1);
             Raylib.PlayAudioStream(AudioStream);
+
 
             // Audio loop
             if (Program.Emulation != null)

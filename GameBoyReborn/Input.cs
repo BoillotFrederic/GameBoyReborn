@@ -3,6 +3,7 @@
 // ---------
 using Raylib_cs;
 using SharpDX.XInput;
+using System.Runtime.InteropServices;
 
 namespace GameBoyReborn
 {
@@ -51,6 +52,10 @@ namespace GameBoyReborn
         private static bool _AxisRightPadUp = false;
         private static bool _AxisLS = false;
         private static bool _AxisRS = false;
+
+        // Mouse
+        private static bool _MouseLeftClickPressed = false;
+        private static bool _MouseLeftClick = false;
 
         // Getter / setter
         // ---------------
@@ -110,7 +115,11 @@ namespace GameBoyReborn
         // NoRepeat
         private static bool DebugEnableNoRepeat = false;
 
-        public static void Set()
+        // Mouse
+        public static bool MouseLeftClick { get { return _MouseLeftClick; } }
+        public static bool MouseLeftClickPressed { get { return _MouseLeftClickPressed; } }
+
+        public static void Update()
         {
             // Init keys/buttons
             // -----------------
@@ -150,6 +159,10 @@ namespace GameBoyReborn
             _AxisLS = false;
             _AxisRS = false;
 
+            // Mouses
+            _MouseLeftClick = false;
+            _MouseLeftClickPressed = false;
+
             // Keyboards
             // ---------
 
@@ -175,6 +188,13 @@ namespace GameBoyReborn
             if (Raylib.IsKeyDown(KeyboardKey.KEY_KP_9)) _TriggerPadRB = true;
             if (Raylib.IsKeyDown(KeyboardKey.KEY_KP_DIVIDE)) _TriggerPadLT = true;
             if (Raylib.IsKeyDown(KeyboardKey.KEY_KP_MULTIPLY)) _TriggerPadRT = true;
+
+            // Click
+            if(Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT))
+            _MouseLeftClick = true;
+
+            if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
+            _MouseLeftClickPressed = true;
 
             // XBOX gamepad
             // ------------
@@ -223,15 +243,62 @@ namespace GameBoyReborn
                 if (Raylib.IsGamepadButtonDown(Gamepad, GamepadButton.GAMEPAD_BUTTON_RIGHT_THUMB)) _AxisRS = true;
 
                 // Debug enable/disable
-                if (_XabyPadA && _XabyPadB && _XabyPadX && _XabyPadY && _TriggerPadLB && _TriggerPadRB && _TriggerPadLT && _TriggerPadRT && _AxisRS)
+                if (Program.Emulation != null && _XabyPadA && _XabyPadB && _XabyPadX && _XabyPadY && _TriggerPadLB && _TriggerPadRB && _TriggerPadLT && _TriggerPadRT && _AxisRS)
                 {
                     if(!DebugEnableNoRepeat)
-                    Program.DebugEnable = !Program.DebugEnable;
+                    Program.Emulation.DebugEnable = !Program.Emulation.DebugEnable;
 
                     DebugEnableNoRepeat = true;
                 }
                 else
                 DebugEnableNoRepeat = false;
+            }
+
+            // Toggle fullscreen
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_LEFT_ALT)) KeyAltPress = true;
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_ENTER)) KeyEnterPress = true;
+            if (Raylib.IsKeyUp(KeyboardKey.KEY_LEFT_ALT)) KeyAltPress = false;
+            if (Raylib.IsKeyUp(KeyboardKey.KEY_ENTER)) KeyEnterPress = false;
+
+            if (KeyAltPress && KeyEnterPress)
+            {
+                ToogleFullScreen();
+                KeyAltPress = false;
+                KeyEnterPress = false;
+            }
+        }
+
+        // Toogle fullscreen
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetDC(IntPtr hwnd);
+
+        [DllImport("gdi32.dll")]
+        private static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+        private const int DESKTOPVERTRES = 117;
+        private const int DESKTOPHORZRES = 118;
+        private static int WidthBeforeFullscreen = Program.WindowWidth;
+        private static int HeightBeforeFullscreen = Program.WindowHeight;
+        private static bool KeyAltPress = false;
+        private static bool KeyEnterPress = false;
+
+        private static void ToogleFullScreen()
+        {
+            IntPtr hdc = GetDC(IntPtr.Zero);
+            int width = GetDeviceCaps(hdc, DESKTOPHORZRES);
+            int height = GetDeviceCaps(hdc, DESKTOPVERTRES);
+
+            if (!Raylib.IsWindowFullscreen())
+            {
+                WidthBeforeFullscreen = Raylib.GetScreenWidth();
+                HeightBeforeFullscreen = Raylib.GetScreenHeight();
+                Raylib.SetWindowSize(width, height);
+                Raylib.ToggleFullscreen();
+            }
+            else
+            {
+                Raylib.ToggleFullscreen();
+                Raylib.SetWindowSize(WidthBeforeFullscreen, HeightBeforeFullscreen);
             }
         }
 

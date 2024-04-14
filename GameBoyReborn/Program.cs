@@ -11,12 +11,9 @@ namespace GameBoyReborn
 {
     public class Program
     {
-        public const int SystemWidth = 160;
-        public const int SystemHeight = 144;
-        public const int WindowWidth = 800;
-        public const int WindowHeight = 600;
-        public static bool DebugEnable = false;
-        public static bool OneByOne = false;
+        public static bool EmulatorRun = false;
+        public static int WindowWidth = 800;
+        public static int WindowHeight = 600;
         public static Emulation ? Emulation = null;
 
         public static Task Main(string[] args)
@@ -40,26 +37,31 @@ namespace GameBoyReborn
             };
 
             // Set Raylib
+            Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
             Raylib.SetTraceLogLevel(TraceLogLevel.LOG_WARNING);
-            Raylib.InitWindow(800, 600, "GameBoyReborn");
+            Raylib.InitWindow(WindowWidth, WindowHeight, "GameBoyReborn");
             Raylib.SetTargetFPS(60);
 
-            // Init screen image
-            Drawing.ScreenImage = Raylib.GenImageColor(SystemWidth, SystemHeight, Color.RAYWHITE);
-
             // Init emulation
-            Emulation = new Emulation(args.Length > 0 ? args[0] : "Roms/Tetris.gb");
+            if(args.Length > 0)
+            {
+                EmulatorRun = true;
+                Emulation = new Emulation(args[0]);
+                 Audio.Init();
+            }
 
-            // Init audio
-            Audio.Init();
+            // Init Metro GB
+            DrawingGUI.InitMetroGB();
 
             // Game loop
             while (!Raylib.WindowShouldClose())
             {
-                Raylib.BeginDrawing();
-                Input.Set();
-                Emulation.Loop();
-                Drawing.Screen();
+                if(EmulatorRun)
+                DrawingGB.Screen();
+                else
+                DrawingGUI.MetroGB();
+
+                Input.Update();
             }
 
             // Exit program

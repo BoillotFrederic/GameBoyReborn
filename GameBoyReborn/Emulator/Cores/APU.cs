@@ -2,6 +2,7 @@
 // Audio Processing Unit
 // ---------------------
 using GameBoyReborn;
+using Raylib_cs;
 
 namespace Emulator
 {
@@ -81,6 +82,9 @@ namespace Emulator
                     // Final value
                     short value = (short)((CH1_Value + CH2_Value + CH3_Value + CH4_Value) / 4);
                     buffer[indexBuffer] = (short)(VIN ? value * volume : value);
+
+                    if (Raylib.IsWindowResized())
+                    buffer[indexBuffer] = 0;
                 }
             }
         }

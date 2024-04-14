@@ -1,6 +1,6 @@
-﻿// -------
-// Drawing
-// -------
+﻿// ----------
+// Drawing GB
+// ----------
 using Raylib_cs;
 using Emulator;
 using static GameBoyReborn.Program;
@@ -9,18 +9,14 @@ namespace GameBoyReborn
 {
     #region Handle screen
 
-    public class Drawing
+    public class DrawingGB
     {
         // Drawn screen data
         // -----------------
+        private const int SystemWidth = 160;
+        private const int SystemHeight = 144;
         private static readonly Color[] ScreenData = new Color[SystemWidth * SystemHeight];
-
-        private static Image _ScreenImage;
-        public static Image ScreenImage
-        {
-            get { return _ScreenImage; }
-            set { _ScreenImage = value; }
-        }
+        private static Image ScreenImage = Raylib.GenImageColor(SystemWidth, SystemHeight, Color.RAYWHITE);
 
         // Draw screen
         private static int DrawWidth;
@@ -28,26 +24,51 @@ namespace GameBoyReborn
 
         public static void Screen()
         {
-            // Clear
-            Raylib.ClearBackground(Color.WHITE);
+            if(Program.Emulation != null)
+            {
+                // Start drawing
+                Raylib.BeginDrawing();
+                Program.Emulation.Loop();
 
-            // Draw screen
-            DrawWidth = DebugEnable ? WindowWidth / 2 : WindowWidth;
-            DrawHeight = DebugEnable ? WindowHeight / 2 : WindowHeight;
-            UpdateScreenImage();
-            Texture2D screenTexture = Raylib.LoadTextureFromImage(ScreenImage);
-            screenTexture.Width = DrawWidth;
-            screenTexture.Height = DrawHeight;
-            Raylib.DrawTexture(screenTexture, 0, 0, Color.RAYWHITE);
-            //UpdateAndDrawTexts();
-            //ShowXboxButton();
+                // Clear background
+                Raylib.ClearBackground(Color.BLACK);
 
-            // Draw debug
-            if (DebugEnable)
-            ShowStates();
+                // Screen size and proportion
+                WindowWidth = Raylib.GetRenderWidth();
+                WindowHeight = Raylib.GetRenderHeight();
 
-            Raylib.EndDrawing();
-            Raylib.UnloadTexture(screenTexture);
+                float scaleFactor = Math.Min((float)WindowWidth / SystemWidth, (float)WindowHeight / SystemHeight);
+                DrawWidth = (int)(SystemWidth * scaleFactor);
+                DrawHeight = (int)(SystemHeight * scaleFactor);
+                int X = (WindowWidth - DrawWidth) / 2;
+                int Y = (WindowHeight - DrawHeight) / 2;
+
+                // Debug enable
+                if (Program.Emulation.DebugEnable)
+                {
+                    DrawWidth = WindowWidth / 2;
+                    DrawHeight = WindowHeight / 2;
+                    X = 0;
+                    Y = 0;
+                }
+
+                // Draw screen
+                UpdateScreenImage();
+                Texture2D screenTexture = Raylib.LoadTextureFromImage(ScreenImage);
+                screenTexture.Width = DrawWidth;
+                screenTexture.Height = DrawHeight;
+                Raylib.DrawTexture(screenTexture, X, Y, Color.RAYWHITE);
+                //UpdateAndDrawTexts();
+                //ShowXboxButton();
+
+                // Draw debug
+                if (Program.Emulation.DebugEnable)
+                ShowStates();
+
+                // End drawing
+                Raylib.EndDrawing();
+                Raylib.UnloadTexture(screenTexture);
+            }
         }
 
         // Update screen image
@@ -57,7 +78,7 @@ namespace GameBoyReborn
             {
                 fixed (Color* pData = &ScreenData[0])
                 {
-                    _ScreenImage.Data = pData;
+                    ScreenImage.Data = pData;
                 }
             }
         }
@@ -99,23 +120,24 @@ namespace GameBoyReborn
                 string InstructionName = CPU.Opcode != 0xCB ? InstructionsName[CPU.Opcode] : (Memory.Read(CPU.PC).ToString("X2") + " : " + CBInstructionsName[Memory.Read(CPU.PC)]);
                 int sizeText = 20;
                 int lineX = 10;
+                Color colorText = Color.WHITE;
 
-                Raylib.DrawText("Cycles elapsed = " + CPU.LoopAccumulator, lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("Scanline = " + IO.LY, lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("PC = " + (CPU.PC - 1).ToString("X4") + " (" + (CPU.PC - 1) + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("SP = " + CPU.SP.ToString("X4") + " (" + CPU.SP + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("A = " + CPU.A.ToString("X2") + " (" + CPU.A + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("B = " + CPU.B.ToString("X2") + " (" + CPU.B + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("C = " + CPU.C.ToString("X2") + " (" + CPU.C + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("D = " + CPU.D.ToString("X2") + " (" + CPU.D + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("E = " + CPU.E.ToString("X2") + " (" + CPU.E + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("H = " + CPU.H.ToString("X2") + " (" + CPU.H + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("L = " + CPU.L.ToString("X2") + " (" + CPU.L + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("FLAGS = Z(" + (CPU.FlagZ?1:0) + "), N(" + (CPU.FlagN?1:0) + "), H(" + (CPU.FlagH?1:0) + "), C(" + (CPU.FlagC?1:0) + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("Interrupts = Stop(" + (CPU.Stop?1:0) + "), Halt(" + (CPU.Halt?1:0) + "), IME(" + CPU.IME + ")", lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("IE = " + IO.IE.ToString("X2") + ", IF = " + IO.IF.ToString("X2"), lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("LastOp = " + CPU.LastOpcode.ToString("X2"), lineX, SpaceLine(), sizeText, Color.BLACK);
-                Raylib.DrawText("Op = " + CPU.Opcode.ToString("X2") + ", " + InstructionName + " : Next ushort = " + Memory.Read(CPU.Opcode != 0xCB ? CPU.PC : (ushort)(CPU.PC + 1)).ToString("X2") + Memory.Read((ushort)(CPU.Opcode != 0xCB ? CPU.PC + 1 : CPU.PC + 2)).ToString("X2"), lineX, SpaceLine(), sizeText, Color.BLACK);
+                Raylib.DrawText("Cycles elapsed = " + CPU.LoopAccumulator, lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("Scanline = " + IO.LY, lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("PC = " + (CPU.PC - 1).ToString("X4") + " (" + (CPU.PC - 1) + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("SP = " + CPU.SP.ToString("X4") + " (" + CPU.SP + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("A = " + CPU.A.ToString("X2") + " (" + CPU.A + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("B = " + CPU.B.ToString("X2") + " (" + CPU.B + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("C = " + CPU.C.ToString("X2") + " (" + CPU.C + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("D = " + CPU.D.ToString("X2") + " (" + CPU.D + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("E = " + CPU.E.ToString("X2") + " (" + CPU.E + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("H = " + CPU.H.ToString("X2") + " (" + CPU.H + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("L = " + CPU.L.ToString("X2") + " (" + CPU.L + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("FLAGS = Z(" + (CPU.FlagZ?1:0) + "), N(" + (CPU.FlagN?1:0) + "), H(" + (CPU.FlagH?1:0) + "), C(" + (CPU.FlagC?1:0) + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("Interrupts = Stop(" + (CPU.Stop?1:0) + "), Halt(" + (CPU.Halt?1:0) + "), IME(" + CPU.IME + ")", lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("IE = " + IO.IE.ToString("X2") + ", IF = " + IO.IF.ToString("X2"), lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("LastOp = " + CPU.LastOpcode.ToString("X2"), lineX, SpaceLine(), sizeText, colorText);
+                Raylib.DrawText("Op = " + CPU.Opcode.ToString("X2") + ", " + InstructionName + " : Next ushort = " + Memory.Read(CPU.Opcode != 0xCB ? CPU.PC : (ushort)(CPU.PC + 1)).ToString("X2") + Memory.Read((ushort)(CPU.Opcode != 0xCB ? CPU.PC + 1 : CPU.PC + 2)).ToString("X2"), lineX, SpaceLine(), sizeText, colorText);
 
                 CurrentLine = 5;
             }
