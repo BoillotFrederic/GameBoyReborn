@@ -126,6 +126,7 @@ namespace GameBoyReborn
             int selectedCartridgeY = (int)(gameListTop + (Math.Floor(MouseLeftClickTarget / 6.0f) * FullThumbnailHeight));
             int selectedCartridgeHeight = FullThumbnailHeight + (ScreenWidth * 5 / SizeRef);
             Raylib.DrawRectangle(selectedCartridgeX, selectedCartridgeY, cartridgeWidth, selectedCartridgeHeight, Color.LIGHTGRAY);
+            Raylib.DrawRectangleLines(selectedCartridgeX, selectedCartridgeY, cartridgeWidth, selectedCartridgeHeight, Color.GRAY);
 
             // Draw game list
             CartridgeGB.Width = cartridgeWidth;
@@ -180,7 +181,7 @@ namespace GameBoyReborn
                         CartridgeTextRect.Height = TitleTextures[index][t].Texture.Height;
 
                         // Mouse hover
-                        if (Raylib.CheckCollisionPointRec(mouse, CartridgeTextRect))
+                        if (Raylib.CheckCollisionPointRec(mouse, CartridgeTextRect) && (mouse.Y < ScreenHeight - yStart + 6 && mouse.Y > yStart - 1))
                         {
                             cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
                             if(Input.MouseLeftClickPressed) MouseClickPressed(index);
@@ -189,7 +190,7 @@ namespace GameBoyReborn
                     }
 
                     // Mouse hover
-                    if (Raylib.CheckCollisionPointRec(mouse, CartridgeRect))
+                    if (Raylib.CheckCollisionPointRec(mouse, CartridgeRect) && (mouse.Y < ScreenHeight - yStart + 6 && mouse.Y > yStart - 1))
                     {
                         cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
                         if(Input.MouseLeftClickPressed) MouseClickPressed(index);
@@ -235,6 +236,7 @@ namespace GameBoyReborn
             }
 
             // Hidden lines selected
+            selectedCartridgeY = (int)(gameListTop + (Math.Floor(MouseLeftClickTarget / 6.0f) * FullThumbnailHeight));
             float nbLineDisplayed = (ScreenHeight - yStart * 2.0f) / FullThumbnailHeight;
             int heightDisplayed = (int)(nbLineDisplayed * FullThumbnailHeight);
             int lineRequested = (MouseLeftClickTarget / 6) + 1;
@@ -245,13 +247,14 @@ namespace GameBoyReborn
             bool topFullHidden = selectedCartridgeY + FullThumbnailHeight < yStart;
             bool bottomFullHidden = selectedCartridgeY > ScreenHeight - yStart;
 
-            if (topHidden && (InputActionMove || (ThumbnailClicked && !topFullHidden)))
+            if (topHidden && (InputActionMove || (ThumbnailClicked && !topFullHidden)) && !scrollClicked)
             {
                 GameListTopShift = lineTopHiddenRequestedY;
                 ThumbnailClicked = false;
             }
-            if (bottomHidden && (InputActionMove || (ThumbnailClicked && !bottomFullHidden)))
+            if (bottomHidden && (InputActionMove || (ThumbnailClicked && !bottomFullHidden)) && !scrollClicked)
             {
+                Console.WriteLine(bottomHidden);
                 GameListTopShift = lineBottomHiddenRequestedY;
                 ThumbnailClicked = false;
             }
@@ -268,8 +271,8 @@ namespace GameBoyReborn
             }
 
             // Draw top and bottom rectangle
-            Raylib.DrawRectangle(0, 0, ScreenWidth, yStart, Color.RAYWHITE);
-            Raylib.DrawRectangle(0, ScreenHeight - yStart, ScreenWidth, yStart, Color.RAYWHITE);
+            Raylib.DrawRectangle(0, 0, ScreenWidth, yStart - 1, Color.RAYWHITE);
+            Raylib.DrawRectangle(0, ScreenHeight - yStart + 6, ScreenWidth, yStart, Color.RAYWHITE);
 
             // Draw scrollbar
             if (scrollBarHeight < ScreenHeight)
