@@ -11,9 +11,9 @@ namespace GameBoyReborn
     {
         // Set
         private readonly static int Gamepad = 0;
-        private static int _DeadZoneTrigger = 10;
-        private static int _DeadZoneStickLeft = 10;
-        private static int _DeadZoneStickRight = 10;
+        private static int _DeadZoneTrigger = 40;
+        private static int _DeadZoneStickLeft = 40;
+        private static int _DeadZoneStickRight = 40;
 
         // Keys/buttons state
         // ------------------
@@ -54,8 +54,9 @@ namespace GameBoyReborn
         private static bool _AxisRS = false;
 
         // Mouse
-        private static bool _MouseLeftClickPressed = false;
         private static bool _MouseLeftClick = false;
+        private static bool _MouseLeftClickPressed = false;
+        private static bool _MouseLeftClickUp = false;
 
         // Getter / setter
         // ---------------
@@ -118,6 +119,7 @@ namespace GameBoyReborn
         // Mouse
         public static bool MouseLeftClick { get { return _MouseLeftClick; } }
         public static bool MouseLeftClickPressed { get { return _MouseLeftClickPressed; } }
+        public static bool MouseLeftClickUp { get { return _MouseLeftClickUp; } }
 
         public static void Update()
         {
@@ -162,6 +164,7 @@ namespace GameBoyReborn
             // Mouses
             _MouseLeftClick = false;
             _MouseLeftClickPressed = false;
+            _MouseLeftClickUp = false;
 
             // Keyboards
             // ---------
@@ -195,6 +198,9 @@ namespace GameBoyReborn
 
             if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
             _MouseLeftClickPressed = true;
+
+            if (Raylib.IsMouseButtonUp(MouseButton.MOUSE_BUTTON_LEFT))
+            _MouseLeftClickUp = true;
 
             // XBOX gamepad
             // ------------

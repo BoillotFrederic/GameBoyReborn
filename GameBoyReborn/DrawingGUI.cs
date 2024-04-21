@@ -20,6 +20,12 @@ namespace GameBoyReborn
         private static int ScreenWidth;
         private static int ScreenHeight;
         private static int NbGame;
+        private static int InputMoveRepeatLimit = 0;
+        private static bool InputActionMove = false;
+        private static bool ThumbnailClicked = false;
+        private static bool scrollClicked = false;
+        private static int scrollClickedPos = 0;
+        private static int scrollClickedLastPosList = 0;
 
         public static void InitMetroGB()
         {
@@ -48,6 +54,7 @@ namespace GameBoyReborn
             // Mouse
             Vector2 mouse = Raylib.GetMousePosition();
             MouseCursor cursor = MouseCursor.MOUSE_CURSOR_DEFAULT;
+            ThumbnailClicked = false;
 
             // Double click
             MouseLeftDoubleClick = false;
@@ -65,12 +72,36 @@ namespace GameBoyReborn
             if(MouseLeftClickPressed >= 2 && MouseLeftClickDelay > 0 && MouseLeftClickLastTarget == MouseLeftClickTarget)
             MouseLeftDoubleClick = true;
 
-            if (MouseLeftDoubleClick)
+            // Move in list
+            if (InputMoveRepeatLimit > 0)
+            InputMoveRepeatLimit--;
+
+            if(InputMoveRepeatLimit == 0)
             {
-                MouseLeftClickPressed = 0;
-                Program.EmulatorRun = true;
-                Program.Emulation = new Emulation(GameList[MouseLeftClickTarget].Path);
-                Audio.Init();
+                if(Input.AxisLeftPadUp || Input.DPadUp)
+                {
+                    InputMoveRepeatLimit = 10;
+                    int newPos = MouseLeftClickTarget -  6;
+                    MouseLeftClickTarget = newPos >= 0 ? newPos : MouseLeftClickTarget;
+                    InputActionMove = true;
+                }
+                if(Input.AxisLeftPadDown || Input.DPadDown)
+                {
+                    InputMoveRepeatLimit = 10;
+                    int newPos = MouseLeftClickTarget +  6;
+                    MouseLeftClickTarget = newPos < NbGame ? newPos : MouseLeftClickTarget;
+                    InputActionMove = true;
+                }
+                if(Input.AxisLeftPadLeft || Input.DPadLeft)
+                {
+                    InputMoveRepeatLimit = 10;
+                    MouseLeftClickTarget = MouseLeftClickTarget % 6 == 0 ? MouseLeftClickTarget : MouseLeftClickTarget - 1;
+                }
+                if(Input.AxisLeftPadRight || Input.DPadRight)
+                {
+                    InputMoveRepeatLimit = 10;
+                    MouseLeftClickTarget = MouseLeftClickTarget % 6 == 5 ? MouseLeftClickTarget : MouseLeftClickTarget + 1;
+                }
             }
 
             // Operating variables
@@ -80,32 +111,20 @@ namespace GameBoyReborn
             int yStart = ScreenWidth * 100 / SizeRef;
             int yMargin = ScreenWidth * 65 / SizeRef;
             double nbLine = Math.Ceiling(NbGame / 6.0f);
+            int FullThumbnailHeight = cartridgeHeight + yMargin;
             int scrollBarWidth = ScreenWidth * 30 / SizeRef;
-            int scrollBarHeight = (int)((float)ScreenHeight / ((nbLine * cartridgeHeight) + (yMargin * nbLine) + (yStart * 2)) * ScreenHeight);
+            int scrollBarHeight = (int)((float)ScreenHeight / ((nbLine * FullThumbnailHeight) + (yStart * 2)) * ScreenHeight);
             int cartridgeWidth = ScreenWidth * ((scrollBarHeight > ScreenHeight) ? 400 : 395) / SizeRef;
-            int gameListPageHeight = (int)((nbLine * cartridgeHeight) + (nbLine * yMargin));
+            int gameListPageHeight = (int)(nbLine * FullThumbnailHeight);
             int gameListTop = ScreenWidth * GameListTopShift / SizeRef;
             int gameListTopPrepare = GameListTopShift + (int)(Raylib.GetMouseWheelMove() * 100);
             int gameListBottomLimit = gameListPageHeight - (ScreenHeight - yStart);
             int scrollPos = (int)((float)gameListTop / gameListPageHeight * ScreenHeight) * -1;
 
-            // Scrolling game list
-            if (scrollBarHeight < ScreenHeight)
-            {
-                if (gameListTopPrepare >= 100)
-                GameListTopShift = 100;
-
-                else if(gameListTopPrepare < 0 && ScreenWidth * gameListTopPrepare / SizeRef * -1 > gameListBottomLimit)
-                GameListTopShift = gameListBottomLimit * -1 * SizeRef / ScreenWidth;
-
-                else if(gameListTopPrepare < 100)
-                GameListTopShift = gameListTopPrepare;
-            }
-
-            // Draw game selected
+            // Draw line selected
             int selectedCartridgeX = MouseLeftClickTarget % 6 * cartridgeWidth;
-            int selectedCartridgeY = (int)(gameListTop + (Math.Floor(MouseLeftClickTarget / 6.0f) * (yMargin + cartridgeHeight)));
-            int selectedCartridgeHeight = cartridgeHeight + yMargin + (ScreenWidth * 5 / SizeRef);
+            int selectedCartridgeY = (int)(gameListTop + (Math.Floor(MouseLeftClickTarget / 6.0f) * FullThumbnailHeight));
+            int selectedCartridgeHeight = FullThumbnailHeight + (ScreenWidth * 5 / SizeRef);
             Raylib.DrawRectangle(selectedCartridgeX, selectedCartridgeY, cartridgeWidth, selectedCartridgeHeight, Color.LIGHTGRAY);
 
             // Draw game list
@@ -124,7 +143,7 @@ namespace GameBoyReborn
 
                     // Where
                     int X = x * cartridgeWidth;
-                    int Y = gameListTop + (y * yMargin) + (y * cartridgeHeight);
+                    int Y = gameListTop + (y * FullThumbnailHeight);
 
                     // Draw cartridge
                     Raylib.DrawTexture(CartridgeGB, X, Y, Color.WHITE);
@@ -165,18 +184,87 @@ namespace GameBoyReborn
                         {
                             cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
                             if(Input.MouseLeftClickPressed) MouseClickPressed(index);
+                            if(Input.MouseLeftClick) ThumbnailClicked = true;
                         }
                     }
-
-                    // Draw selected
 
                     // Mouse hover
                     if (Raylib.CheckCollisionPointRec(mouse, CartridgeRect))
                     {
                         cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
                         if(Input.MouseLeftClickPressed) MouseClickPressed(index);
+                        if(Input.MouseLeftClick) ThumbnailClicked = true;
                     }
                 }
+            }
+
+            // Scrolling game list by click
+            Rectangle scrollRect = new();
+            scrollRect.X = ScreenWidth - scrollBarWidth;
+            scrollRect.Y = scrollPos;
+            scrollRect.Width = scrollBarWidth;
+            scrollRect.Height = scrollBarHeight;
+
+            if (Raylib.CheckCollisionPointRec(mouse, scrollRect) && Input.MouseLeftClickPressed)
+            {
+                scrollClicked = true;
+                scrollClickedPos = (int)mouse.Y;
+                scrollClickedLastPosList = GameListTopShift;
+            }
+
+            if (Input.MouseLeftClickUp)
+            scrollClicked = false;
+
+            if (scrollClicked)
+            {
+                int shift = (int)(-1 * (float)((mouse.Y - scrollClickedPos) / ScreenHeight) * gameListPageHeight);
+                gameListTopPrepare = ((ScreenWidth * scrollClickedLastPosList / SizeRef) + shift) * SizeRef / ScreenWidth;
+            }
+
+            // Scrolling game list by mouse wheel
+            if (scrollBarHeight < ScreenHeight)
+            {
+                if (gameListTopPrepare >= 100)
+                GameListTopShift = 100;
+
+                else if(gameListTopPrepare < 0 && ScreenWidth * gameListTopPrepare / SizeRef * -1 > gameListBottomLimit)
+                GameListTopShift = gameListBottomLimit * -1 * SizeRef / ScreenWidth;
+
+                else if(gameListTopPrepare < 100)
+                GameListTopShift = gameListTopPrepare;
+            }
+
+            // Hidden lines selected
+            float nbLineDisplayed = (ScreenHeight - yStart * 2.0f) / FullThumbnailHeight;
+            int heightDisplayed = (int)(nbLineDisplayed * FullThumbnailHeight);
+            int lineRequested = (MouseLeftClickTarget / 6) + 1;
+            int lineTopHiddenRequestedY = (yStart + lineRequested * FullThumbnailHeight * -1 + FullThumbnailHeight) * SizeRef / ScreenWidth;
+            int lineBottomHiddenRequestedY = (yStart + lineRequested * FullThumbnailHeight * -1 + heightDisplayed) * SizeRef / ScreenWidth;
+            bool topHidden = selectedCartridgeY < yStart;
+            bool bottomHidden = selectedCartridgeY + FullThumbnailHeight > ScreenHeight - yStart;
+            bool topFullHidden = selectedCartridgeY + FullThumbnailHeight < yStart;
+            bool bottomFullHidden = selectedCartridgeY > ScreenHeight - yStart;
+
+            if (topHidden && (InputActionMove || (ThumbnailClicked && !topFullHidden)))
+            {
+                GameListTopShift = lineTopHiddenRequestedY;
+                ThumbnailClicked = false;
+            }
+            if (bottomHidden && (InputActionMove || (ThumbnailClicked && !bottomFullHidden)))
+            {
+                GameListTopShift = lineBottomHiddenRequestedY;
+                ThumbnailClicked = false;
+            }
+
+            InputActionMove = false;
+
+            // Launch game
+            if (MouseLeftDoubleClick && ThumbnailClicked)
+            {
+                MouseLeftClickPressed = 0;
+                Program.EmulatorRun = true;
+                Program.Emulation = new Emulation(GameList[MouseLeftClickTarget].Path);
+                Audio.Init();
             }
 
             // Draw top and bottom rectangle

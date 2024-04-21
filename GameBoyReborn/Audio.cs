@@ -42,8 +42,11 @@ namespace GameBoyReborn
         // Close
         public static void Close()
         {
-            Raylib.UnloadAudioStream(AudioStream);
-            Raylib.CloseAudioDevice();
+            if(Program.Emulation != null)
+            {
+                Raylib.UnloadAudioStream(AudioStream);
+                Raylib.CloseAudioDevice();
+            }
         }
     }
 }
