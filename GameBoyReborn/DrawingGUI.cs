@@ -270,6 +270,9 @@ namespace GameBoyReborn
                 Audio.Init();
             }
 
+            // Draw buttons info
+
+
             // Draw top and bottom rectangle
             Raylib.DrawRectangle(0, 0, ScreenWidth, yStart - 1, Color.RAYWHITE);
             Raylib.DrawRectangle(0, ScreenHeight - yStart + 6, ScreenWidth, yStart, Color.RAYWHITE);
