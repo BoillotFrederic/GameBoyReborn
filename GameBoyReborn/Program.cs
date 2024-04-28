@@ -12,8 +12,8 @@ namespace GameBoyReborn
     public class Program
     {
         public static bool EmulatorRun = false;
-        public static int WindowWidth = 800;
-        public static int WindowHeight = 600;
+        public static int WindowWidth = 1024;
+        public static int WindowHeight = 768;
         public static Emulation ? Emulation = null;
 
         public static Task Main(string[] args)

@@ -6,6 +6,8 @@ using Raylib_cs;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Emulator;
+using System.Text;
+using System.Runtime.InteropServices;
 
 namespace GameBoyReborn
 {
@@ -14,7 +16,7 @@ namespace GameBoyReborn
         #region Draw GUI
 
         private static Game[] GameList = Array.Empty<Game>();
-        private static Font MainFont = Raylib.LoadFont(AppDomain.CurrentDomain.BaseDirectory + "Fonts/ErasBoldITC.ttf");
+        private static Font MainFont = LoadFont(AppDomain.CurrentDomain.BaseDirectory + "Fonts/ErasBoldITC.ttf");
         private static Texture2D CartridgeGB = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGB.png");
         private static readonly int SizeRef = 2400; // 6 * (item cartridge 400) + (scrollbar 20)
         private static int ScreenWidth;
@@ -26,6 +28,7 @@ namespace GameBoyReborn
         private static bool scrollClicked = false;
         private static int scrollClickedPos = 0;
         private static int scrollClickedLastPosList = 0;
+        private static string WhereIAm = "List";
 
         public static void InitMetroGB()
         {
@@ -38,9 +41,12 @@ namespace GameBoyReborn
             // Texture cartridge text
             for (int i = 0; i < NbGame; i++)
             {
-                List<TextSet> TitleTest = TextNlWrap(GameList[i].Name, 30.0f * TextResolution, 3.0f, 300.0f * TextResolution);
+                List<TextSet> TitleTest = TextNlWrap(GameList[i].Name, 30.0f * TextResolution, 3.0f, 300.0f * TextResolution, 3);
                 TitleTextures[i] = TitleGameToTexture(TitleTest, 30.0f * TextResolution, 3.0f, Color.GRAY);
             }
+
+            // Buttons infos
+            BtnInfoInit(35.0f * TextResolution);
         }
 
         private static int GameListTopShift = 100;
@@ -107,16 +113,16 @@ namespace GameBoyReborn
             // Operating variables
             ScreenWidth = Raylib.GetRenderWidth();
             ScreenHeight = Raylib.GetRenderHeight();
-            int cartridgeHeight = ScreenWidth * 300 / SizeRef;
-            int yStart = ScreenWidth * 100 / SizeRef;
-            int yMargin = ScreenWidth * 65 / SizeRef;
+            int cartridgeHeight = Res(300);
+            int yStart = Res(100);
+            int yMargin = Res(65);
             double nbLine = Math.Ceiling(NbGame / 6.0f);
             int FullThumbnailHeight = cartridgeHeight + yMargin;
-            int scrollBarWidth = ScreenWidth * 30 / SizeRef;
+            int scrollBarWidth = Res(30);
             int scrollBarHeight = (int)((float)ScreenHeight / ((nbLine * FullThumbnailHeight) + (yStart * 2)) * ScreenHeight);
-            int cartridgeWidth = ScreenWidth * ((scrollBarHeight > ScreenHeight) ? 400 : 395) / SizeRef;
+            int cartridgeWidth = Res((scrollBarHeight > ScreenHeight) ? 400 : 395);
             int gameListPageHeight = (int)(nbLine * FullThumbnailHeight);
-            int gameListTop = ScreenWidth * GameListTopShift / SizeRef;
+            int gameListTop = Res(GameListTopShift);
             int gameListTopPrepare = GameListTopShift + (int)(Raylib.GetMouseWheelMove() * 100);
             int gameListBottomLimit = gameListPageHeight - (ScreenHeight - yStart);
             int scrollPos = (int)((float)gameListTop / gameListPageHeight * ScreenHeight) * -1;
@@ -124,7 +130,7 @@ namespace GameBoyReborn
             // Draw line selected
             int selectedCartridgeX = MouseLeftClickTarget % 6 * cartridgeWidth;
             int selectedCartridgeY = (int)(gameListTop + (Math.Floor(MouseLeftClickTarget / 6.0f) * FullThumbnailHeight));
-            int selectedCartridgeHeight = FullThumbnailHeight + (ScreenWidth * 5 / SizeRef);
+            int selectedCartridgeHeight = FullThumbnailHeight + Res(5);
             Raylib.DrawRectangle(selectedCartridgeX, selectedCartridgeY, cartridgeWidth, selectedCartridgeHeight, Color.LIGHTGRAY);
             Raylib.DrawRectangleLines(selectedCartridgeX, selectedCartridgeY, cartridgeWidth, selectedCartridgeHeight, Color.GRAY);
 
@@ -150,35 +156,39 @@ namespace GameBoyReborn
                     Raylib.DrawTexture(CartridgeGB, X, Y, Color.WHITE);
 
                     // Collision area
-                    float CartridgeWidthCol = CartridgeGB.Width * 0.55f;
-                    float CartridgeHeightCol = CartridgeGB.Height * 0.822f;
+                    int CartridgeWidthCol = (int)(CartridgeGB.Width * 0.55f);
+                    int CartridgeHeightCol = (int)(CartridgeGB.Height * 0.822f);
 
-                    Rectangle CartridgeRect = new();
-                    CartridgeRect.X = X + ((CartridgeGB.Width - CartridgeWidthCol) / 2);
-                    CartridgeRect.Y = Y + ((CartridgeGB.Height - CartridgeHeightCol) / 2);
-                    CartridgeRect.Width = CartridgeWidthCol;
-                    CartridgeRect.Height = CartridgeHeightCol;
+                    Rectangle CartridgeRect = new()
+                    {
+                        X = X + Center(CartridgeGB.Width, CartridgeWidthCol),
+                        Y = Y + Center(CartridgeGB.Height, CartridgeHeightCol),
+                        Width = CartridgeWidthCol,
+                        Height = CartridgeHeightCol
+                    };
 
                     // Draw title
                     for (int t = 0; t < TitleTextures[index].Length; t++)
                     {
-                        TitleTextures[index][t].Texture.Width = ScreenWidth * (int)TitleTextures[index][t].Width / SizeRef;
-                        TitleTextures[index][t].Texture.Height = ScreenWidth * (int)TitleTextures[index][t].Height / SizeRef;
-                        int centerX = (CartridgeGB.Width - TitleTextures[index][t].Texture.Width) / 2;
+                        TitleTextures[index][t].Texture.Width = Res(TitleTextures[index][t].Width);
+                        TitleTextures[index][t].Texture.Height = Res(TitleTextures[index][t].Height);
+                        int centerX = Center(CartridgeGB.Width, TitleTextures[index][t].Texture.Width);
                         
                         int shiftY = 0;
                         if(t != 0)
                         for (int s = 1; s < t + 1; s++)
                         shiftY += TitleTextures[index][s].Texture.Height;
 
-                        Raylib.DrawTexture(TitleTextures[index][t].Texture, X + centerX, Y + shiftY + ScreenWidth * 275 / SizeRef, Color.WHITE);
+                        Raylib.DrawTexture(TitleTextures[index][t].Texture, X + centerX, Y + shiftY + Res(275), Color.WHITE);
 
                         // Collision area
-                        Rectangle CartridgeTextRect = new();
-                        CartridgeTextRect.X = X + centerX;
-                        CartridgeTextRect.Y = Y + shiftY + ScreenWidth * 275 / SizeRef;
-                        CartridgeTextRect.Width = TitleTextures[index][t].Texture.Width;
-                        CartridgeTextRect.Height = TitleTextures[index][t].Texture.Height;
+                        Rectangle CartridgeTextRect = new()
+                        {
+                            X = X + centerX,
+                            Y = Y + shiftY + Res(275),
+                            Width = TitleTextures[index][t].Texture.Width,
+                            Height = TitleTextures[index][t].Texture.Height
+                        };
 
                         // Mouse hover
                         if (Raylib.CheckCollisionPointRec(mouse, CartridgeTextRect) && (mouse.Y < ScreenHeight - yStart + 6 && mouse.Y > yStart - 1))
@@ -200,11 +210,13 @@ namespace GameBoyReborn
             }
 
             // Scrolling game list by click
-            Rectangle scrollRect = new();
-            scrollRect.X = ScreenWidth - scrollBarWidth;
-            scrollRect.Y = scrollPos;
-            scrollRect.Width = scrollBarWidth;
-            scrollRect.Height = scrollBarHeight;
+            Rectangle scrollRect = new()
+            {
+                X = ScreenWidth - scrollBarWidth,
+                Y = scrollPos,
+                Width = scrollBarWidth,
+                Height = scrollBarHeight
+            };
 
             if (Raylib.CheckCollisionPointRec(mouse, scrollRect) && Input.MouseLeftClickPressed)
             {
@@ -219,7 +231,7 @@ namespace GameBoyReborn
             if (scrollClicked)
             {
                 int shift = (int)(-1 * (float)((mouse.Y - scrollClickedPos) / ScreenHeight) * gameListPageHeight);
-                gameListTopPrepare = ((ScreenWidth * scrollClickedLastPosList / SizeRef) + shift) * SizeRef / ScreenWidth;
+                gameListTopPrepare = (int)ResI((float)Res(scrollClickedLastPosList) + shift);
             }
 
             // Scrolling game list by mouse wheel
@@ -228,8 +240,8 @@ namespace GameBoyReborn
                 if (gameListTopPrepare >= 100)
                 GameListTopShift = 100;
 
-                else if(gameListTopPrepare < 0 && ScreenWidth * gameListTopPrepare / SizeRef * -1 > gameListBottomLimit)
-                GameListTopShift = gameListBottomLimit * -1 * SizeRef / ScreenWidth;
+                else if(gameListTopPrepare < 0 && Res(gameListTopPrepare) * -1 > gameListBottomLimit)
+                GameListTopShift = (int)ResI(gameListBottomLimit * -1);
 
                 else if(gameListTopPrepare < 100)
                 GameListTopShift = gameListTopPrepare;
@@ -240,8 +252,8 @@ namespace GameBoyReborn
             float nbLineDisplayed = (ScreenHeight - yStart * 2.0f) / FullThumbnailHeight;
             int heightDisplayed = (int)(nbLineDisplayed * FullThumbnailHeight);
             int lineRequested = (MouseLeftClickTarget / 6) + 1;
-            int lineTopHiddenRequestedY = (yStart + lineRequested * FullThumbnailHeight * -1 + FullThumbnailHeight) * SizeRef / ScreenWidth;
-            int lineBottomHiddenRequestedY = (yStart + lineRequested * FullThumbnailHeight * -1 + heightDisplayed) * SizeRef / ScreenWidth;
+            int lineTopHiddenRequestedY = (int)ResI(yStart + lineRequested * FullThumbnailHeight * -1 + FullThumbnailHeight);
+            int lineBottomHiddenRequestedY = (int)ResI(yStart + lineRequested * FullThumbnailHeight * -1 + heightDisplayed);
             bool topHidden = selectedCartridgeY < yStart;
             bool bottomHidden = selectedCartridgeY + FullThumbnailHeight > ScreenHeight - yStart;
             bool topFullHidden = selectedCartridgeY + FullThumbnailHeight < yStart;
@@ -254,7 +266,6 @@ namespace GameBoyReborn
             }
             if (bottomHidden && (InputActionMove || (ThumbnailClicked && !bottomFullHidden)) && !scrollClicked)
             {
-                Console.WriteLine(bottomHidden);
                 GameListTopShift = lineBottomHiddenRequestedY;
                 ThumbnailClicked = false;
             }
@@ -265,17 +276,52 @@ namespace GameBoyReborn
             if (MouseLeftDoubleClick && ThumbnailClicked)
             {
                 MouseLeftClickPressed = 0;
-                Program.EmulatorRun = true;
-                Program.Emulation = new Emulation(GameList[MouseLeftClickTarget].Path);
-                Audio.Init();
+                Action("Play");
             }
 
-            // Draw buttons info
-
-
             // Draw top and bottom rectangle
-            Raylib.DrawRectangle(0, 0, ScreenWidth, yStart - 1, Color.RAYWHITE);
-            Raylib.DrawRectangle(0, ScreenHeight - yStart + 6, ScreenWidth, yStart, Color.RAYWHITE);
+            Raylib.DrawRectangle(0, 0, ScreenWidth, yStart - Res(1), Color.RAYWHITE);
+            Raylib.DrawRectangle(0, ScreenHeight - yStart + Res(6), ScreenWidth, yStart, Color.RAYWHITE);
+
+            // Draw info buttons
+            if(BtnInfos != null)
+            {
+                int lineWidth = 0;
+                int lineSpacing = Res(20);
+                int marginWidth = Res(20);
+
+                for (int b = 0; b < BtnInfos.Length; b++)
+                {
+                    int iconWidth = Input.IsPad ? BtnInfos[b].IconPadWidth : BtnInfos[b].IconKeyWidth;
+                    int nbMargin = iconWidth == 0 ? 2 : 3;
+                    lineWidth += Res(iconWidth) + marginWidth * nbMargin + Res(BtnInfos[b].Text.Width);
+                }
+
+                int buttonsStartPosX = Center(ScreenWidth, lineWidth + lineSpacing * (BtnInfos.Length - 1));
+
+                for (int b = 0; b < BtnInfos.Length; b++)
+                {
+                    int iconWidth = Input.IsPad ? BtnInfos[b].IconPadWidth : BtnInfos[b].IconKeyWidth;
+                    int iconTextureWidth = Input.IsPad ? BtnInfos[b].IconPad.Width : BtnInfos[b].IconKey.Width;
+                    int nbMargin = iconWidth == 0 ? 2 : 3;
+                    int textWidth = Res(BtnInfos[b].Text.Width);
+                    int btnWidth = Res(iconWidth) + marginWidth * nbMargin + textWidth;
+                    int btnHeight = Res(70);
+                    Vector2 textPos = new() { X = buttonsStartPosX + Res(iconWidth) + marginWidth * (nbMargin - 1), Y = ScreenHeight - yStart + Res(36) };
+                    Vector2 iconPos = new() { X = buttonsStartPosX + marginWidth, Y = ScreenHeight - yStart + Res(25) };
+                    float textScale = textWidth / (float)BtnInfos[b].Text.Width;
+                    float iconScale = Res(iconWidth) / (float)iconTextureWidth;
+
+                    Raylib.DrawRectangle(buttonsStartPosX, ScreenHeight - yStart + Res(20), btnWidth, btnHeight, Color.DARKGRAY);
+                    Raylib.DrawRectangleLines(buttonsStartPosX, ScreenHeight - yStart + Res(20), btnWidth, btnHeight, Color.BLACK);
+                    Raylib.DrawTextureEx(BtnInfos[b].Text, textPos, 0, textScale, Color.WHITE);
+
+                    if(iconWidth != 0)
+                    Raylib.DrawTextureEx(Input.IsPad ? BtnInfos[b].IconPad : BtnInfos[b].IconKey, iconPos, 0, iconScale, Color.WHITE);
+
+                    buttonsStartPosX += btnWidth + lineSpacing;
+                }
+            }
 
             // Draw scrollbar
             if (scrollBarHeight < ScreenHeight)
@@ -286,6 +332,90 @@ namespace GameBoyReborn
 
             // End draw
             Raylib.EndDrawing();
+
+            // Actions listenning
+            ActionsListenning();
+        }
+
+        #endregion
+
+        #region Info buttons handle
+
+        private struct BtnInfo
+        {
+            public Texture2D IconPad;
+            public Texture2D IconKey;
+            public Texture2D Text;
+            public int IconPadWidth = 0;
+            public int IconKeyWidth = 0;
+        }
+
+        private static BtnInfo[]? BtnInfos;
+
+        // Buttons init
+        private static void BtnInfoInit(float textSize)
+        {
+            // Buttons infos
+            BtnInfos = new BtnInfo[4];
+
+            void btnInfosSet(int index, string text, Color textColor, string IPad, string IKey, int IPadWidth, int IKeyWidth)
+            {
+                if(BtnInfos != null && index < BtnInfos.Length)
+                {
+                    BtnInfos[index].Text = SingleToTexture(text, textSize, 3.0f, textColor);
+                    BtnInfos[index].IconPad = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/" + IPad);
+                    BtnInfos[index].IconKey = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/" + IKey);
+                    BtnInfos[index].IconPadWidth = IPadWidth;
+                    BtnInfos[index].IconKeyWidth = IKeyWidth;
+                }
+            }
+
+            btnInfosSet(0, "Menu", Color.WHITE, "TriggerLR.png", "KeyM.png", 140, 60);
+            btnInfosSet(1, "Paramètres globaux", Color.WHITE, "ButtonY.png", "KeyG.png", 60, 60);
+            btnInfosSet(2, "Paramètres", Color.WHITE, "ButtonX.png", "KeyC.png", 60, 60);
+            btnInfosSet(3, "Jouer", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
+        }
+
+        #endregion
+
+        #region Actions
+
+        // Action requested
+        private static void Action(string name)
+        {
+            switch (name)
+            {
+                case "Menu":
+                break;
+
+                case "GlobalConfig":
+                break;
+
+                case "Config":
+                break;
+
+                case "Play":
+                    Program.EmulatorRun = true;
+                    Program.Emulation = new Emulation(GameList[MouseLeftClickTarget].Path);
+                    Audio.Init();
+                break;
+
+                default: break;
+            }
+        }
+
+        // Actions listenning
+        private static void ActionsListenning()
+        {
+            switch (WhereIAm)
+            {
+                case "List":
+                    if(Raylib.IsGamepadButtonPressed(Input.GetGamePad, GamepadButton.GAMEPAD_BUTTON_RIGHT_FACE_DOWN) || Raylib.IsKeyPressed(KeyboardKey.KEY_P))
+                    Action("Play");
+                break;
+
+                default: break;
+            }
         }
 
         #endregion
@@ -307,6 +437,19 @@ namespace GameBoyReborn
             public string Text = "";
             public int Width = 0;
             public int Height = 0;
+        }
+
+        // Single text
+        private static Texture2D SingleToTexture(string textSet, float size, float space, Color color)
+        {
+            Image textToImg = Raylib.ImageTextEx(MainFont, textSet, size, space, color);
+            Texture2D textTexture = Raylib.LoadTextureFromImage(textToImg);
+            Raylib.UnloadImage(textToImg);
+            Raylib.SetTextureFilter(textTexture, TextureFilter.TEXTURE_FILTER_BILINEAR);
+            textTexture.Width = textToImg.Width / TextResolution;
+            textTexture.Height = textToImg.Height / TextResolution;
+
+            return textTexture;
         }
 
         // Title game
@@ -331,7 +474,7 @@ namespace GameBoyReborn
         // Text wrap and split line
         // ------------------------
 
-        private static List<TextSet> TextNlWrap(string _text, float size, float space, float sizeMax)
+        private static List<TextSet> TextNlWrap(string _text, float size, float space, float sizeMax, int limitLine)
         {
             string text = WordWrap(_text, space, size, sizeMax);
             float spaceWidth = GetCharSize((sbyte)' ', size).Width + space;
@@ -361,38 +504,42 @@ namespace GameBoyReborn
                 lineSize += wordSize;
                 nbWordThisLine++;
 
+                // Add line
+                void AddLine(string text, int width)
+                {
+                    TextSet line = new();
+                    line.Text = text;
+                    line.Width = width;
+                    line.Height = (int)heightSize;
+                    lines.Add(line);
+                };
+
                 // Width line max
                 if(lineSize + (nbWordThisLine * spaceWidth) > sizeMax)
                 {
-                    TextSet line = new();
-                    line.Text = lineText.Trim();
-                    line.Width = (int)(lineSize - wordSize + (nbWordThisLine * spaceWidth));
-                    line.Height = (int)heightSize;
-                    lines.Add(line);
+                    AddLine(lineText.Trim(), (int)(lineSize - wordSize + (nbWordThisLine * spaceWidth)));
 
                     lineText = "";
                     lineSize = wordSize;
                     nbWordThisLine = 0;
 
                     if (text.Length == c)
-                    {
-                        TextSet lastLine = new();
-                        lastLine.Text = words[w].Trim();
-                        lastLine.Width = (int)wordSize;
-                        lastLine.Height = (int)heightSize;
-                        lines.Add(lastLine);
-                    }
+                    AddLine(words[w].Trim(), (int)wordSize);
                 }
                 else if(text.Length == c)
-                {
-                    TextSet line = new();
-                    line.Text = (lineText +  words[w]).Trim();
-                    line.Width = (int)(lineSize + (nbWordThisLine * spaceWidth));
-                    line.Height = (int)heightSize;
-                    lines.Add(line);
-                }
+                AddLine((lineText + words[w]).Trim(), (int)(lineSize + (nbWordThisLine * spaceWidth)));
 
                 lineText += words[w] + " ";
+            }
+
+            // Limit line
+            if(lines.Count > limitLine)
+            {
+                lines.RemoveRange(limitLine, lines.Count - limitLine);
+                int lastIndex = lines.Count - 1;
+                var lastItem = lines[lastIndex];
+                lastItem.Text += "...";
+                lines[lastIndex] = lastItem;
             }
 
             return lines;
@@ -434,6 +581,18 @@ namespace GameBoyReborn
             }
 
             return newText;
+        }
+
+        // Convert UTF16 to UTF8
+        public static unsafe sbyte* StrToSbyte(string str)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(str);
+
+            fixed (byte* p = bytes)
+            {
+                sbyte* sp = (sbyte*)p;
+                return sp;
+            }               
         }
 
         // Get char size
@@ -506,7 +665,7 @@ namespace GameBoyReborn
 
         #endregion
 
-        #region Other
+        #region Tools
 
         // Mouse click and double click
         private static int MouseLeftClickDelay = 0;
@@ -519,6 +678,34 @@ namespace GameBoyReborn
         {
             MouseLeftClickLastTarget = MouseLeftClickTarget;
             MouseLeftClickTarget = index;
+        }
+
+        // Responsive
+        private static int Res(float size)
+        {
+            return (int)(ScreenWidth * size / SizeRef);
+        }
+
+        private static float ResI(float size)
+        {
+            return size * SizeRef / ScreenWidth;
+        }
+
+        // Center
+        private static int Center(int container, int item)
+        {
+            return (container - item) / 2;
+        }
+
+        // Load font
+        private static unsafe Font LoadFont(string path)
+        {
+            IntPtr ptrUtf8 = Marshal.StringToCoTaskMemUTF8(path);
+            sbyte* sbytePtr = (sbyte*)ptrUtf8.ToPointer();
+            Font fontTtf = Raylib.LoadFontEx(sbytePtr, 50, null, 250);
+            Marshal.FreeCoTaskMem(ptrUtf8);
+
+            return fontTtf;
         }
 
         #endregion

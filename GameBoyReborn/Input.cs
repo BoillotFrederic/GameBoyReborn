@@ -14,6 +14,7 @@ namespace GameBoyReborn
         private static int _DeadZoneTrigger = 40;
         private static int _DeadZoneStickLeft = 40;
         private static int _DeadZoneStickRight = 40;
+        private static bool _IsPad = false;
 
         // Keys/buttons state
         // ------------------
@@ -78,6 +79,17 @@ namespace GameBoyReborn
             set { _DeadZoneStickRight = value; }
         }
 
+        public static bool IsPad
+        {
+            get { return _IsPad; }
+            set { _IsPad = value; }
+        }
+
+        public static int GetGamePad
+        {
+            get { return Gamepad; }
+        }
+
         // D-PAD
         public static bool DPadDown { get { return _DPadDown; } }
         public static bool DPadLeft { get { return _DPadLeft; } }
@@ -121,6 +133,7 @@ namespace GameBoyReborn
         public static bool MouseLeftClickPressed { get { return _MouseLeftClickPressed; } }
         public static bool MouseLeftClickUp { get { return _MouseLeftClickUp; } }
 
+        private static bool FirstLoop = true;
         public static void Update()
         {
             // Init keys/buttons
@@ -206,6 +219,9 @@ namespace GameBoyReborn
             // ------------
             if (Raylib.IsGamepadAvailable(Gamepad))
             {
+                if (FirstLoop)
+                _IsPad = true;
+
                 // D-PAD
                 if (Raylib.IsGamepadButtonDown(Gamepad, GamepadButton.GAMEPAD_BUTTON_LEFT_FACE_DOWN)) _DPadDown = true;
                 if (Raylib.IsGamepadButtonDown(Gamepad, GamepadButton.GAMEPAD_BUTTON_LEFT_FACE_LEFT)) _DPadLeft = true;
@@ -258,6 +274,21 @@ namespace GameBoyReborn
                 }
                 else
                 DebugEnableNoRepeat = false;
+
+                // Toogle pad/keyboard
+                foreach (GamepadButton btnTest in (GamepadButton[])Enum.GetValues(typeof(GamepadButton)))
+                if (Raylib.IsGamepadButtonPressed(Gamepad, btnTest))
+                _IsPad = true;
+
+                foreach (GamepadAxis axiTest in (GamepadAxis[])Enum.GetValues(typeof(GamepadAxis)))
+                {
+                    float movement = Raylib.GetGamepadAxisMovement(Gamepad, axiTest);
+                    GamepadAxis trigLeft = GamepadAxis.GAMEPAD_AXIS_LEFT_TRIGGER;
+                    GamepadAxis trigRight = GamepadAxis.GAMEPAD_AXIS_RIGHT_TRIGGER;
+
+                    if ((axiTest == trigLeft || axiTest == trigRight) && movement > -1) _IsPad = true;
+                    else if (axiTest != trigLeft && axiTest != trigRight && movement != 0) _IsPad = true;
+                }
             }
 
             // Toggle fullscreen
@@ -272,6 +303,27 @@ namespace GameBoyReborn
                 KeyAltPress = false;
                 KeyEnterPress = false;
             }
+
+            // Toogle pad/keyboard
+            foreach (KeyboardKey keyTest in (KeyboardKey[]) Enum.GetValues(typeof(KeyboardKey)))
+            if (Raylib.IsKeyDown(keyTest))
+            _IsPad = false;
+
+            foreach (MouseButton MouTest in (MouseButton[]) Enum.GetValues(typeof(MouseButton)))
+            if (Raylib.IsMouseButtonPressed(MouTest))
+            _IsPad = false;
+
+            if(Raylib.GetMouseWheelMove() != 0)
+            _IsPad = false;
+
+            if (_IsPad && Raylib.IsCursorOnScreen())
+            Raylib.HideCursor();
+
+            if(!_IsPad && Raylib.IsCursorHidden())
+            Raylib.ShowCursor();
+
+            if (FirstLoop)
+            FirstLoop = false;
         }
 
         // Toogle fullscreen
