@@ -83,7 +83,7 @@ namespace Emulator
                     short value = (short)((CH1_Value + CH2_Value + CH3_Value + CH4_Value) / 4);
                     buffer[indexBuffer] = (short)(VIN ? value * volume : value);
 
-                    if (Raylib.IsWindowResized())
+                    if (Raylib.IsWindowResized() || (Program.Emulation != null && Program.Emulation.Paused))
                     buffer[indexBuffer] = 0;
                 }
             }

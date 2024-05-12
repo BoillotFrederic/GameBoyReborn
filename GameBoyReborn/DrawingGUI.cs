@@ -22,13 +22,26 @@ namespace GameBoyReborn
         private static int ScreenWidth;
         private static int ScreenHeight;
         private static int NbGame;
-        private static int InputMoveRepeatLimit = 0;
-        private static bool InputActionMove = false;
-        private static bool ThumbnailClicked = false;
-        private static bool scrollClicked = false;
-        private static int scrollClickedPos = 0;
-        private static int scrollClickedLastPosList = 0;
         private static string WhereIAm = "List";
+        private static Vector2 Mouse;
+        private static MouseCursor Cursor;
+
+        public static void InitScreenSize()
+        {
+            ScreenWidth = Raylib.GetRenderWidth();
+            ScreenHeight = Raylib.GetRenderHeight();
+        }
+
+        public static void InitMouse()
+        {
+            Mouse = Raylib.GetMousePosition();
+            Cursor = MouseCursor.MOUSE_CURSOR_DEFAULT;
+        }
+
+        public static void UpdateMouse()
+        {
+            Raylib.SetMouseCursor(Cursor);
+        }
 
         public static void InitMetroGB()
         {
@@ -49,8 +62,6 @@ namespace GameBoyReborn
             BtnInfoInit(35.0f * TextResolution);
         }
 
-        private static int GameListTopShift = 100;
-
         public static void MetroGB()
         {
             // Start draw
@@ -58,61 +69,44 @@ namespace GameBoyReborn
             Raylib.ClearBackground(Color.RAYWHITE);
 
             // Mouse
-            Vector2 mouse = Raylib.GetMousePosition();
-            MouseCursor cursor = MouseCursor.MOUSE_CURSOR_DEFAULT;
-            ThumbnailClicked = false;
+            InitMouse();
 
-            // Double click
-            MouseLeftDoubleClick = false;
-            if (Input.MouseLeftClickPressed)
-            {
-                MouseLeftClickDelay = 10;
-                MouseLeftClickPressed++;
-            }
+            // Draw game list
+            DrawListGame();
 
-            if(MouseLeftClickDelay >= 0)
-            MouseLeftClickDelay--;
-            else
-            MouseLeftClickPressed = 0;
+            // Draw info buttons
+            DrawBtnInfos();
 
-            if(MouseLeftClickPressed >= 2 && MouseLeftClickDelay > 0 && MouseLeftClickLastTarget == MouseLeftClickTarget)
-            MouseLeftDoubleClick = true;
+            // Actions listenning
+            ActionsListenning();
 
-            // Move in list
-            if (InputMoveRepeatLimit > 0)
-            InputMoveRepeatLimit--;
+            // Modals listenning
+            ModalsListenning();
 
-            if(InputMoveRepeatLimit == 0)
-            {
-                if(Input.AxisLeftPadUp || Input.DPadUp)
-                {
-                    InputMoveRepeatLimit = 10;
-                    int newPos = MouseLeftClickTarget -  6;
-                    MouseLeftClickTarget = newPos >= 0 ? newPos : MouseLeftClickTarget;
-                    InputActionMove = true;
-                }
-                if(Input.AxisLeftPadDown || Input.DPadDown)
-                {
-                    InputMoveRepeatLimit = 10;
-                    int newPos = MouseLeftClickTarget +  6;
-                    MouseLeftClickTarget = newPos < NbGame ? newPos : MouseLeftClickTarget;
-                    InputActionMove = true;
-                }
-                if(Input.AxisLeftPadLeft || Input.DPadLeft)
-                {
-                    InputMoveRepeatLimit = 10;
-                    MouseLeftClickTarget = MouseLeftClickTarget % 6 == 0 ? MouseLeftClickTarget : MouseLeftClickTarget - 1;
-                }
-                if(Input.AxisLeftPadRight || Input.DPadRight)
-                {
-                    InputMoveRepeatLimit = 10;
-                    MouseLeftClickTarget = MouseLeftClickTarget % 6 == 5 ? MouseLeftClickTarget : MouseLeftClickTarget + 1;
-                }
-            }
+            // Update cursor
+            UpdateMouse();
 
+            // End draw
+            Raylib.EndDrawing();
+        }
+
+        #endregion
+
+        #region List handle
+
+        private static bool InputActionMove = false;
+        private static bool ThumbnailClicked = false;
+        private static bool scrollClicked = false;
+        private static int scrollClickedPos = 0;
+        private static int scrollClickedLastPosList = 0;
+        private static int GameListTopShift = 100;
+
+        private static void DrawListGame()
+        {
             // Operating variables
-            ScreenWidth = Raylib.GetRenderWidth();
-            ScreenHeight = Raylib.GetRenderHeight();
+            ThumbnailClicked = false;
+            bool focus = WhereIAm == "List";
+            float mouseWheelMove = focus ? Raylib.GetMouseWheelMove() : 0;
             int cartridgeHeight = Res(300);
             int yStart = Res(100);
             int yMargin = Res(65);
@@ -123,9 +117,14 @@ namespace GameBoyReborn
             int cartridgeWidth = Res((scrollBarHeight > ScreenHeight) ? 400 : 395);
             int gameListPageHeight = (int)(nbLine * FullThumbnailHeight);
             int gameListTop = Res(GameListTopShift);
-            int gameListTopPrepare = GameListTopShift + (int)(Raylib.GetMouseWheelMove() * 100);
+            int gameListTopPrepare = GameListTopShift + (int)(mouseWheelMove * 100);
             int gameListBottomLimit = gameListPageHeight - (ScreenHeight - yStart);
             int scrollPos = (int)((float)gameListTop / gameListPageHeight * ScreenHeight) * -1;
+            ThumbnailClicked = false;
+
+            // Delemiter area
+            InitScreenSize();
+            Raylib.BeginScissorMode(0, yStart - 1, ScreenWidth - scrollBarWidth, ScreenHeight - yStart * 2);
 
             // Draw line selected
             int selectedCartridgeX = MouseLeftClickTarget % 6 * cartridgeWidth;
@@ -191,23 +190,30 @@ namespace GameBoyReborn
                         };
 
                         // Mouse hover
-                        if (Raylib.CheckCollisionPointRec(mouse, CartridgeTextRect) && (mouse.Y < ScreenHeight - yStart + 6 && mouse.Y > yStart - 1))
+                        if (focus && Raylib.CheckCollisionPointRec(Mouse, CartridgeTextRect) && (Mouse.Y < ScreenHeight - yStart + 6 && Mouse.Y > yStart - 1))
                         {
-                            cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
-                            if(Input.MouseLeftClickPressed) MouseClickPressed(index);
-                            if(Input.MouseLeftClick) ThumbnailClicked = true;
+                            Cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
+                            if(Input.Pressed("Click", Input.MouseLeftClick)) MouseClickTarget(index);
+                            ThumbnailClicked = Input.MouseLeftClick;
                         }
                     }
 
                     // Mouse hover
-                    if (Raylib.CheckCollisionPointRec(mouse, CartridgeRect) && (mouse.Y < ScreenHeight - yStart + 6 && mouse.Y > yStart - 1))
+                    if (focus && Raylib.CheckCollisionPointRec(Mouse, CartridgeRect) && (Mouse.Y < ScreenHeight - yStart + 6 && Mouse.Y > yStart - 1))
                     {
-                        cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
-                        if(Input.MouseLeftClickPressed) MouseClickPressed(index);
-                        if(Input.MouseLeftClick) ThumbnailClicked = true;
+                        Cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
+                        if(Input.Pressed("Click", Input.MouseLeftClick)) MouseClickTarget(index);
+                        ThumbnailClicked = Input.MouseLeftClick;
                     }
                 }
             }
+
+            // Stop delimiter
+            Raylib.EndScissorMode();
+
+            // Draw scrollbar
+            if (scrollBarHeight < ScreenHeight)
+            Raylib.DrawRectangle(ScreenWidth - scrollBarWidth, scrollPos, scrollBarWidth, scrollBarHeight, Color.DARKGRAY);
 
             // Scrolling game list by click
             Rectangle scrollRect = new()
@@ -218,19 +224,19 @@ namespace GameBoyReborn
                 Height = scrollBarHeight
             };
 
-            if (Raylib.CheckCollisionPointRec(mouse, scrollRect) && Input.MouseLeftClickPressed)
+            if (focus && Raylib.CheckCollisionPointRec(Mouse, scrollRect) && Input.Pressed("Click", Input.MouseLeftClick))
             {
                 scrollClicked = true;
-                scrollClickedPos = (int)mouse.Y;
+                scrollClickedPos = (int)Mouse.Y;
                 scrollClickedLastPosList = GameListTopShift;
             }
 
-            if (Input.MouseLeftClickUp)
+            if (!Input.MouseLeftClick)
             scrollClicked = false;
 
             if (scrollClicked)
             {
-                int shift = (int)(-1 * (float)((mouse.Y - scrollClickedPos) / ScreenHeight) * gameListPageHeight);
+                int shift = (int)(-1 * (float)((Mouse.Y - scrollClickedPos) / ScreenHeight) * gameListPageHeight);
                 gameListTopPrepare = (int)ResI((float)Res(scrollClickedLastPosList) + shift);
             }
 
@@ -255,7 +261,7 @@ namespace GameBoyReborn
             int lineTopHiddenRequestedY = (int)ResI(yStart + lineRequested * FullThumbnailHeight * -1 + FullThumbnailHeight);
             int lineBottomHiddenRequestedY = (int)ResI(yStart + lineRequested * FullThumbnailHeight * -1 + heightDisplayed);
             bool topHidden = selectedCartridgeY < yStart;
-            bool bottomHidden = selectedCartridgeY + FullThumbnailHeight > ScreenHeight - yStart;
+            bool bottomHidden = selectedCartridgeY + FullThumbnailHeight > ScreenHeight - yStart + 1;
             bool topFullHidden = selectedCartridgeY + FullThumbnailHeight < yStart;
             bool bottomFullHidden = selectedCartridgeY > ScreenHeight - yStart;
 
@@ -273,19 +279,80 @@ namespace GameBoyReborn
             InputActionMove = false;
 
             // Launch game
-            if (MouseLeftDoubleClick && ThumbnailClicked)
-            {
-                MouseLeftClickPressed = 0;
-                Action("Play");
-            }
+            if (Input.MouseLeftDoubleClick && ThumbnailClicked && MouseLeftClickLastTarget == MouseLeftClickTarget)
+            Action("ListPlay");
+        }
 
-            // Draw top and bottom rectangle
-            Raylib.DrawRectangle(0, 0, ScreenWidth, yStart - Res(1), Color.RAYWHITE);
-            Raylib.DrawRectangle(0, ScreenHeight - yStart + Res(6), ScreenWidth, yStart, Color.RAYWHITE);
+        #endregion
 
-            // Draw info buttons
+        #region Info buttons handle
+
+        private struct BtnInfo
+        {
+            public string Action = "";
+            public Texture2D IconPad;
+            public Texture2D IconKey;
+            public Texture2D Text;
+            public int IconPadWidth = 0;
+            public int IconKeyWidth = 0;
+        }
+
+        private static BtnInfo[]? BtnInfos;
+
+        // Buttons init
+        private static void BtnInfoInit(float textSize)
+        {
+            // Clear
             if(BtnInfos != null)
             {
+                Array.Clear(BtnInfos);
+                BtnInfos = Array.Empty<BtnInfo>();
+            }
+
+            // Setting
+            void btnInfosSet(string action, int index, string text, Color textColor, string IPad, string IKey, int IPadWidth, int IKeyWidth)
+            {
+                if(BtnInfos != null && index < BtnInfos.Length)
+                {
+                    BtnInfos[index].Action = action;
+                    BtnInfos[index].Text = SingleToTexture(text, textSize, 3.0f, textColor);
+                    BtnInfos[index].IconPad = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/" + IPad);
+                    BtnInfos[index].IconKey = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/" + IKey);
+                    BtnInfos[index].IconPadWidth = IPadWidth;
+                    BtnInfos[index].IconKeyWidth = IKeyWidth;
+                }
+            }
+
+            // Load btns
+            switch (WhereIAm)
+            {
+                case "List":
+                    BtnInfos = new BtnInfo[4];
+                    btnInfosSet("ListOpenMenu", 0, "Menu", Color.WHITE, "TriggerLR.png", "KeyM.png", 140, 60);
+                    btnInfosSet("ListGlobalConfig", 1, "Paramètres globaux", Color.WHITE, "ButtonY.png", "KeyG.png", 60, 60);
+                    btnInfosSet("ListConfig", 2, "Paramètres", Color.WHITE, "ButtonX.png", "KeyC.png", 60, 60);
+                    btnInfosSet("ListPlay", 3, "Jouer", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
+                break;
+
+                case "MenuList":
+                    BtnInfos = new BtnInfo[2];
+                    btnInfosSet("CloseAllModals", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
+                    btnInfosSet(ModalShift.Count > 0 ? ModalShift[ModalShiftPos.Y][ModalShiftPos.X].Action : "-", 1, "Valider", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
+                break;
+
+                case "MenuGame":
+                    BtnInfos = new BtnInfo[2];
+                    btnInfosSet("MenuGameRestore", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
+                    btnInfosSet(ModalShift.Count > 0 ? ModalShift[ModalShiftPos.Y][ModalShiftPos.X].Action : "-", 1, "Valider", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
+                break;
+            }
+        }
+
+        public static void DrawBtnInfos()
+        {
+            if(BtnInfos != null)
+            {
+                int yStart = Res(100);
                 int lineWidth = 0;
                 int lineSpacing = Res(20);
                 int marginWidth = Res(20);
@@ -312,68 +379,26 @@ namespace GameBoyReborn
                     float textScale = textWidth / (float)BtnInfos[b].Text.Width;
                     float iconScale = Res(iconWidth) / (float)iconTextureWidth;
 
-                    Raylib.DrawRectangle(buttonsStartPosX, ScreenHeight - yStart + Res(20), btnWidth, btnHeight, Color.DARKGRAY);
-                    Raylib.DrawRectangleLines(buttonsStartPosX, ScreenHeight - yStart + Res(20), btnWidth, btnHeight, Color.BLACK);
+                    Rectangle rect = new() { X = buttonsStartPosX, Y = ScreenHeight - yStart + Res(20), Height = btnHeight, Width = btnWidth };
+                    Raylib.DrawRectangleRec(rect, Color.DARKGRAY);
+                    Raylib.DrawRectangleLinesEx(rect, 1.0f, Color.BLACK);
                     Raylib.DrawTextureEx(BtnInfos[b].Text, textPos, 0, textScale, Color.WHITE);
 
                     if(iconWidth != 0)
                     Raylib.DrawTextureEx(Input.IsPad ? BtnInfos[b].IconPad : BtnInfos[b].IconKey, iconPos, 0, iconScale, Color.WHITE);
 
                     buttonsStartPosX += btnWidth + lineSpacing;
+
+                    // Hover and click
+                    if (Raylib.CheckCollisionPointRec(Mouse, rect))
+                    {
+                        Cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
+
+                        if (Input.Pressed("Click", Input.MouseLeftClick))
+                        Action(BtnInfos[b].Action);
+                    }
                 }
             }
-
-            // Draw scrollbar
-            if (scrollBarHeight < ScreenHeight)
-            Raylib.DrawRectangle(ScreenWidth - scrollBarWidth, scrollPos, scrollBarWidth, scrollBarHeight, Color.DARKGRAY);
-
-            // Set cursor
-            Raylib.SetMouseCursor(cursor);
-
-            // End draw
-            Raylib.EndDrawing();
-
-            // Actions listenning
-            ActionsListenning();
-        }
-
-        #endregion
-
-        #region Info buttons handle
-
-        private struct BtnInfo
-        {
-            public Texture2D IconPad;
-            public Texture2D IconKey;
-            public Texture2D Text;
-            public int IconPadWidth = 0;
-            public int IconKeyWidth = 0;
-        }
-
-        private static BtnInfo[]? BtnInfos;
-
-        // Buttons init
-        private static void BtnInfoInit(float textSize)
-        {
-            // Buttons infos
-            BtnInfos = new BtnInfo[4];
-
-            void btnInfosSet(int index, string text, Color textColor, string IPad, string IKey, int IPadWidth, int IKeyWidth)
-            {
-                if(BtnInfos != null && index < BtnInfos.Length)
-                {
-                    BtnInfos[index].Text = SingleToTexture(text, textSize, 3.0f, textColor);
-                    BtnInfos[index].IconPad = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/" + IPad);
-                    BtnInfos[index].IconKey = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/" + IKey);
-                    BtnInfos[index].IconPadWidth = IPadWidth;
-                    BtnInfos[index].IconKeyWidth = IKeyWidth;
-                }
-            }
-
-            btnInfosSet(0, "Menu", Color.WHITE, "TriggerLR.png", "KeyM.png", 140, 60);
-            btnInfosSet(1, "Paramètres globaux", Color.WHITE, "ButtonY.png", "KeyG.png", 60, 60);
-            btnInfosSet(2, "Paramètres", Color.WHITE, "ButtonX.png", "KeyC.png", 60, 60);
-            btnInfosSet(3, "Jouer", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
         }
 
         #endregion
@@ -381,23 +406,130 @@ namespace GameBoyReborn
         #region Actions
 
         // Action requested
-        private static void Action(string name)
+        public static void Action(string name)
         {
             switch (name)
             {
-                case "Menu":
+                // Metro GB list action
+                // --------------------
+
+                // Move in list
+                case "ListMoveUp":
+                case "ListMoveDown":
+                case "ListMoveLeft":
+                case "ListMoveRight":
+                    static void upDown(bool direction)
+                    {
+                        int newPos = MouseLeftClickTarget + (!direction ? -6 : 6);
+                        MouseLeftClickTarget = (!direction && newPos >= 0) || (direction && newPos < NbGame) ? newPos : MouseLeftClickTarget;
+                        InputActionMove = true;
+                    }
+
+                    static void leftRight(bool direction)
+                    {
+                        if (!direction) MouseLeftClickTarget = MouseLeftClickTarget % 6 == 0 ? MouseLeftClickTarget : MouseLeftClickTarget - 1;
+                        else MouseLeftClickTarget = MouseLeftClickTarget % 6 == 5 ? MouseLeftClickTarget : MouseLeftClickTarget + 1;
+                    }
+
+                    switch (name)
+                    {
+                        case "ListMoveUp": upDown(false); break;
+                        case "ListMoveDown": upDown(true); break;
+                        case "ListMoveLeft": leftRight(false); break;
+                        case "ListMoveRight": leftRight(true); break;
+                    }
                 break;
 
-                case "GlobalConfig":
+                // Move in modal
+                case "ModalMoveUp":
+                case "ModalMoveDown":
+                case "ModalMoveLeft":
+                case "ModalMoveRight":
+                    if(ModalShift.Count > 0)
+                    {
+                        void modalShitY(List<List<ShiftElm>> elm, int newPos)
+                        {
+                            ModalShiftPos.X = 0;
+                            ModalShiftPos.Y = elm.ElementAtOrDefault(newPos) != null ? newPos : ModalShiftPos.Y;
+                        }
+
+                        void modalShitX(List<ShiftElm> elm, int newPos)
+                        {
+                            ModalShiftPos.X = newPos >= 0 && newPos < elm.Count ? newPos : ModalShiftPos.X;
+                        }
+
+                        switch (name)
+                        {
+                            case "ModalMoveUp": modalShitY(ModalShift, ModalShiftPos.Y - 1); break;
+                            case "ModalMoveDown": modalShitY(ModalShift, ModalShiftPos.Y + 1); break;
+                            case "ModalMoveLeft": modalShitX(ModalShift[ModalShiftPos.Y], ModalShiftPos.X - 1); break;
+                            case "ModalMoveRight": modalShitX(ModalShift[ModalShiftPos.Y], ModalShiftPos.X + 1); break;
+                        }
+                    }
                 break;
 
-                case "Config":
+                // Open menu
+                case "ListOpenMenu":
+                    WhereIAm = "MenuList";
+                    ModalsOpen.Add("MenuList");
+                    ModalsListenning();
+                    BtnInfoInit(35.0f * TextResolution);
                 break;
 
-                case "Play":
-                    Program.EmulatorRun = true;
-                    Program.Emulation = new Emulation(GameList[MouseLeftClickTarget].Path);
-                    Audio.Init();
+                // Open global config
+                case "ListGlobalConfig":
+                break;
+
+                // Open config
+                case "ListConfig":
+                break;
+
+                // Play game
+                case "ListPlay":
+                    Emulation.Start(GameList[MouseLeftClickTarget].Path);
+                break;
+
+                // Close all modals
+                case "CloseAllModals":
+                    ModalDestruct();
+                    ModalsOpen.Clear();
+                    WhereIAm = "List";
+                    BtnInfoInit(35.0f * TextResolution);
+                break;
+
+                // Select directory for scan
+                case "SelectDirForScan":
+                    WhereIAm = "SelectDirForScan";
+                    ModalsOpen.Add("SelectDirForScan");
+                    ModalsListenning();
+                break;
+
+                // Menu in game
+                case "MenuGame":
+                    WhereIAm = "MenuGame";
+                    ModalsOpen.Clear();
+                    ModalsOpen.Add("MenuGame");
+                    ModalsListenning();
+                    BtnInfoInit(35.0f * TextResolution);
+                break;
+
+                // Return to the game
+                case "MenuGameRestore":
+                    if(Program.Emulation != null)
+                    {
+                        Program.Emulation.MenuIsOpen = false;
+                        Program.Emulation.UnPause();
+                    }
+                break;
+
+                case "CloseGame":
+                    ModalDestruct();
+                    ModalsOpen.Clear();
+                    WhereIAm = "List";
+                    BtnInfoInit(35.0f * TextResolution);
+
+                    if (Program.Emulation != null)
+                    Program.Emulation.Stop();
                 break;
 
                 default: break;
@@ -405,17 +537,330 @@ namespace GameBoyReborn
         }
 
         // Actions listenning
-        private static void ActionsListenning()
+        public static void ActionsListenning()
         {
             switch (WhereIAm)
             {
+                // Metro GB list
+                // -------------
                 case "List":
-                    if(Raylib.IsGamepadButtonPressed(Input.GetGamePad, GamepadButton.GAMEPAD_BUTTON_RIGHT_FACE_DOWN) || Raylib.IsKeyPressed(KeyboardKey.KEY_P))
-                    Action("Play");
+                {
+                    // Play
+                    if(Input.Pressed("Press A", Input.XabyPadA || Input.KeyP))
+                    Action("ListPlay");
+
+                    // Open menu
+                    if(Input.Pressed("Press M", Input.KeyM || (Input.AxisLS && Input.AxisRS)))
+                    Action("ListOpenMenu");
+
+                    // Move up
+                    if (Input.Repeat("Up", Input.DPadUp || Input.AxisLeftPadUp, 0.2f))
+                    Action("ListMoveUp");
+
+                    // Move down
+                    if (Input.Repeat("Down", Input.DPadDown || Input.AxisLeftPadDown, 0.2f))
+                    Action("ListMoveDown");
+
+                    // Move left
+                    if (Input.Repeat("Left", Input.DPadLeft || Input.AxisLeftPadLeft, 0.2f))
+                    Action("ListMoveLeft");
+
+                    // Move right
+                    if (Input.Repeat("Right", Input.DPadRight || Input.AxisLeftPadRight, 0.2f))
+                    Action("ListMoveRight");
+                }
+                break;
+
+                case "SelectDirForScan":
+                case "MenuList":
+                {
+                    // Confirm
+                    if(Input.Pressed("Press A", Input.XabyPadA || Input.KeyP) && ModalShift.Count > 0)
+                    Action(ModalShift[ModalShiftPos.Y][ModalShiftPos.X].Action);
+
+                    // Close
+                    if(Input.Pressed("Press C", Input.XabyPadB || Input.KeyC))
+                    Action("CloseAllModals");
+
+                    // Move up
+                    if (Input.Repeat("Up", Input.DPadUp || Input.AxisLeftPadUp, 0.2f))
+                    Action("ModalMoveUp");
+
+                    // Move down
+                    if (Input.Repeat("Down", Input.DPadDown || Input.AxisLeftPadDown, 0.2f))
+                    Action("ModalMoveDown");
+
+                    // Move left
+                    if (Input.Repeat("Left", Input.DPadLeft || Input.AxisLeftPadLeft, 0.2f))
+                    Action("ModalMoveLeft");
+
+                    // Move right
+                    if (Input.Repeat("Right", Input.DPadRight || Input.AxisLeftPadRight, 0.2f))
+                    Action("ModalMoveRight");
+                }
+                break;
+
+                case "MenuGame": 
+                {
+                    // Confirm
+                    if(Input.Pressed("Press A", Input.XabyPadA || Input.KeyP) && ModalShift.Count > 0)
+                    Action(ModalShift[ModalShiftPos.Y][ModalShiftPos.X].Action);
+
+                    // Close
+                    if(Input.Pressed("Press C", Input.XabyPadB || Input.KeyC))
+                    Action("MenuGameRestore");
+
+                    // Move up
+                    if (Input.Repeat("Up", Input.DPadUp || Input.AxisLeftPadUp, 0.2f))
+                    Action("ModalMoveUp");
+
+                    // Move down
+                    if (Input.Repeat("Down", Input.DPadDown || Input.AxisLeftPadDown, 0.2f))
+                    Action("ModalMoveDown");
+
+                    // Move left
+                    if (Input.Repeat("Left", Input.DPadLeft || Input.AxisLeftPadLeft, 0.2f))
+                    Action("ModalMoveLeft");
+
+                    // Move right
+                    if (Input.Repeat("Right", Input.DPadRight || Input.AxisLeftPadRight, 0.2f))
+                    Action("ModalMoveRight");
+                }
                 break;
 
                 default: break;
             }
+        }
+
+        #endregion
+
+        #region Modals
+
+        // Operating variables
+        private static readonly List<string> ModalsOpen = new();
+        private static readonly Dictionary<string, Dictionary<string, Texture2D>> ModalTextures = new();
+        private static readonly Dictionary<string, bool> ModalIsInit = new();
+        private static VecInt2 ModalShiftPos = new() { X = 0, Y = 0 };
+        private static readonly List<List<ShiftElm>> ModalShift = new();
+        private struct ShiftElm
+        {
+            public string Action;
+            public Rectangle ElmRect;
+        }
+
+        // Modals listenning
+        public static void ModalsListenning()
+        {
+            // Draw modal
+            bool ShiftClicked = false;
+
+            void DrawModal(string modal, int width, int height)
+            {
+                // Modal
+                Rectangle modalRect = new() { Width = width, Height = height, X = Center(ScreenWidth, width), Y = Center(ScreenHeight, height) };
+                Raylib.DrawRectangleRec(modalRect, Color.WHITE);
+                Raylib.DrawRectangleLinesEx(modalRect, Res(10), Color.DARKGRAY);
+
+                // Init
+                InitModal(modal, modalRect);
+
+                // Select line by hover and click handle
+                int x = 0;
+                int y = 0;
+
+                if(ModalShift.Count > 0)
+                foreach (List<ShiftElm> selectLines in ModalShift)
+                {
+                    foreach (ShiftElm selectLine in selectLines)
+                    {
+                        if(Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect))
+                        {
+                            ModalShiftPos.X = x;
+                            ModalShiftPos.Y = y;
+
+                            if (Input.Pressed("Click", Input.MouseLeftClick))
+                            ShiftClicked = true;
+                        }
+                        x++;
+                    }
+                    x = 0;
+                    y++;
+                }
+
+                // Draw select line
+                if(ModalShift.Count > 0)
+                Raylib.DrawRectangleRec(ModalShift[ModalShiftPos.Y][ModalShiftPos.X].ElmRect, Color.LIGHTGRAY);
+
+                // Content
+                switch (modal)
+                {
+                    case "MenuList":
+                    {
+                        // Draw make scan
+                        Texture2D makeScan = ModalTextures[modal]["MakeScan"];
+                        Vector2 makeScanPos = new()
+                        { 
+                            X = modalRect.X + Center((int)modalRect.Width, Res(makeScan.Width)), 
+                            Y = modalRect.Y + Center((int)modalRect.Height, Res(makeScan.Height))
+                        };
+                        Raylib.DrawTextureEx(makeScan, makeScanPos, 0, Res(makeScan.Width) / (float)makeScan.Width, Color.WHITE);
+                    }
+                    break;
+
+                    case "SelectDirForScan":
+                    {
+                        // Draw coming soon
+                        Texture2D comingSoon = ModalTextures[modal]["ComingSoon"];
+                        Vector2 comingSoonPos = new()
+                        { 
+                            X = modalRect.X + Center((int)modalRect.Width, Res(comingSoon.Width)), 
+                            Y = modalRect.Y + Center((int)modalRect.Height, Res(comingSoon.Height))
+                        };
+                        Raylib.DrawTextureEx(comingSoon, comingSoonPos, 0, Res(comingSoon.Width) / (float)comingSoon.Width, Color.WHITE);
+                    }
+                    break;
+
+                    case "MenuGame":
+                    {
+                        // Draw menu game
+                        Texture2D closeGame = ModalTextures[modal]["CloseGame"];
+                        Texture2D saveGame = ModalTextures[modal]["SaveGame"];
+                        Texture2D loadGame = ModalTextures[modal]["LoadGame"];
+
+                        Vector2 closeGamePos = new() { X = modalRect.X + Res(50), Y = modalRect.Y + Res(50) };
+                        Raylib.DrawTextureEx(closeGame, closeGamePos, 0, Res(closeGame.Width) / (float)closeGame.Width, Color.WHITE);
+
+                        Vector2 saveGamePos = new() { X = modalRect.X + Res(50), Y = modalRect.Y + Res(150) };
+                        Raylib.DrawTextureEx(saveGame, saveGamePos, 0, Res(saveGame.Width) / (float)saveGame.Width, Color.WHITE);
+
+                        Vector2 loadGamePos = new() { X = modalRect.X + Res(50), Y = modalRect.Y + Res(250) };
+                        Raylib.DrawTextureEx(loadGame, loadGamePos, 0, Res(loadGame.Width) / (float)loadGame.Width, Color.WHITE);
+                    }
+                    break;
+                }
+            }
+
+            // Modals match
+            foreach(string modal in ModalsOpen)
+            {
+                switch (modal)
+                {
+                    case "MenuList": DrawModal(modal, Res(1024), Res(250)); break;
+                    case "SelectDirForScan": DrawModal(modal, Res(900), Res(200)); break;
+                    case "MenuGame": DrawModal(modal, Res(1024), Res(345)); break;
+                }
+            }
+
+            // Select line clicked
+            if(ModalShift.Count > 0 && ShiftClicked)
+            Action(ModalShift[ModalShiftPos.Y][ModalShiftPos.X].Action);
+        }
+
+        // Modal destructor
+        // ----------------
+        
+        static void ModalDestruct(string modalName = "")
+        {
+            // Destruct
+            static void destruct(string MN)
+            {
+                if (ModalIsInit.ContainsKey(MN))
+                {
+                    foreach (var Item in ModalTextures[MN])
+                    {
+                        ModalIsInit[MN] = false;
+                        Raylib.UnloadTexture(ModalTextures[MN][Item.Key]);
+                    }
+
+                    ModalTextures[MN].Clear();
+                }
+            }
+
+            // All modal
+            if (modalName == "")
+            {
+                foreach (var Item in ModalTextures)
+                destruct(Item.Key);
+            }
+
+            // One modal
+            destruct(modalName);
+        }
+
+        // Init Modal
+        // ----------
+
+        static void InitModal(string modal, Rectangle modalRect)
+        {
+            if (!ModalIsInit.ContainsKey(modal))
+            ModalIsInit.Add(modal, false);
+
+            // Init modal textures
+            if (!ModalTextures.ContainsKey(modal))
+            ModalTextures.Add(modal, new Dictionary<string, Texture2D>());
+
+            if (!ModalIsInit[modal])
+            {
+                switch (modal)
+                {
+                    case "MenuList":
+                        ModalTextures[modal].Add("MakeScan", SingleToTexture("Lancer un scan (ceci réinitialisera la liste)", 40.0f * TextResolution, 3.0f, Color.BLACK));
+                    break;
+
+                    case "SelectDirForScan":
+                        ModalTextures[modal].Add("ComingSoon", SingleToTexture("Prochainement...", 40.0f * TextResolution, 3.0f, Color.BLACK));
+                    break;
+
+                    case "MenuGame":
+                        ModalTextures[modal].Add("CloseGame", SingleToTexture("Quitter le jeu", 40.0f * TextResolution, 3.0f, Color.BLACK));
+                        ModalTextures[modal].Add("SaveGame", SingleToTexture("Sauvegarder l'état du jeu", 40.0f * TextResolution, 3.0f, Color.BLACK));
+                        ModalTextures[modal].Add("LoadGame", SingleToTexture("Charger l'état du jeu", 40.0f * TextResolution, 3.0f, Color.BLACK));
+                    break;
+                }
+            }
+
+            // Init modal shift
+            ModalShift.Clear();
+
+            switch (WhereIAm)
+            {
+                case "MenuList":
+                {
+                    Rectangle lineScanRect = new()
+                    {
+                        Width = modalRect.Width - Res(100),
+                        Height = Res(80),
+                        X = modalRect.X + Center((int)modalRect.Width, (int)modalRect.Width - Res(100)),
+                        Y = modalRect.Y + Center((int)modalRect.Height, Res(80)),
+                    };
+
+                    List<ShiftElm> lineScan = new();
+                    lineScan.Add(new ShiftElm() { Action = "SelectDirForScan", ElmRect = lineScanRect });
+                    ModalShift.Add(lineScan);
+                }
+                break;
+
+                case "SelectDirForScan":
+                break;
+
+                case "MenuGame":
+                {
+                    List<ShiftElm> line1 = new();
+                    line1.Add(new ShiftElm() { Action = "CloseGame", ElmRect = new() { X = modalRect.X + Res(40), Y = modalRect.Y + Res(40), Width = modalRect.Width - Res(80), Height = Res(60) } });
+                    ModalShift.Add(line1);
+
+                    List<ShiftElm> line2 = new();
+                    line2.Add(new ShiftElm() { Action = "-", ElmRect = new() { X = modalRect.X + Res(40), Y = modalRect.Y + Res(140), Width = modalRect.Width - Res(80), Height = Res(60) } });
+                    ModalShift.Add(line2);
+
+                    List<ShiftElm> line3 = new();
+                    line3.Add(new ShiftElm() { Action = "-", ElmRect = new() { X = modalRect.X + Res(40), Y = modalRect.Y + Res(240), Width = modalRect.Width - Res(80), Height = Res(60) } });
+                    ModalShift.Add(line3);
+                }
+                break;
+            }
+
+            ModalIsInit[modal] = true;
         }
 
         #endregion
@@ -663,21 +1108,25 @@ namespace GameBoyReborn
             }
         }
 
+        // Mouse click target
+        private static int MouseLeftClickLastTarget = 0;
+        private static int MouseLeftClickTarget = 0;
+
+        private static void MouseClickTarget(int index)
+        {
+            MouseLeftClickLastTarget = MouseLeftClickTarget;
+            MouseLeftClickTarget = index;
+        }
+
         #endregion
 
         #region Tools
 
-        // Mouse click and double click
-        private static int MouseLeftClickDelay = 0;
-        private static int MouseLeftClickPressed = 0;
-        private static int MouseLeftClickLastTarget = 0;
-        private static int MouseLeftClickTarget = 0;
-        private static bool MouseLeftDoubleClick = false;
-
-        private static void MouseClickPressed(int index)
+        // Vector
+        private struct VecInt2
         {
-            MouseLeftClickLastTarget = MouseLeftClickTarget;
-            MouseLeftClickTarget = index;
+            public int X;
+            public int Y;
         }
 
         // Responsive
@@ -695,6 +1144,12 @@ namespace GameBoyReborn
         private static int Center(int container, int item)
         {
             return (container - item) / 2;
+        }
+
+        // Percent
+        private static int Percent(int percent, int integer)
+        {
+            return integer * percent / 100;
         }
 
         // Load font

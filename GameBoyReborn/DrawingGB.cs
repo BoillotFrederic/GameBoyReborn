@@ -96,8 +96,8 @@ namespace GameBoyReborn
             return ScreenData[y * SystemWidth + x];
         }
 
-        // Disable screen
-        public static void DisableScreen()
+        // Clear screen
+        public static void ClearScreen()
         {
             Array.Clear(ScreenData);
         }

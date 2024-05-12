@@ -25,6 +25,10 @@ namespace Emulator
         public APU APU;
         public Timer Timer;
 
+        // Emulation control
+        public bool MenuIsOpen = false;
+        public bool Paused = false;
+
         // Emulation load
         public Emulation(string RomPath)
         {
@@ -82,7 +86,7 @@ namespace Emulator
         // Emulation loop
         public void Loop()
         {
-            if (RomData != null)
+            if (RomData != null && !Paused)
             {
                 PPU.CompletedFrame = OneByOne;
 
@@ -124,23 +128,49 @@ namespace Emulator
             Cartridge.SaveExternalTimer();
         }
 
-        // Stop emulation
-        public static void Stop()
+        // Start emulation
+        public static void Start(string path)
         {
+            Program.EmulatorRun = true;
+            Program.Emulation = new(path);
+            Program.Emulation.Paused = false;
+            Audio.Init();
+        }
+
+        // Stop emulation
+        public void Stop()
+        {
+            Program.EmulatorRun = false;
+            Array.Clear(RomData);
+            DrawingGB.ClearScreen();
+            Audio.Stop();
+            Program.Emulation = null;
         }
 
         // Pause emulation
-        public static void Pause()
+        public void Pause()
         {
+            Paused = true;
+        }
+
+        // UnPause emulation
+        public void UnPause()
+        {
+            Paused = false;
         }
 
         // Rewind emulation
-        public static void Rewind()
+        public void Rewind()
         {
         }
 
         // Save emulation
-        public static void Save()
+        public void Save()
+        {
+        }
+
+        // Load emulation
+        public void Load()
         {
         }
     }
