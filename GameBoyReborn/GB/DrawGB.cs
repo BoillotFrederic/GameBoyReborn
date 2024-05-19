@@ -1,6 +1,6 @@
-﻿// ----------
-// Drawing GB
-// ----------
+﻿// -------
+// Draw GB
+// -------
 using Raylib_cs;
 using Emulator;
 using static GameBoyReborn.Program;
@@ -9,7 +9,7 @@ namespace GameBoyReborn
 {
     #region Handle screen
 
-    public class DrawingGB
+    public class DrawGB
     {
         // Drawn screen data
         // -----------------

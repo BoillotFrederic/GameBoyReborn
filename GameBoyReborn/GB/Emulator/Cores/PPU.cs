@@ -382,7 +382,7 @@ namespace Emulator
             byte pixelValue = (byte)((highBit << 1) | lowBit);
 
             if (X < 160 && Y < 144)
-            DrawingGB.SetPixel(X, Y, Pal[pixelValue]);
+            DrawGB.SetPixel(X, Y, Pal[pixelValue]);
 
             return pixelValue;
         }

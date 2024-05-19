@@ -63,6 +63,7 @@ namespace GameBoyReborn
         public static bool KeyP = false;
         public static bool KeyG = false;
         public static bool KeyC = false;
+        public static bool KeyS = false;
 
         // Mouse
         public static bool MouseLeftClick = false;
@@ -299,6 +300,7 @@ namespace GameBoyReborn
             KeyP = keyDown(KeyboardKey.KEY_P);
             KeyG = keyDown(KeyboardKey.KEY_G);
             KeyC = keyDown(KeyboardKey.KEY_C);
+            KeyS = keyDown(KeyboardKey.KEY_S);
 
             // Special actions
             // ---------------
@@ -312,26 +314,18 @@ namespace GameBoyReborn
             if(Pressed("Fullscreen", KeyAlt && KeyEnter))
             Program.ToogleFullScreen();
 
-            // Open menu
+            // Open menu in game
             if (Program.Emulation != null)
             if (Pressed("MenuGame", (AxisLS && AxisRS) || KeyM))
             {
                 Program.Emulation.MenuIsOpen = true;
                 Program.Emulation.Pause();
-                DrawingGUI.Action("MenuGame");
+                DrawGUI.Action("MenuGame");
             }
 
+            // Draw menu in game
             if (Program.Emulation != null && Program.Emulation.MenuIsOpen)
-            {
-                Raylib.BeginDrawing();
-                DrawingGUI.InitScreenSize();
-                DrawingGUI.InitMouse();
-                DrawingGUI.DrawBtnInfos();
-                DrawingGUI.ActionsListenning();
-                DrawingGUI.ModalsListenning();
-                DrawingGUI.UpdateMouse();
-                Raylib.EndDrawing();
-            }
+            DrawGUI.MenuInGame();
         }
 
         #endregion
@@ -366,51 +360,6 @@ namespace GameBoyReborn
                 KeyboardKey.KEY_COMMA => KeyboardKey.KEY_SEMICOLON,
                 _ => key,
             };
-        }
-
-        #endregion
-
-        #region To GameBoy
-
-        // Input joypad to byte for Gameboy
-        public static byte InputToByteGB(byte requested)
-        {
-            // All buttons off
-            requested |= 0x0F;
-
-            // D-pad
-            if ((requested & 0x30) != 0x10)
-            {
-                if (DPadDown || AxisLeftPadDown)
-                Binary.SetBit(ref requested, 3, false);
-
-                if (DPadUp || AxisLeftPadUp)
-                Binary.SetBit(ref requested, 2, false);
-
-                if (DPadLeft || AxisLeftPadLeft)
-                Binary.SetBit(ref requested, 1, false);
-
-                if (DPadRight || AxisLeftPadRight)
-                Binary.SetBit(ref requested, 0, false);
-            }
-
-            // Buttons
-            else if ((requested & 0x30) != 0x20)
-            {
-                if (MiddlePadRight)
-                Binary.SetBit(ref requested, 3, false);
-
-                if (MiddlePadLeft)
-                Binary.SetBit(ref requested, 2, false);
-
-                if (XabyPadB)
-                Binary.SetBit(ref requested, 1, false);
-
-                if (XabyPadA)
-                Binary.SetBit(ref requested, 0, false);
-            }
-
-            return requested;
         }
 
         #endregion

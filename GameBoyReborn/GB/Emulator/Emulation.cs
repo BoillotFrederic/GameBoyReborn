@@ -142,7 +142,7 @@ namespace Emulator
         {
             Program.EmulatorRun = false;
             Array.Clear(RomData);
-            DrawingGB.ClearScreen();
+            DrawGB.ClearScreen();
             Audio.Stop();
             Program.Emulation = null;
         }

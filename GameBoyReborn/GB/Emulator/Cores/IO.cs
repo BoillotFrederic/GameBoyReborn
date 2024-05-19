@@ -123,7 +123,7 @@ namespace Emulator
             bool CGB_Support = Cartridge != null && Cartridge.PUS.GameBoyGen == 2;
 
             //JOYP	Joypad
-            if (at == 0x00) return Input.InputToByteGB(P1);
+            if (at == 0x00) return Joypad.ReadAndWrite(P1);
 
             // Serial transfer
             else if (at == 0x01) return SB;
@@ -206,7 +206,7 @@ namespace Emulator
         public void Write(byte at, byte b)
         {
             //JOYP	Joypad
-            if (at == 0x00) { P1 = (byte)((P1 & 0xCF) | (b & 0x30)); Input.InputToByteGB(P1); }
+            if (at == 0x00) { P1 = (byte)((P1 & 0xCF) | (b & 0x30)); Joypad.ReadAndWrite(P1); }
 
             // Serial transfer
             else if (at == 0x01) SB = b;

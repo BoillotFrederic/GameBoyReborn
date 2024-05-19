@@ -54,15 +54,15 @@ namespace GameBoyReborn
             Emulation.Start(args[0]);
 
             // Init Metro GB
-            DrawingGUI.InitMetroGB();
+            DrawGUI.InitMetroGB();
 
             // Game loop
             while (!Raylib.WindowShouldClose())
             {
                 if(EmulatorRun && Emulation != null && !Emulation.MenuIsOpen)
-                DrawingGB.Screen();
+                DrawGB.Screen();
                 else if(!EmulatorRun)
-                DrawingGUI.MetroGB();
+                DrawGUI.MetroGB();
 
                 Input.Update();
             }
