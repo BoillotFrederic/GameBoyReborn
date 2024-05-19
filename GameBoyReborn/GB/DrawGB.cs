@@ -11,17 +11,18 @@ namespace GameBoyReborn
 
     public class DrawGB
     {
-        // Drawn screen data
-        // -----------------
-        private const int SystemWidth = 160;
-        private const int SystemHeight = 144;
+        // Draw screen
+        // -----------
+
+        // Operating variables
         private static readonly Color[] ScreenData = new Color[SystemWidth * SystemHeight];
         private static Image ScreenImage = Raylib.GenImageColor(SystemWidth, SystemHeight, Color.RAYWHITE);
-
-        // Draw screen
+        private const int SystemWidth = 160;
+        private const int SystemHeight = 144;
         private static int DrawWidth;
         private static int DrawHeight;
 
+        // Display screen
         public static void Screen()
         {
             if(Program.Emulation != null)
@@ -33,37 +34,23 @@ namespace GameBoyReborn
                 // Clear background
                 Raylib.ClearBackground(Color.BLACK);
 
-                // Screen size and proportion
-                WindowWidth = Raylib.GetRenderWidth();
-                WindowHeight = Raylib.GetRenderHeight();
+                Texture2D screenTexture = new();
+                UpdateScreenTexture(ref screenTexture, Program.Emulation.DebugEnable ? 0.5f : 1);
 
-                float scaleFactor = Math.Min((float)WindowWidth / SystemWidth, (float)WindowHeight / SystemHeight);
-                DrawWidth = (int)(SystemWidth * scaleFactor);
-                DrawHeight = (int)(SystemHeight * scaleFactor);
-                int X = (WindowWidth - DrawWidth) / 2;
-                int Y = (WindowHeight - DrawHeight) / 2;
+                int X = Formulas.CenterElm(WindowWidth, DrawWidth);
+                int Y = Formulas.CenterElm(WindowHeight, DrawHeight);
 
-                // Debug enable
                 if (Program.Emulation.DebugEnable)
                 {
-                    DrawWidth = WindowWidth / 2;
-                    DrawHeight = WindowHeight / 2;
-                    X = 0;
-                    Y = 0;
+                    X = Formulas.CenterElm(WindowWidth, DrawWidth);
+                    Y = Formulas.CenterElm(WindowHeight, DrawHeight + StatesHeight);
+
+                    ShowStates();
                 }
 
-                // Draw screen
-                UpdateScreenImage();
-                Texture2D screenTexture = Raylib.LoadTextureFromImage(ScreenImage);
-                screenTexture.Width = DrawWidth;
-                screenTexture.Height = DrawHeight;
                 Raylib.DrawTexture(screenTexture, X, Y, Color.RAYWHITE);
                 //UpdateAndDrawTexts();
                 //ShowXboxButton();
-
-                // Draw debug
-                if (Program.Emulation.DebugEnable)
-                ShowStates();
 
                 // End drawing
                 Raylib.EndDrawing();
@@ -71,15 +58,37 @@ namespace GameBoyReborn
             }
         }
 
-        // Update screen image
-        private static void UpdateScreenImage()
+        // Display screen in pause
+        public static void ScreenPaused(ref Texture2D screenTexture)
         {
-            unsafe
+            UpdateScreenTexture(ref screenTexture, 1);
+            Raylib.DrawTexture(screenTexture, Formulas.CenterElm(WindowWidth, DrawWidth), Formulas.CenterElm(WindowHeight, DrawHeight), Color.RAYWHITE);
+        }
+
+        // Update screen texture
+        private static void UpdateScreenTexture(ref Texture2D screenTexture, float scaleGeneral)
+        {
+            // Screen size and proportion
+            WindowWidth = Raylib.GetRenderWidth();
+            WindowHeight = Raylib.GetRenderHeight();
+
+            float scaleFactor = Math.Min((float)WindowWidth / SystemWidth, (float)WindowHeight / SystemHeight);
+            DrawWidth = (int)(SystemWidth * scaleFactor * scaleGeneral);
+            DrawHeight = (int)(SystemHeight * scaleFactor * scaleGeneral);
+
+            // Draw screen
+            UpdateScreenImage();
+            screenTexture = Raylib.LoadTextureFromImage(ScreenImage);
+            screenTexture.Width = DrawWidth;
+            screenTexture.Height = DrawHeight;
+        }
+
+        // Update screen image
+        private unsafe static void UpdateScreenImage()
+        {
+            fixed (Color* pData = &ScreenData[0])
             {
-                fixed (Color* pData = &ScreenData[0])
-                {
-                    ScreenImage.Data = pData;
-                }
+                ScreenImage.Data = pData;
             }
         }
 
@@ -109,6 +118,8 @@ namespace GameBoyReborn
         // Show states
         // ---------------
 
+        private static int StatesHeight = 16 * 18 + 5;
+
         private static void ShowStates()
         {
             if (Program.Emulation != null)
@@ -119,7 +130,7 @@ namespace GameBoyReborn
 
                 string InstructionName = CPU.Opcode != 0xCB ? InstructionsName[CPU.Opcode] : (Memory.Read(CPU.PC).ToString("X2") + " : " + CBInstructionsName[Memory.Read(CPU.PC)]);
                 int sizeText = 20;
-                int lineX = 10;
+                int lineX = Formulas.CenterElm(WindowWidth, DrawWidth) + 10;
                 Color colorText = Color.WHITE;
 
                 Raylib.DrawText("Cycles elapsed = " + CPU.LoopAccumulator, lineX, SpaceLine(), sizeText, colorText);
@@ -149,7 +160,7 @@ namespace GameBoyReborn
         {
             int lineY = CurrentLine;
             CurrentLine += 18;
-            return DrawHeight + lineY;
+            return Formulas.CenterElm(WindowHeight, DrawHeight + StatesHeight) + DrawHeight + lineY;
         }
 
         private static readonly string[] InstructionsName = new string[]

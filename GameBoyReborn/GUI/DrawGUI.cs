@@ -21,6 +21,7 @@ namespace GameBoyReborn
         private static int ScreenHeight;
         private static int NbGame;
         private static string WhereIAm = "List";
+        private static string WhereIAmBack = "List";
         private static Vector2 Mouse;
         private static MouseCursor Cursor;
 
@@ -82,8 +83,12 @@ namespace GameBoyReborn
         // Draw menu in game
         public static void MenuInGame()
         {
+            Texture2D screenTexture = new();
+            
             // Start draw
             Raylib.BeginDrawing();
+            Raylib.ClearBackground(Color.BLACK);
+            DrawGB.ScreenPaused(ref screenTexture);
 
             // Init screen size
             InitScreenSize();
@@ -105,6 +110,7 @@ namespace GameBoyReborn
 
             // End draw
             Raylib.EndDrawing();
+            Raylib.UnloadTexture(screenTexture);
         }
 
 

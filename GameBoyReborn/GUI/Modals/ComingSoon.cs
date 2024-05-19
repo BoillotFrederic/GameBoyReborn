@@ -1,6 +1,6 @@
-﻿// -------------------------
-// Modal select dir for scan
-// -------------------------
+﻿// -----------------
+// Modal coming soon
+// -----------------
 
 using Raylib_cs;
 
@@ -11,13 +11,13 @@ namespace GameBoyReborn
         // Set modal size
         // --------------
 
-        private const int SelectDirForScan_ModalWidth = 1024;
-        private const int SelectDirForScan_ModalHeight = 768;
+        private const int ComingSoon_ModalWidth = 800;
+        private const int ComingSoon_ModalHeight = 150;
 
         // Set textures
         // ------------
 
-        private static void SelectDirForScan_SetTextures(string modal)
+        private static void ComingSoon_SetTextures(string modal)
         {
             ModalTextures[modal].Add("ComingSoon", SingleToTexture("Prochainement...", 40.0f * TextResolution, 3.0f, Color.BLACK));
         }
@@ -25,7 +25,7 @@ namespace GameBoyReborn
         // Draw components
         // ---------------
 
-        private static void SelectDirForScan_DrawComponents(string modal, Rectangle modalRect)
+        private static void ComingSoon_DrawComponents(string modal, Rectangle modalRect)
         {
             Texture2D texture = ModalTextures[modal]["ComingSoon"];
             DrawText(texture, Formulas.CenterElm(ScreenWidth, Res(texture.Width)), Formulas.CenterElm(ScreenHeight, Res(texture.Height)));
@@ -34,7 +34,7 @@ namespace GameBoyReborn
         // Set highlights
         // --------------
 
-        private static void SelectDirForScan_SetHighlights(string modal, Rectangle modalRect)
+        private static void ComingSoon_SetHighlights(string modal, Rectangle modalRect)
         {
             
         }

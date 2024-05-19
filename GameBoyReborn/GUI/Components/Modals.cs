@@ -13,7 +13,9 @@ namespace GameBoyReborn
         private static readonly string[] Modals = new string[]{
             "MenuList",
             "SelectDirForScan",
-            "MenuGame"
+            "MenuGame",
+            "ComingSoon",
+            "PrepareScanList"
         };
 
         // Operating variables
@@ -34,8 +36,9 @@ namespace GameBoyReborn
         // Structures
         private struct HighlightElm 
         {
-            public string Action;
+            public string Action = "";
             public Rectangle ElmRect;
+            public bool MouseHover = true;
         }
 
         private struct VecInt2
@@ -48,7 +51,7 @@ namespace GameBoyReborn
         private static void ModalsListenning()
         {
             // Draw modal
-            bool ShiftClicked = false;
+            bool highlightClicked = false;
 
             void DrawModal(string modal, int width, int height)
             {
@@ -64,18 +67,21 @@ namespace GameBoyReborn
                 int x = 0;
                 int y = 0;
 
-                if(ModalHighlight.Count > 0)
+                if(ModalHighlight.Count > 0 && modal == WhereIAm)
                 foreach (List<HighlightElm> selectLines in ModalHighlight)
                 {
                     foreach (HighlightElm selectLine in selectLines)
                     {
                         if(Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect))
                         {
+                            if (selectLine.MouseHover)
+                            Cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
+
                             ModalHighlightPos.X = x;
                             ModalHighlightPos.Y = y;
 
                             if (Input.Pressed("Click", Input.MouseLeftClick))
-                            ShiftClicked = true;
+                            highlightClicked = true;
                         }
                         x++;
                     }
@@ -101,7 +107,7 @@ namespace GameBoyReborn
             }
 
             // Select line clicked
-            if(ModalHighlight.Count > 0 && ShiftClicked)
+            if(ModalHighlight.Count > 0 && highlightClicked)
             Action(ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action);
         }
 
@@ -110,6 +116,10 @@ namespace GameBoyReborn
         
         private static void ModalDestruct(string modalName = "")
         {
+            // Init
+            ModalHighlightPos.X = 0;
+            ModalHighlightPos.Y = 0;
+
             // Destruct
             static void destruct(string MN)
             {

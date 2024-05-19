@@ -2,6 +2,7 @@
 // Actions
 // -------
 
+using Raylib_cs;
 using Emulator;
 
 namespace GameBoyReborn
@@ -73,18 +74,17 @@ namespace GameBoyReborn
 
                 // Open menu
                 case "ListOpenMenu":
-                    WhereIAm = "MenuList";
-                    ModalsOpen.Add("MenuList");
-                    ModalsListenning();
-                    BtnInfoInit(35.0f * TextResolution);
+                    ActionOpenModal("MenuList", false);
                 break;
 
                 // Open global config
-                case "ListGlobalConfig":
+                case "ListOpenGlobalConfig":
+                    ActionOpenModal("ComingSoon", false);
                 break;
 
                 // Open config
-                case "ListConfig":
+                case "ListOpenConfig":
+                    ActionOpenModal("ComingSoon", false);
                 break;
 
                 // Play game
@@ -94,28 +94,17 @@ namespace GameBoyReborn
 
                 // Close all modals
                 case "CloseAllModals":
-                    ModalDestruct();
-                    ModalsOpen.Clear();
-                    WhereIAm = "List";
-                    BtnInfoInit(35.0f * TextResolution);
+                    ActionCloseModal("");
                 break;
 
                 // Select directory for scan
                 case "SelectDirForScan":
-                    WhereIAm = "SelectDirForScan";
-                    ModalsOpen.Clear();
-                    ModalsOpen.Add("SelectDirForScan");
-                    ModalsListenning();
-                    BtnInfoInit(35.0f * TextResolution);
+                    ActionOpenModal("SelectDirForScan", true);
                 break;
 
                 // Menu in game
                 case "MenuGame":
-                    WhereIAm = "MenuGame";
-                    ModalsOpen.Clear();
-                    ModalsOpen.Add("MenuGame");
-                    ModalsListenning();
-                    BtnInfoInit(35.0f * TextResolution);
+                    ActionOpenModal("MenuGame", true);
                 break;
 
                 // Return to the game
@@ -127,18 +116,72 @@ namespace GameBoyReborn
                     }
                 break;
 
+                // Close the game
                 case "CloseGame":
-                    ModalDestruct();
-                    ModalsOpen.Clear();
-                    WhereIAm = "List";
-                    BtnInfoInit(35.0f * TextResolution);
+                    ActionCloseModal("");
 
                     if (Program.Emulation != null)
                     Program.Emulation.Stop();
                 break;
 
+                // Coming soon
+                case "ComingSoon":
+                    ActionOpenModal("ComingSoon", false, WhereIAm);
+                break;
+
+                // Coming soon close
+                case "ComingSoonClose":
+                    ActionCloseModal("ComingSoon");
+                break;
+
+                // Prepare scan list
+                case "PrepareScanList":
+                    ActionOpenModal("PrepareScanList", false, WhereIAm);
+                break;
+
+                // Close the program
+                case "CloseProgram":
+                    Log.Close();
+                    Raylib.CloseWindow();
+                    Environment.Exit(1);
+                break;
+
                 default: break;
             }
+        }
+
+        // Action open modal
+        private static void ActionOpenModal(string modal, bool isNew, string WhereBack = "List")
+        {
+            WhereIAmBack = WhereBack;
+            WhereIAm = modal;
+
+            if(isNew)
+            ModalsOpen.Clear();
+
+            ModalsOpen.Add(modal);
+            ModalsListenning();
+            BtnInfoInit(35.0f * TextResolution);
+        }
+
+        // Action close modal
+        private static void ActionCloseModal(string modal)
+        {
+            if (modal == "")
+            {
+                ModalsOpen.Clear();
+                ModalDestruct();
+                WhereIAm = "List";
+            }
+            else
+            {
+                ModalDestruct(modal);
+                ModalsOpen.RemoveAt(ModalsOpen.FindIndex(x => x == modal));
+                WhereIAm = WhereIAmBack;
+            }
+
+            ModalsListenning();
+            BtnInfoInit(35.0f * TextResolution);
         }
 
         // Actions movement
@@ -178,12 +221,20 @@ namespace GameBoyReborn
                     if(Input.Pressed("Press M", Input.KeyM || (Input.AxisLS && Input.AxisRS)))
                     Action("ListOpenMenu");
 
+                    // Open global config
+                    if(Input.Pressed("Press G", Input.XabyPadY || Input.KeyG))
+                    Action("ListOpenGlobalConfig");
+
+                    // Open config
+                    if(Input.Pressed("Press C", Input.XabyPadX || Input.KeyC))
+                    Action("ListOpenConfig");
+
                     // Move
                     ActionMove("List");
                 }
                 break;
 
-                case "SelectDirForScan":
+                case "PrepareScanList":
                 {
                     // Select
                     if(Input.Pressed("Press A", Input.XabyPadA || Input.KeyS) && ModalHighlight.Count > 0)
@@ -199,6 +250,14 @@ namespace GameBoyReborn
 
                     // Move
                     ActionMove("Modal");
+                }
+                break;
+
+                case "ComingSoon":
+                {
+                    // Close
+                    if(Input.Pressed("Press C", Input.XabyPadB || Input.KeyC))
+                    Action("ComingSoonClose");
                 }
                 break;
 

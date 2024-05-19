@@ -51,9 +51,14 @@ namespace GameBoyReborn
                 case "List":
                     BtnInfos = new BtnInfo[4];
                     btnInfosSet("ListOpenMenu", 0, "Menu", Color.WHITE, "TriggerLR.png", "KeyM.png", 140, 60);
-                    btnInfosSet("ListGlobalConfig", 1, "Paramètres globaux", Color.WHITE, "ButtonY.png", "KeyG.png", 60, 60);
-                    btnInfosSet("ListConfig", 2, "Paramètres", Color.WHITE, "ButtonX.png", "KeyC.png", 60, 60);
+                    btnInfosSet("ListOpenGlobalConfig", 1, "Paramètres globaux", Color.WHITE, "ButtonY.png", "KeyG.png", 60, 60);
+                    btnInfosSet("ListOpenConfig", 2, "Paramètres", Color.WHITE, "ButtonX.png", "KeyC.png", 60, 60);
                     btnInfosSet("ListPlay", 3, "Jouer", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
+                break;
+
+                case "ComingSoon":
+                    BtnInfos = new BtnInfo[1];
+                    btnInfosSet("ComingSoonClose", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
                 break;
 
                 case "MenuList":
@@ -66,6 +71,13 @@ namespace GameBoyReborn
                     BtnInfos = new BtnInfo[2];
                     btnInfosSet("MenuGameRestore", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
                     btnInfosSet(ModalHighlight.Count > 0 ? ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action : "-", 1, "Valider", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
+                break;
+
+                case "PrepareScanList":
+                    BtnInfos = new BtnInfo[3];
+                    btnInfosSet("CloseAllModals", 0, "Annuler", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
+                    btnInfosSet(ModalHighlight.Count > 0 ? ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action : "-", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
+                    btnInfosSet("ScanDir", 2, "Scanner", Color.WHITE, "ButtonX.png", "KeyP.png", 60, 60);
                 break;
 
                 case "SelectDirForScan":

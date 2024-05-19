@@ -3,7 +3,6 @@
 // ---------------
 
 using Raylib_cs;
-using System.Numerics;
 
 namespace GameBoyReborn
 {
@@ -13,7 +12,7 @@ namespace GameBoyReborn
         // --------------
 
         private const int MenuGame_ModalWidth = 1024;
-        private const int MenuGame_ModalHeight = 345;
+        private const int MenuGame_ModalHeight = 255;
 
         // Set textures
         // ------------
@@ -30,19 +29,9 @@ namespace GameBoyReborn
 
         private static void MenuGame_DrawComponents(string modal, Rectangle modalRect)
         {
-            // Draw menu game
-            Texture2D closeGame = ModalTextures[modal]["CloseGame"];
-            Texture2D saveGame = ModalTextures[modal]["SaveGame"];
-            Texture2D loadGame = ModalTextures[modal]["LoadGame"];
-
-            Vector2 closeGamePos = new() { X = modalRect.X + Res(50), Y = modalRect.Y + Res(50) };
-            Raylib.DrawTextureEx(closeGame, closeGamePos, 0, Res(closeGame.Width) / (float)closeGame.Width, Color.WHITE);
-
-            Vector2 saveGamePos = new() { X = modalRect.X + Res(50), Y = modalRect.Y + Res(150) };
-            Raylib.DrawTextureEx(saveGame, saveGamePos, 0, Res(saveGame.Width) / (float)saveGame.Width, Color.WHITE);
-
-            Vector2 loadGamePos = new() { X = modalRect.X + Res(50), Y = modalRect.Y + Res(250) };
-            Raylib.DrawTextureEx(loadGame, loadGamePos, 0, Res(loadGame.Width) / (float)loadGame.Width, Color.WHITE);
+            DrawText(ModalTextures[modal]["CloseGame"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(50)));
+            DrawText(ModalTextures[modal]["SaveGame"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(110)));
+            DrawText(ModalTextures[modal]["LoadGame"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(170)));
         }
 
         // Set highlights
@@ -50,17 +39,9 @@ namespace GameBoyReborn
 
         private static void MenuGame_SetHighlights(string modal, Rectangle modalRect)
         {
-            List<HighlightElm> line1 = new();
-            line1.Add(new HighlightElm() { Action = "CloseGame", ElmRect = new() { X = modalRect.X + Res(40), Y = modalRect.Y + Res(40), Width = modalRect.Width - Res(80), Height = Res(60) } });
-            ModalHighlight.Add(line1);
-
-            List<HighlightElm> line2 = new();
-            line2.Add(new HighlightElm() { Action = "-", ElmRect = new() { X = modalRect.X + Res(40), Y = modalRect.Y + Res(140), Width = modalRect.Width - Res(80), Height = Res(60) } });
-            ModalHighlight.Add(line2);
-
-            List<HighlightElm> line3 = new();
-            line3.Add(new HighlightElm() { Action = "-", ElmRect = new() { X = modalRect.X + Res(40), Y = modalRect.Y + Res(240), Width = modalRect.Width - Res(80), Height = Res(60) } });
-            ModalHighlight.Add(line3);
+            SetHighLight(modal, "CloseGame", true, (int)(modalRect.X + Res(40)), (int)(modalRect.Y + Res(40)), (int)(modalRect.Width - Res(80)), Res(60));
+            SetHighLight(modal, "ComingSoon", true, (int)(modalRect.X + Res(40)), (int)(modalRect.Y + Res(100)), (int)(modalRect.Width - Res(80)), Res(60));
+            SetHighLight(modal, "ComingSoon", true, (int)(modalRect.X + Res(40)), (int)(modalRect.Y + Res(160)), (int)(modalRect.Width - Res(80)), Res(60));
         }
     }
 }

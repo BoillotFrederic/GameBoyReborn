@@ -3,7 +3,6 @@
 // ---------------
 
 using Raylib_cs;
-using System.Numerics;
 
 namespace GameBoyReborn
 {
@@ -13,7 +12,7 @@ namespace GameBoyReborn
         // --------------
 
         private const int MenuList_ModalWidth = 1024;
-        private const int MenuList_ModalHeight = 250;
+        private const int MenuList_ModalHeight = 200;
 
         // Set textures
         // ------------
@@ -29,15 +28,8 @@ namespace GameBoyReborn
 
         private static void MenuList_DrawComponents(string modal, Rectangle modalRect)
         {
-            // Draw make scan
-            Texture2D makeScan = ModalTextures[modal]["MakeScan"];
-            Vector2 makeScanPos = new() {  X = modalRect.X + Res(50), Y = modalRect.Y + Res(50) };
-            Raylib.DrawTextureEx(makeScan, makeScanPos, 0, Res(makeScan.Width) / (float)makeScan.Width, Color.WHITE);
-
-            // Draw close program
-            Texture2D closeProgram = ModalTextures[modal]["CloseProgram"];
-            Vector2 closeProgramPos = new() { X = modalRect.X + Res(50), Y = modalRect.Y + Res(150) };
-            Raylib.DrawTextureEx(closeProgram, closeProgramPos, 0, Res(closeProgram.Width) / (float)closeProgram.Width, Color.WHITE);
+            DrawText(ModalTextures[modal]["MakeScan"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(50)));
+            DrawText(ModalTextures[modal]["CloseProgram"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(110)));
         }
 
         // Set highlights
@@ -45,13 +37,8 @@ namespace GameBoyReborn
 
         private static void MenuList_SetHighlights(string modal, Rectangle modalRect)
         {
-            List<HighlightElm> line1 = new();
-            line1.Add(new HighlightElm() { Action = "SelectDirForScan", ElmRect = new() { X = modalRect.X + Res(40), Y = modalRect.Y + Res(40), Width = modalRect.Width - Res(80), Height = Res(60) } });
-            ModalHighlight.Add(line1);
-
-            List<HighlightElm> line2 = new();
-            line2.Add(new HighlightElm() { Action = "-", ElmRect = new() { X = modalRect.X + Res(40), Y = modalRect.Y + Res(140), Width = modalRect.Width - Res(80), Height = Res(60) } });
-            ModalHighlight.Add(line2);
+            SetHighLight(modal, "PrepareScanList", true, (int)(modalRect.X + Res(40)), (int)(modalRect.Y + Res(40)), (int)(modalRect.Width - Res(80)), Res(60));
+            SetHighLight(modal, "CloseProgram", true, (int)(modalRect.X + Res(40)), (int)(modalRect.Y + Res(100)), (int)(modalRect.Width - Res(80)), Res(60));
         }
     }
 }
