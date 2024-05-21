@@ -92,6 +92,9 @@ namespace GameBoyReborn
                     Emulation.Start(GameList[MouseLeftClickTarget].Path);
                 break;
 
+                // Modals list action
+                // ------------------
+
                 // Close all modals
                 case "CloseAllModals":
                     ActionCloseModal("");
@@ -136,7 +139,7 @@ namespace GameBoyReborn
 
                 // Prepare scan list
                 case "PrepareScanList":
-                    ActionOpenModal("PrepareScanList", false, WhereIAm);
+                    ActionOpenModal("PrepareScanList", true, WhereIAm);
                 break;
 
                 // Close the program
@@ -144,6 +147,57 @@ namespace GameBoyReborn
                     Log.Close();
                     Raylib.CloseWindow();
                     Environment.Exit(1);
+                break;
+
+                // Select boxes
+                // ------------
+
+                // Open select box hook tag
+                case "OpenSelectBoxHookTag":
+                    SelectBoxOpen_ModalTop = 0;
+                    SelectBoxOpen_ModalLeft = 0;
+                    SelectBoxOpen_name = name;
+
+                    SelectBoxOpen_Item.Clear();
+                    Dictionary<string, Texture2D> texturesHookTag = ModalTextures["PrepareScanList"];
+
+                    SelectBoxOpen_TextSelected = texturesHookTag["HookTagSelectWhite"];
+                    SelectBoxOpen_Item.Add(new() { Value = "[!]", Texture = texturesHookTag["HookTagSelectBlack"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "[!]", Texture = texturesHookTag["[!]"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "[a]", Texture = texturesHookTag["[a]"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "[c]", Texture = texturesHookTag["[c]"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "[f]", Texture = texturesHookTag["[f]"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "[h]", Texture = texturesHookTag["[h]"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "[p]", Texture = texturesHookTag["[p]"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "[T]", Texture = texturesHookTag["[T]"] });
+
+                    ActionOpenModal("SelectBoxOpen", false, WhereIAm);
+                break;
+
+                // Open select box hook tag
+                case "OpenSelectBoxBracketsTag":
+                    SelectBoxOpen_ModalTop = 0;
+                    SelectBoxOpen_ModalLeft = 0;
+                    SelectBoxOpen_name = name;
+
+                    SelectBoxOpen_Item.Clear();
+                    Dictionary<string, Texture2D> texturesBracketsTag = ModalTextures["PrepareScanList"];
+
+                    SelectBoxOpen_TextSelected = texturesBracketsTag["BracketsTagSelectWhite"];
+                    SelectBoxOpen_Item.Add(new() { Value = "(E)", Texture = texturesBracketsTag["BracketsTagSelectBlack"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "(E)", Texture = texturesBracketsTag["(E)"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "(U)", Texture = texturesBracketsTag["(U)"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "(J)", Texture = texturesBracketsTag["(J)"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "(F)", Texture = texturesBracketsTag["(F)"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "(G)", Texture = texturesBracketsTag["(G)"] });
+                    SelectBoxOpen_Item.Add(new() { Value = "(I)", Texture = texturesBracketsTag["(I)"] });
+
+                    ActionOpenModal("SelectBoxOpen", false, WhereIAm);
+                break;
+
+                // Close select box
+                case "CloseSelectBox":
+                    ActionCloseModal("SelectBoxOpen");
                 break;
 
                 default: break;
@@ -205,6 +259,8 @@ namespace GameBoyReborn
         }
 
         // Actions listenning
+        private static readonly List<string> ActionsCallBack = new();
+
         public static void ActionsListenning()
         {
             switch (WhereIAm)
@@ -291,8 +347,28 @@ namespace GameBoyReborn
                 }
                 break;
 
+                case "SelectBoxOpen": 
+                {
+                    // Confirm
+                    if(Input.Pressed("Press A", Input.XabyPadA || Input.KeyP) && ModalHighlight.Count > 0)
+                    Action(ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action);
+
+                    // Close
+                    if(Input.Pressed("Press C", Input.XabyPadB || Input.KeyC))
+                    Action("CloseSelectBox");
+
+                    // Move
+                    ActionMove("Modal");
+                }
+                break;
+
                 default: break;
             }
+
+            // Actions callback
+            foreach(string action in ActionsCallBack)
+            Action(action);
+            ActionsCallBack.Clear();
         }
     }
 }

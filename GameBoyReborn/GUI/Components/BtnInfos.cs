@@ -77,7 +77,13 @@ namespace GameBoyReborn
                     BtnInfos = new BtnInfo[3];
                     btnInfosSet("CloseAllModals", 0, "Annuler", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
                     btnInfosSet(ModalHighlight.Count > 0 ? ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action : "-", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
-                    btnInfosSet("ScanDir", 2, "Scanner", Color.WHITE, "ButtonX.png", "KeyP.png", 60, 60);
+                    btnInfosSet("ScanDir", 2, "Lancer le scan", Color.WHITE, "ButtonX.png", "KeyP.png", 60, 60);
+                break;
+
+                case "SelectBoxOpen":
+                    BtnInfos = new BtnInfo[2];
+                    btnInfosSet("CloseSelectBox", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
+                    btnInfosSet(ModalHighlight.Count > 0 ? ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action : "-", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
                 break;
 
                 case "SelectDirForScan":

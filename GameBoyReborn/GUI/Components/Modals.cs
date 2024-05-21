@@ -15,7 +15,8 @@ namespace GameBoyReborn
             "SelectDirForScan",
             "MenuGame",
             "ComingSoon",
-            "PrepareScanList"
+            "PrepareScanList",
+            "SelectBoxOpen"
         };
 
         // Operating variables
@@ -23,7 +24,9 @@ namespace GameBoyReborn
         private static readonly Dictionary<string, Dictionary<string, Texture2D>> ModalTextures = new();
         private static readonly Dictionary<string, bool> ModalIsInit = new();
         private static VecInt2 ModalHighlightPos = new() { X = 0, Y = 0 };
+        private static VecInt2 ModalHighlightLastPos = new() { X = 0, Y = 0 };
         private static readonly List<List<HighlightElm>> ModalHighlight = new();
+        private static readonly Dictionary<string, int> ModalsLoop = new();
 
         // Delegations
         private delegate void SetTextures(string modal);
@@ -53,12 +56,24 @@ namespace GameBoyReborn
             // Draw modal
             bool highlightClicked = false;
 
-            void DrawModal(string modal, int width, int height)
+            void DrawModal(string modal, int width, int height, int top, int left, int border)
             {
-                // Modal
-                Rectangle modalRect = new() { Width = width, Height = height, X = Formulas.CenterElm(ScreenWidth, width), Y = Formulas.CenterElm(ScreenHeight, height) };
+                // Stop drawing
+                if (ModalsLoop.ContainsKey(modal)) ModalsLoop[modal]++;
+                else ModalsLoop.Add(modal, 0);
+                bool DontDraw = ModalsLoop[modal] < 5;
+
+                // Modal rectangle
+                Rectangle modalRect = new() { Width = width, Height = height, X = left != 0 ? left : Formulas.CenterElm(ScreenWidth, width), Y = top != 0 ? top : Formulas.CenterElm(ScreenHeight, height) };
+
+                if (DontDraw)
+                Raylib.BeginScissorMode(0, 0, 0, 0);
+
                 Raylib.DrawRectangleRec(modalRect, Color.WHITE);
-                Raylib.DrawRectangleLinesEx(modalRect, Res(10), Color.DARKGRAY);
+                Raylib.DrawRectangleLinesEx(modalRect, border, Color.DARKGRAY);
+
+                if (DontDraw)
+                Raylib.EndScissorMode();
 
                 // Init
                 InitModalTextures(modal, modalRect);
@@ -72,7 +87,7 @@ namespace GameBoyReborn
                 {
                     foreach (HighlightElm selectLine in selectLines)
                     {
-                        if(Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect))
+                        if(Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect) && !Raylib.IsCursorHidden())
                         {
                             if (selectLine.MouseHover)
                             Cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
@@ -81,7 +96,12 @@ namespace GameBoyReborn
                             ModalHighlightPos.Y = y;
 
                             if (Input.Pressed("Click", Input.MouseLeftClick))
-                            highlightClicked = true;
+                            {
+                                highlightClicked = true;
+
+                                if(WhereIAm != "SelectBoxOpen")
+                                ModalHighlightLastPos = ModalHighlightPos;
+                            }
                         }
                         x++;
                     }
@@ -90,20 +110,42 @@ namespace GameBoyReborn
                 }
 
                 // Draw select line
+                if (DontDraw)
+                Raylib.BeginScissorMode(0, 0, 0, 0);
+                else
+                Raylib.BeginScissorMode((int)modalRect.X + 1, (int)modalRect.Y + 1, (int)modalRect.Width - 2, (int)modalRect.Height - 2);
+
                 if(ModalHighlight.Count > 0)
                 Raylib.DrawRectangleRec(ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].ElmRect, Color.LIGHTGRAY);
 
                 // Draw content
                 if (ModalDrawComponents.ContainsKey(modal))
                 ModalDrawComponents[modal].Invoke(modal, modalRect);
+                Raylib.EndScissorMode();
+
+            }
+
+            // Modal loop update
+            foreach(string modal in Modals)
+            if (!ModalsOpen.Contains(modal))
+            {
+                if (!ModalsLoop.ContainsKey(modal))
+                ModalsLoop.Add(modal, 0);
+                else
+                ModalsLoop[modal] = 0;
             }
 
             // Modals match
             foreach(string modal in ModalsOpen)
             {
+                // Draw
                 int modalWidth = RefLight.GetIntByName(modal + "_ModalWidth", typeof(DrawGUI), BindingFlags.NonPublic | BindingFlags.Static);
                 int modalHeight = RefLight.GetIntByName(modal + "_ModalHeight", typeof(DrawGUI), BindingFlags.NonPublic | BindingFlags.Static);
-                DrawModal(modal, Res(modalWidth), Res(modalHeight));
+                int modalTop = RefLight.GetIntByName(modal + "_ModalTop", typeof(DrawGUI), BindingFlags.NonPublic | BindingFlags.Static);
+                int modalLeft = RefLight.GetIntByName(modal + "_ModalLeft", typeof(DrawGUI), BindingFlags.NonPublic | BindingFlags.Static);
+                int modalBorder = RefLight.GetIntByName(modal + "_ModalBorder", typeof(DrawGUI), BindingFlags.NonPublic | BindingFlags.Static);
+
+                DrawModal(modal, Res(modalWidth), Res(modalHeight), modalTop, modalLeft, modalBorder == 0 ? Res(10) : modalBorder);
             }
 
             // Select line clicked
@@ -117,8 +159,8 @@ namespace GameBoyReborn
         private static void ModalDestruct(string modalName = "")
         {
             // Init
-            ModalHighlightPos.X = 0;
-            ModalHighlightPos.Y = 0;
+            ModalHighlightPos.X = modalName == "SelectBoxOpen" ? ModalHighlightLastPos.X : 0;
+            ModalHighlightPos.Y = modalName == "SelectBoxOpen" ? ModalHighlightLastPos.Y : 0;
 
             // Destruct
             static void destruct(string MN)

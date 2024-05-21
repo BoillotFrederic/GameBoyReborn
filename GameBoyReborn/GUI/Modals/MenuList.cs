@@ -19,7 +19,7 @@ namespace GameBoyReborn
 
         private static void MenuList_SetTextures(string modal)
         {
-            ModalTextures[modal].Add("MakeScan", SingleToTexture("Lancer un scan (ceci réinitialisera la liste)", 40.0f * TextResolution, 3.0f, Color.BLACK));
+            ModalTextures[modal].Add("MakeScan", SingleToTexture("Préparer le scan", 40.0f * TextResolution, 3.0f, Color.BLACK));
             ModalTextures[modal].Add("CloseProgram", SingleToTexture("Fermer le programme", 40.0f * TextResolution, 3.0f, Color.BLACK));
         }
 

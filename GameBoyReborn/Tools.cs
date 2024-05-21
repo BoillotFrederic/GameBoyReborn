@@ -2,7 +2,9 @@
 // General tools
 // -------------
 
+using Raylib_cs;
 using System.Reflection;
+using System.Numerics;
 
 namespace GameBoyReborn
 {
@@ -135,6 +137,20 @@ namespace GameBoyReborn
             }
 
             return 0;
+        }
+
+        public static Vector2 GetVec2ByName(string name, Type classType, BindingFlags flags)
+        {
+            FieldInfo? fieldInfo = classType.GetField(name, flags);
+
+            if (fieldInfo != null)
+            {
+                object? value = fieldInfo.GetValue(null);
+                if (value != null)
+                return (Vector2)value;
+            }
+
+            return new();
         }
 
         public static Delegate? GetDelegateMethodByName(string name, Type classType, Type methodType, BindingFlags flags)
