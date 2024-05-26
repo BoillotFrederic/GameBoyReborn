@@ -19,9 +19,9 @@ namespace GameBoyReborn
 
         private static void MenuGame_SetTextures(string modal)
         {
-            ModalTextures[modal].Add("CloseGame", SingleToTexture("Quitter le jeu", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalTextures[modal].Add("SaveGame", SingleToTexture("Sauvegarder l'état du jeu", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalTextures[modal].Add("LoadGame", SingleToTexture("Charger l'état du jeu", 40.0f * TextResolution, 3.0f, Color.BLACK));
+            ModalsTexture[modal].Add("CloseGame", SingleToTexture("Quitter le jeu", 40.0f * TextResolution, 3.0f, Color.BLACK));
+            ModalsTexture[modal].Add("SaveGame", SingleToTexture("Sauvegarder l'état du jeu", 40.0f * TextResolution, 3.0f, Color.BLACK));
+            ModalsTexture[modal].Add("LoadGame", SingleToTexture("Charger l'état du jeu", 40.0f * TextResolution, 3.0f, Color.BLACK));
         }
 
         // Draw components
@@ -29,9 +29,9 @@ namespace GameBoyReborn
 
         private static void MenuGame_DrawComponents(string modal, Rectangle modalRect)
         {
-            DrawText(ModalTextures[modal]["CloseGame"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(50)));
-            DrawText(ModalTextures[modal]["SaveGame"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(110)));
-            DrawText(ModalTextures[modal]["LoadGame"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(170)));
+            DrawText(ModalsTexture[modal]["CloseGame"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(50)));
+            DrawText(ModalsTexture[modal]["SaveGame"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(110)));
+            DrawText(ModalsTexture[modal]["LoadGame"], (int)(modalRect.X + Res(50)), (int)(modalRect.Y + Res(170)));
         }
 
         // Set highlights

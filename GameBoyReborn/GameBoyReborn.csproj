@@ -12,11 +12,32 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <Optimize>True</Optimize>
+    <NoWarn>1701;1702;NU1701</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>1701;1702;NU1701</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="JsonConfig" Version="1.0.0" />
     <PackageReference Include="Raylib-cs" Version="5.0.0" />
     <PackageReference Include="SharpDX.XInput" Version="4.2.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <TextureFiles Include="GUI\Textures\*.*" />
+    <FontFiles Include="GUI\Fonts\*.*" />
+  </ItemGroup>
+  
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <MakeDir Directories="$(OutputPath)Config" />
+    <MakeDir Directories="$(OutputPath)Config/Roms" />
+    <MakeDir Directories="$(OutputPath)Fonts" />
+    <MakeDir Directories="$(OutputPath)Textures" />
+
+    <Copy SourceFiles="@(FontFiles)" DestinationFolder="$(OutputPath)Fonts" />
+    <Copy SourceFiles="@(TextureFiles)" DestinationFolder="$(OutputPath)Textures" />
+  </Target>
 
 </Project>

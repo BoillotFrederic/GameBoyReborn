@@ -7,6 +7,7 @@
 using Raylib_cs;
 using Emulator;
 using System.Runtime.InteropServices;
+using JsonConfig;
 
 namespace GameBoyReborn
 {
@@ -15,12 +16,14 @@ namespace GameBoyReborn
         // Setting
         // -------
 
+        public static readonly dynamic AppConfig = ConfigJson.LoadAppConfig();
         public static bool EmulatorRun = false;
         public static int WindowWidth = 1024;
         public static int WindowHeight = 768;
         public static Emulation ? Emulation = null;
+        public static int FPSMax = 0;
 
-        // Mais task
+        // Main task
         // ---------
 
         public static Task Main(string[] args)
@@ -29,7 +32,7 @@ namespace GameBoyReborn
             Log.Start();
             AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
             {
-                Exception ex = (Exception)e.ExceptionObject;
+                var ex = (Exception)e.ExceptionObject;
                 Console.WriteLine($"Unhandled Exception: {ex}");
                 Log.Close();
                 Raylib.CloseWindow();
@@ -47,7 +50,10 @@ namespace GameBoyReborn
             Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
             Raylib.SetTraceLogLevel(TraceLogLevel.LOG_WARNING);
             Raylib.InitWindow(WindowWidth, WindowHeight, "GameBoyReborn");
-            Raylib.SetTargetFPS(60);
+
+            // Set FPS
+            FPSMax = GetScreenRefreshRate();
+            Raylib.SetTargetFPS(FPSMax);
 
             // Start emulation by drag and drop
             if(args.Length > 0)
@@ -55,6 +61,10 @@ namespace GameBoyReborn
 
             // Init Metro GB
             DrawGUI.InitMetroGB();
+
+            // In fullscreen
+            if (AppConfig.FullScreen)
+            ToogleFullScreen();
 
             // Game loop
             while (!Raylib.WindowShouldClose())
@@ -107,6 +117,26 @@ namespace GameBoyReborn
                 Raylib.ToggleFullscreen();
                 Raylib.SetWindowSize(WidthBeforeFullscreen, HeightBeforeFullscreen);
             }
+        }
+
+        // Refresh rate
+        // ------------
+
+        [DllImport("user32.dll")]
+        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        private const int VREFRESH = 116;
+
+        public static int GetScreenRefreshRate()
+        {
+            IntPtr hdc = GetDC(IntPtr.Zero);
+            if (hdc == IntPtr.Zero)
+            throw new InvalidOperationException("Failed to get device context.");
+
+            int refreshRate = GetDeviceCaps(hdc, VREFRESH);
+            _ = ReleaseDC(IntPtr.Zero, hdc);
+
+            return refreshRate;
         }
     }
 }

@@ -149,6 +149,25 @@ namespace GameBoyReborn
                     Environment.Exit(1);
                 break;
 
+                // Set fullscreen at startup
+                case "SetFullScreen":
+                    Program.AppConfig.FullScreen = !Program.AppConfig.FullScreen;
+                    ConfigJson.Save("Config/AppConfig.json", Program.AppConfig);
+                    Program.ToogleFullScreen();
+                break;
+
+                // Set show FPS
+                case "SetShowFPS":
+                    Program.AppConfig.ShowFPS = !Program.AppConfig.ShowFPS;
+                    ConfigJson.Save("Config/AppConfig.json", Program.AppConfig);
+                break;
+
+                // Set scan list recursive
+                case "SetScanListRecursive":
+                    Program.AppConfig.ScanListRecursive = !Program.AppConfig.ScanListRecursive;
+                    ConfigJson.Save("Config/AppConfig.json", Program.AppConfig);
+                break;
+
                 // Select boxes
                 // ------------
 
@@ -159,7 +178,7 @@ namespace GameBoyReborn
                     SelectBoxOpen_name = name;
 
                     SelectBoxOpen_Item.Clear();
-                    Dictionary<string, Texture2D> texturesHookTag = ModalTextures["PrepareScanList"];
+                    Dictionary<string, Texture2D> texturesHookTag = ModalsTexture["PrepareScanList"];
 
                     SelectBoxOpen_TextSelected = texturesHookTag["HookTagSelectWhite"];
                     SelectBoxOpen_Item.Add(new() { Value = "[!]", Texture = texturesHookTag["HookTagSelectBlack"] });
@@ -181,7 +200,7 @@ namespace GameBoyReborn
                     SelectBoxOpen_name = name;
 
                     SelectBoxOpen_Item.Clear();
-                    Dictionary<string, Texture2D> texturesBracketsTag = ModalTextures["PrepareScanList"];
+                    Dictionary<string, Texture2D> texturesBracketsTag = ModalsTexture["PrepareScanList"];
 
                     SelectBoxOpen_TextSelected = texturesBracketsTag["BracketsTagSelectWhite"];
                     SelectBoxOpen_Item.Add(new() { Value = "(E)", Texture = texturesBracketsTag["BracketsTagSelectBlack"] });

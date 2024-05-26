@@ -76,6 +76,9 @@ namespace GameBoyReborn
             // Update cursor
             UpdateMouse();
 
+            // Show FPS
+            DrawFPS();
+
             // End draw
             Raylib.EndDrawing();
         }
@@ -108,9 +111,19 @@ namespace GameBoyReborn
             // Update cursor
             UpdateMouse();
 
+            // Show FPS
+            DrawFPS();
+
             // End draw
             Raylib.EndDrawing();
             Raylib.UnloadTexture(screenTexture);
+        }
+
+        // Draw FPS
+        public static void DrawFPS()
+        {
+            if(Program.AppConfig.ShowFPS)
+            Raylib.DrawFPS(Res(30), Res(30));
         }
 
 

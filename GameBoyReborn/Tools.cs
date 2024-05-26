@@ -2,9 +2,11 @@
 // General tools
 // -------------
 
-using Raylib_cs;
 using System.Reflection;
 using System.Numerics;
+using System.Text.Json;
+using System.Dynamic;
+using JsonConfig;
 
 namespace GameBoyReborn
 {
@@ -125,6 +127,12 @@ namespace GameBoyReborn
 
     public static class RefLight
     {
+        /// <summary>
+        /// Get value of an int variable by name
+        /// </summary>
+        /// <param name="classType">Parent class</param>
+        /// <param name="flags">Params</param>
+        /// <returns>Int</returns>
         public static int GetIntByName(string name, Type classType, BindingFlags flags)
         {
             FieldInfo? fieldInfo = classType.GetField(name, flags);
@@ -139,6 +147,12 @@ namespace GameBoyReborn
             return 0;
         }
 
+        /// <summary>
+        /// Get value of an Vector2 variable by name
+        /// </summary>
+        /// <param name="classType">Parent class</param>
+        /// <param name="flags">Params</param>
+        /// <returns>Vector2</returns>
         public static Vector2 GetVec2ByName(string name, Type classType, BindingFlags flags)
         {
             FieldInfo? fieldInfo = classType.GetField(name, flags);
@@ -153,6 +167,13 @@ namespace GameBoyReborn
             return new();
         }
 
+        /// <summary>
+        /// Get delegate method by name
+        /// </summary>
+        /// <param name="classType">Parent class</param>
+        /// <param name="methodType">Type</param>
+        /// <param name="flags">Params</param>
+        /// <returns>Delegate</returns>
         public static Delegate? GetDelegateMethodByName(string name, Type classType, Type methodType, BindingFlags flags)
         {
             MethodInfo? methodSetTextures = classType.GetMethod(name, flags);
@@ -162,6 +183,113 @@ namespace GameBoyReborn
             delegateSetTextures = methodSetTextures.CreateDelegate(methodType);
 
             return delegateSetTextures;
+        }
+    }
+
+    // Config Json file handle
+    // -----------------------
+    public static class ConfigJson
+    {
+        // Default files
+        // -------------
+
+        /// <summary>
+        /// AppConfig by default
+        /// </summary>
+        private static dynamic DefaultAppConfig()
+        {
+            dynamic config = new ExpandoObject();
+
+            config.PathRoms = "";
+            config.FullScreen = true;
+            config.ScanListRecursive = true;
+            config.ShowFPS = false;
+            config.ShowShortcutsKeyboardKey = false;
+            config.ShowShortcutsPadButton = true;
+
+            return config;
+        }
+
+        /// <summary>
+        /// EmuConfig by default
+        /// </summary>
+        private static dynamic DefaultEmuConfig()
+        {
+            dynamic config = new ExpandoObject();
+
+            return config;
+        }
+
+        /// <summary>
+        /// RomConfig by default
+        /// </summary>
+        private static dynamic DefaultRomConfig()
+        {
+            dynamic config = new ExpandoObject();
+
+            return config;
+        }
+
+        // Load file
+        // ---------
+
+        /// <summary>
+        /// Load json file or load default if not exist
+        /// </summary>
+        /// <param name="relativePath">Relative path</param>
+        /// <param name="defaultConfigCreator">Dynamic default configuration</param>
+        /// <returns>Dynamic configuration</returns>
+        private static dynamic Load(string relativePath, Func<dynamic> defaultConfigCreator)
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativePath);
+
+            if (!File.Exists(path))
+            {
+                dynamic defaultConfig = defaultConfigCreator();
+                Save(relativePath, defaultConfig);
+            }
+
+            return Config.ApplyJsonFromPath(path);
+        }
+
+        /// <summary>
+        /// Load AppConfig
+        /// </summary>
+        public static dynamic LoadAppConfig()
+        {
+            return Load("Config/AppConfig.json", DefaultAppConfig);
+        }
+
+        /// <summary>
+        /// Load EmuConfig
+        /// </summary>
+        public static dynamic LoadEmuConfig()
+        {
+            return Load("Config/EmuConfig.json", DefaultEmuConfig);
+        }
+
+        /// <summary>
+        /// Load RomConfig
+        /// </summary>
+        /// <param name="gameName">Name of game to get configuration</param>
+        public static dynamic LoadRomConfig(string gameName)
+        {
+            return Load($"Config/Roms/{gameName}.json", DefaultRomConfig);
+        }
+
+
+        // Save file
+        // ---------
+
+        /// <summary>
+        /// Save configuration
+        /// </summary>
+        /// <param name="relativePath">Relative path</param>
+        /// <param name="content">Dynamic configuration</param>
+        public static void Save(string relativePath, dynamic config)
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativePath);
+            File.WriteAllText(path, JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true }));
         }
     }
 }

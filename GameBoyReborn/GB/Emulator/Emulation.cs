@@ -4,6 +4,7 @@
 
 #pragma warning disable CS8618
 
+using Raylib_cs;
 using GameBoyReborn;
 
 namespace Emulator
@@ -131,6 +132,7 @@ namespace Emulator
         // Start emulation
         public static void Start(string path)
         {
+            Raylib.SetTargetFPS(60);
             Program.EmulatorRun = true;
             Program.Emulation = new(path);
             Program.Emulation.Paused = false;
@@ -140,6 +142,7 @@ namespace Emulator
         // Stop emulation
         public void Stop()
         {
+            Raylib.SetTargetFPS(Program.FPSMax);
             Program.EmulatorRun = false;
             Array.Clear(RomData);
             DrawGB.ClearScreen();
@@ -150,12 +153,14 @@ namespace Emulator
         // Pause emulation
         public void Pause()
         {
+            Raylib.SetTargetFPS(Program.FPSMax);
             Paused = true;
         }
 
         // UnPause emulation
         public void UnPause()
         {
+            Raylib.SetTargetFPS(60);
             Paused = false;
         }
 

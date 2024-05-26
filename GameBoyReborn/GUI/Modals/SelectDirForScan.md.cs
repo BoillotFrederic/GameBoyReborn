@@ -19,7 +19,7 @@ namespace GameBoyReborn
 
         private static void SelectDirForScan_SetTextures(string modal)
         {
-            ModalTextures[modal].Add("ComingSoon", SingleToTexture("Prochainement...", 40.0f * TextResolution, 3.0f, Color.BLACK));
+            ModalsTexture[modal].Add("ComingSoon", SingleToTexture("Prochainement...", 40.0f * TextResolution, 3.0f, Color.BLACK));
         }
 
         // Draw components
@@ -27,7 +27,7 @@ namespace GameBoyReborn
 
         private static void SelectDirForScan_DrawComponents(string modal, Rectangle modalRect)
         {
-            Texture2D texture = ModalTextures[modal]["ComingSoon"];
+            Texture2D texture = ModalsTexture[modal]["ComingSoon"];
             DrawText(texture, Formulas.CenterElm(ScreenWidth, Res(texture.Width)), Formulas.CenterElm(ScreenHeight, Res(texture.Height)));
         }
 

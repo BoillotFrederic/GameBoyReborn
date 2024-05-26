@@ -104,9 +104,17 @@ namespace GameBoyReborn
                 int lineSpacing = Res(20);
                 int marginWidth = Res(20);
 
+                static int iconWidthCalcul(BtnInfo btn)
+                {
+                    if(Input.IsPad)
+                    return Program.AppConfig.ShowShortcutsPadButton ? btn.IconPadWidth : 0;
+                    else
+                    return Program.AppConfig.ShowShortcutsKeyboardKey ? btn.IconKeyWidth : 0;
+                }
+
                 for (int b = 0; b < BtnInfos.Length; b++)
                 {
-                    int iconWidth = Input.IsPad ? BtnInfos[b].IconPadWidth : BtnInfos[b].IconKeyWidth;
+                    int iconWidth = iconWidthCalcul(BtnInfos[b]);
                     int nbMargin = iconWidth == 0 ? 2 : 3;
                     lineWidth += Res(iconWidth) + marginWidth * nbMargin + Res(BtnInfos[b].Text.Width);
                 }
@@ -115,7 +123,7 @@ namespace GameBoyReborn
 
                 for (int b = 0; b < BtnInfos.Length; b++)
                 {
-                    int iconWidth = Input.IsPad ? BtnInfos[b].IconPadWidth : BtnInfos[b].IconKeyWidth;
+                    int iconWidth = iconWidthCalcul(BtnInfos[b]);
                     int iconTextureWidth = Input.IsPad ? BtnInfos[b].IconPad.Width : BtnInfos[b].IconKey.Width;
                     int nbMargin = iconWidth == 0 ? 2 : 3;
                     int textWidth = Res(BtnInfos[b].Text.Width);

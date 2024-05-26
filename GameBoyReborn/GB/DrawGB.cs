@@ -52,6 +52,9 @@ namespace GameBoyReborn
                 //UpdateAndDrawTexts();
                 //ShowXboxButton();
 
+                // Show FPS
+                DrawGUI.DrawFPS();
+
                 // End drawing
                 Raylib.EndDrawing();
                 Raylib.UnloadTexture(screenTexture);
@@ -118,7 +121,7 @@ namespace GameBoyReborn
         // Show states
         // ---------------
 
-        private static int StatesHeight = 16 * 18 + 5;
+        private static readonly int StatesHeight = 16 * 18 + 5;
 
         private static void ShowStates()
         {
