@@ -141,5 +141,24 @@ namespace GameBoyReborn
             else
             destruct(modalName);
         }
+
+        // Refresh
+        // -------
+
+        private static void ModalRefresh(string modalName)
+        {
+            // Destruct texture
+            if (ModalsIsInit.ContainsKey(modalName))
+            {
+                foreach (KeyValuePair<string, Texture2D> Item in ModalsTexture[modalName])
+                Raylib.UnloadTexture(ModalsTexture[modalName][Item.Key]);
+
+                ModalsTexture[modalName].Clear();
+            }
+
+            // Reload textures
+            if (ModalSetTextures.ContainsKey(modalName))
+            ModalSetTextures[modalName].Invoke(modalName);
+        }
     }
 }

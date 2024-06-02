@@ -4,6 +4,7 @@
 
 using Raylib_cs;
 using Emulator;
+using System.Reflection;
 
 namespace GameBoyReborn
 {
@@ -175,20 +176,18 @@ namespace GameBoyReborn
                 case "OpenSelectBoxHookTag":
                     SelectBoxOpen_ModalTop = 0;
                     SelectBoxOpen_ModalLeft = 0;
-                    SelectBoxOpen_name = name;
+                    SelectBoxOpen_ParentName = "PrepareScanList";
+                    SelectBoxOpen_Name = name;
+                    SelectBoxOpen_Value = "HookTagPriority";
 
-                    SelectBoxOpen_Item.Clear();
+                    ModalHighlightPos.Y = 0;
+                    SelectBoxOpen_Items.Clear();
                     Dictionary<string, Texture2D> texturesHookTag = ModalsTexture["PrepareScanList"];
 
-                    SelectBoxOpen_TextSelected = texturesHookTag["HookTagSelectWhite"];
-                    SelectBoxOpen_Item.Add(new() { Value = "[!]", Texture = texturesHookTag["HookTagSelectBlack"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "[!]", Texture = texturesHookTag["[!]"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "[a]", Texture = texturesHookTag["[a]"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "[c]", Texture = texturesHookTag["[c]"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "[f]", Texture = texturesHookTag["[f]"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "[h]", Texture = texturesHookTag["[h]"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "[p]", Texture = texturesHookTag["[p]"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "[T]", Texture = texturesHookTag["[T]"] });
+                    SelectBoxOpen_ItemSelected = new() { Value = Program.AppConfig.HookTagPriority, Texture = texturesHookTag["HookTagSelectWhite"] };
+
+                    foreach (string val in new string[] {"[!]", "[! p]", "[a]", "[b]", "[c]", "[C]", "[f]", "[h]", "[o]", "[p]", "[S]", "[t]", "[T]", "[T +]", "[T-]", "[x]", "[###]"})
+                    SelectBoxOpen_Items.Add(new() { Value = val, Texture = texturesHookTag[val] });
 
                     ActionOpenModal("SelectBoxOpen", false, WhereIAm);
                 break;
@@ -197,21 +196,31 @@ namespace GameBoyReborn
                 case "OpenSelectBoxBracketsTag":
                     SelectBoxOpen_ModalTop = 0;
                     SelectBoxOpen_ModalLeft = 0;
-                    SelectBoxOpen_name = name;
+                    SelectBoxOpen_ParentName = "PrepareScanList";
+                    SelectBoxOpen_Name = name;
+                    SelectBoxOpen_Value = "BracketsTagPriority";
 
-                    SelectBoxOpen_Item.Clear();
+                    ModalHighlightPos.Y = 0;
+                    SelectBoxOpen_Items.Clear();
                     Dictionary<string, Texture2D> texturesBracketsTag = ModalsTexture["PrepareScanList"];
 
-                    SelectBoxOpen_TextSelected = texturesBracketsTag["BracketsTagSelectWhite"];
-                    SelectBoxOpen_Item.Add(new() { Value = "(E)", Texture = texturesBracketsTag["BracketsTagSelectBlack"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "(E)", Texture = texturesBracketsTag["(E)"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "(U)", Texture = texturesBracketsTag["(U)"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "(J)", Texture = texturesBracketsTag["(J)"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "(F)", Texture = texturesBracketsTag["(F)"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "(G)", Texture = texturesBracketsTag["(G)"] });
-                    SelectBoxOpen_Item.Add(new() { Value = "(I)", Texture = texturesBracketsTag["(I)"] });
+                    SelectBoxOpen_ItemSelected = new() { Value = Program.AppConfig.BracketsTagPriority, Texture = texturesBracketsTag["BracketsTagSelectWhite"] };
+
+                    foreach (string val in new string[] {"(E)", "(U)", "(J)", "(F)", "(G)", "(H)", "(I)", "(R)", "(S)", "(Unl)"})
+                    SelectBoxOpen_Items.Add(new() { Value = val, Texture = texturesBracketsTag[val] });
 
                     ActionOpenModal("SelectBoxOpen", false, WhereIAm);
+                break;
+
+                // Select box submit choice
+                case "SelectBoxSubmit":
+                    SelectBoxItem itemInAction = SelectBoxOpen_ItemsListed[ModalHighlightPos.Y];
+                    RefLight.SetDynamicProperty(Program.AppConfig, SelectBoxOpen_Value, itemInAction.Value);
+                    SelectBoxOpen_ItemSelected = itemInAction;
+                    ConfigJson.Save("Config/AppConfig.json", Program.AppConfig);
+
+                    ModalRefresh(SelectBoxOpen_ParentName);
+                    ActionCloseModal("SelectBoxOpen");
                 break;
 
                 // Close select box

@@ -79,6 +79,53 @@ namespace GameBoyReborn
             // Show FPS
             DrawFPS();
 
+
+
+            // TEST
+
+
+
+/*            string ScrollBarName = "ScrollTest";
+            ScrollBarInit(ScrollBarName, 0);
+
+            int containerX = Res(200);
+            int containerY = Res(200);
+            int containerWidth = Res(800);
+            int containerHeight = Res(800);
+
+            Rectangle container = new()
+            {
+                X = containerX,
+                Y = containerY,
+                Width = containerWidth,
+                Height = containerHeight
+            };
+
+            int contentX = Res(200);
+            int contentY = Res(200) - (int)ScrollBarList[ScrollBarName].ContentPosY;
+            int contentWidth = Res(800);
+            int contentHeight = Res(2200);
+
+            Rectangle content = new()
+            {
+                X = contentX -1,
+                Y = contentY,
+                Width = contentWidth + 1,
+                Height = contentHeight
+            };
+
+            Raylib.DrawRectangleRec(content, Color.RED);
+            Raylib.DrawRectangleRec(container, Color.WHITE);
+            Raylib.DrawRectangleLinesEx(container, 1, Color.BLACK);
+
+            ScrollBarY(ScrollBarName, containerHeight, contentHeight, 20, containerHeight - 2, containerX + containerWidth - 21, containerY + 1, true, Color.BEIGE, Color.VIOLET);*/
+
+
+
+            // TEST
+
+
+
             // End draw
             Raylib.EndDrawing();
         }

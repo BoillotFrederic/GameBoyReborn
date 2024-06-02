@@ -184,6 +184,14 @@ namespace GameBoyReborn
 
             return delegateSetTextures;
         }
+
+        public static void SetDynamicProperty(dynamic obj, string propertyName, object newValue)
+        {
+            var expandoDict = obj as IDictionary<string, object>;
+
+            if (expandoDict != null && expandoDict.ContainsKey(propertyName))
+            expandoDict[propertyName] = newValue;
+        }
     }
 
     // Config Json file handle
@@ -206,6 +214,8 @@ namespace GameBoyReborn
             config.ShowFPS = false;
             config.ShowShortcutsKeyboardKey = false;
             config.ShowShortcutsPadButton = true;
+            config.HookTagPriority = "[!]";
+            config.BracketsTagPriority = "(E)";
 
             return config;
         }

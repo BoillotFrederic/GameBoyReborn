@@ -40,14 +40,14 @@ namespace GameBoyReborn
 
             // Delemiter area
             InitScreenSize();
-            Raylib.BeginScissorMode(0, yStart - 1, ScreenWidth - Res(30), ScreenHeight - yStart * 2);
+            Raylib.BeginScissorMode(0, yStart - 1, ScreenWidth - Res(30), ScreenHeight - yStart * 2 + Res(10));
 
             // Draw line selected
             int selectedCartridgeX = MouseLeftClickTarget % 6 * cartridgeWidth;
             int selectedCartridgeY = (int)(PosListTop + (Math.Floor(MouseLeftClickTarget / 6.0f) * FullThumbnailHeight));
             int selectedCartridgeHeight = FullThumbnailHeight + Res(5);
-            Raylib.DrawRectangle(selectedCartridgeX, selectedCartridgeY, cartridgeWidth, selectedCartridgeHeight, Color.LIGHTGRAY);
-            Raylib.DrawRectangleLines(selectedCartridgeX, selectedCartridgeY, cartridgeWidth, selectedCartridgeHeight, Color.GRAY);
+            Raylib.DrawRectangle(selectedCartridgeX + Res(10), selectedCartridgeY, cartridgeWidth - Res(20), selectedCartridgeHeight, Color.LIGHTGRAY);
+            Raylib.DrawRectangleLines(selectedCartridgeX + Res(10), selectedCartridgeY, cartridgeWidth - Res(20), selectedCartridgeHeight, Color.GRAY);
 
             // Draw game list
             CartridgeGB.Width = cartridgeWidth;

@@ -34,28 +34,55 @@ namespace GameBoyReborn
             ModalsTexture[modal].Add("Zip", SingleToTexture("Archive", 40.0f * TextResolution, 3.0f, Color.BLACK));
             ModalsTexture[modal].Add("HookTag", SingleToTexture("Tag [] privilégié", 40.0f * TextResolution, 3.0f, Color.BLACK));
             ModalsTexture[modal].Add("BracketsTag", SingleToTexture("Tag () privilégié", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("BracketsTagSelect", SingleToTexture("(E)", 40.0f * TextResolution, 3.0f, Color.BLACK));
 
             // Select box hook tag
-            ModalsTexture[modal].Add("HookTagSelectBlack", SingleToTexture("[!] vérifié", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("HookTagSelectWhite", SingleToTexture("[!] vérifié", 40.0f * TextResolution, 3.0f, Color.WHITE));
-            ModalsTexture[modal].Add("[!]", SingleToTexture("[!] vérifié", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("[a]", SingleToTexture("[a] alternative", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("[c]", SingleToTexture("[c] cracké", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("[f]", SingleToTexture("[f] fixé", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("[h]", SingleToTexture("[h] hacké", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("[p]", SingleToTexture("[p] piraté", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("[T]", SingleToTexture("[T] traduit", 40.0f * TextResolution, 3.0f, Color.BLACK));
+            Dictionary<string, string> hookTagSelectBoxText = new() 
+            { 
+                { "[!]", "vérifié" }, 
+                { "[! p]", "presque bon" }, 
+                { "[a]", "alternative" }, 
+                { "[b]", "mauvais" }, 
+                { "[c]", "cracké" }, 
+                { "[C]", "Gameboy Color" }, 
+                { "[f]", "fixé" }, 
+                { "[h]", "hacké" }, 
+                { "[o]", "taille dépassée" },
+                { "[p]", "piraté" }, 
+                { "[S]", "Super Gameboy" }, 
+                { "[t]", "menu de triche" }, 
+                { "[T]", "traduit" },
+                { "[T +]", "nouvelle traduction" },
+                { "[T-]", "ancienne traduction" },
+                { "[x]", "checksum incorrect" },
+                { "[###]", "checksum" },
+            };
+            foreach(string val in new string[] { "[!]", "[! p]", "[a]", "[b]", "[c]", "[C]", "[f]", "[h]", "[o]", "[p]", "[S]", "[t]", "[T]", "[T +]", "[T-]", "[x]", "[###]" })
+            ModalsTexture[modal].Add(val, SingleToTexture(val + " " + hookTagSelectBoxText[val], 40.0f * TextResolution, 3.0f, Color.BLACK));
 
-            // Select box hook tag
-            ModalsTexture[modal].Add("BracketsTagSelectBlack", SingleToTexture("(E) Europe", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("BracketsTagSelectWhite", SingleToTexture("(E) Europe", 40.0f * TextResolution, 3.0f, Color.WHITE));
-            ModalsTexture[modal].Add("(E)", SingleToTexture("(E) Europe", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("(U)", SingleToTexture("(U) USA", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("(J)", SingleToTexture("(J) Japon", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("(F)", SingleToTexture("(F) France", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("(G)", SingleToTexture("(G) Allemagne", 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("(I)", SingleToTexture("(I) Italie", 40.0f * TextResolution, 3.0f, Color.BLACK));
+            string hookSelected = Program.AppConfig.HookTagPriority;
+            ModalsTexture[modal].Add("HookTagSelectBlack", ModalsTexture[modal][hookSelected]);
+            ModalsTexture[modal].Add("HookTagSelectWhite", SingleToTexture(hookSelected + " " + hookTagSelectBoxText[hookSelected], 40.0f * TextResolution, 3.0f, Color.WHITE));
+
+            // Select box brackets tag
+            Dictionary<string, string> bracketsTagSelectBoxText = new()
+            { 
+                { "(E)", "Europe" }, 
+                { "(U)", "USA" }, 
+                { "(J)", "Japon" }, 
+                { "(F)", "France" }, 
+                { "(G)", "Allemagne" }, 
+                { "(H)", "Pays-Bas" }, 
+                { "(I)", "Italie" },
+                { "(R)", "Russie" },
+                { "(S)", "Espagne" },
+                { "(Unl)", "Sans licence" },
+            };
+            foreach(string val in new string[] { "(E)", "(U)", "(J)", "(F)", "(G)", "(H)", "(I)", "(R)", "(S)", "(Unl)" })
+            ModalsTexture[modal].Add(val, SingleToTexture(val + " " + bracketsTagSelectBoxText[val], 40.0f * TextResolution, 3.0f, Color.BLACK));
+
+            string bracketsSelected = Program.AppConfig.BracketsTagPriority;
+            ModalsTexture[modal].Add("BracketsTagSelectBlack", ModalsTexture[modal][bracketsSelected]);
+            ModalsTexture[modal].Add("BracketsTagSelectWhite", SingleToTexture(bracketsSelected + " " + bracketsTagSelectBoxText[bracketsSelected], 40.0f * TextResolution, 3.0f, Color.WHITE));
         }
 
         // Draw components
@@ -74,7 +101,7 @@ namespace GameBoyReborn
             Texture2D HookTag = ModalsTexture[modal]["HookTag"];
             Texture2D HookTagSelect = ModalsTexture[modal]["HookTagSelectBlack"];
             Texture2D BracketsTag = ModalsTexture[modal]["BracketsTag"];
-            Texture2D BracketsTagSelect = ModalsTexture[modal]["BracketsTagSelect"];
+            Texture2D BracketsTagSelect = ModalsTexture[modal]["BracketsTagSelectBlack"];
             int cX(int interger) { return (int)(modalRect.X + interger); }
             int cY(int interger) { return (int)(modalRect.Y + interger); }
 

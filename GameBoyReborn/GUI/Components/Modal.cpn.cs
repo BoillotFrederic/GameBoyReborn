@@ -79,7 +79,7 @@ namespace GameBoyReborn
             {
                 foreach (HighlightElm selectLine in selectLines)
                 {
-                    if(Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect) && !Raylib.IsCursorHidden())
+                    if(Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect) && !Raylib.IsCursorHidden() && Mouse.X < modalRect.X + modalRect.Width && Mouse.Y < modalRect.Y + modalRect.Height)
                     {
                         if (selectLine.MouseHover)
                         Cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
