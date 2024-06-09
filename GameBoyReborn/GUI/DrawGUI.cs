@@ -48,7 +48,7 @@ namespace GameBoyReborn
             }
 
             // Buttons infos
-            BtnInfoInit(35.0f * TextResolution);
+            BtnInfoInit();
         }
 
         // Draw metro GB

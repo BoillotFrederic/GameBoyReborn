@@ -185,6 +185,14 @@ namespace GameBoyReborn
             return delegateSetTextures;
         }
 
+        public static object? GetDynamicProperty(dynamic obj, string propertyName)
+        {
+            if (obj is IDictionary<string, object> expandoDict && expandoDict.ContainsKey(propertyName))
+            return expandoDict[propertyName];
+            else
+            return null;
+        }
+
         public static void SetDynamicProperty(dynamic obj, string propertyName, object newValue)
         {
             var expandoDict = obj as IDictionary<string, object>;

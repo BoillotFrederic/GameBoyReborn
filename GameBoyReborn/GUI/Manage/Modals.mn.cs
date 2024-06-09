@@ -18,7 +18,8 @@ namespace GameBoyReborn
             "MenuGame",
             "ComingSoon",
             "PrepareScanList",
-            "SelectBoxOpen"
+            "SelectBox",
+            "SelectFolder"
         };
 
         // Operating variables
@@ -112,8 +113,8 @@ namespace GameBoyReborn
         private static void ModalDestruct(string modalName = "")
         {
             // Init
-            ModalHighlightPos.X = modalName == "SelectBoxOpen" ? ModalHighlightLastPos.X : 0;
-            ModalHighlightPos.Y = modalName == "SelectBoxOpen" ? ModalHighlightLastPos.Y : 0;
+            ModalHighlightPos.X = modalName == "SelectBox" ? ModalHighlightLastPos.X : 0;
+            ModalHighlightPos.Y = modalName == "SelectBox" ? ModalHighlightLastPos.Y : 0;
 
             // Destruct
             static void destruct(string MN)

@@ -48,5 +48,57 @@ namespace GameBoyReborn
                 GameList[i].Tags[l] = Tags[l].Groups[1].Value;
             }
         }
+
+        public static string? GetLastFolderName(string path)
+        {
+            string? lastFolderName;
+
+            path = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            lastFolderName = Path.GetFileName(path);
+
+            if (string.IsNullOrEmpty(lastFolderName))
+            {
+                lastFolderName = Path.GetPathRoot(path);
+
+                if (lastFolderName != null)
+                lastFolderName = lastFolderName.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+
+            return lastFolderName;
+        }
+
+        public static List<string> GetAccessibleDirectories(string path)
+        {
+            List<string> accessibleDirectories = new();
+
+            try
+            {
+                string[] directories = Directory.GetDirectories(path);
+
+                foreach (string dir in directories)
+                {
+                    try
+                    {
+                        Directory.GetDirectories(dir);
+                        accessibleDirectories.Add(dir);
+                    }
+                    catch(Exception) { }
+                }
+            }
+            catch (Exception) {}
+
+            return accessibleDirectories;
+        }
+
+        public static string GetParentDirectory(string path)
+        {
+            DirectoryInfo directoryInfo = new(path);
+            DirectoryInfo? parentDirectory = directoryInfo.Parent;
+
+            if (parentDirectory != null)
+            return parentDirectory.FullName;
+            else
+            return "";
+        }
     }
 }

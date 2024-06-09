@@ -163,6 +163,12 @@ namespace GameBoyReborn
                     ConfigJson.Save("Config/AppConfig.json", Program.AppConfig);
                 break;
 
+                // Set show shortkeys
+                case "SetShortKeys":
+                    Program.AppConfig.ShowShortcutsKeyboardKey = !Program.AppConfig.ShowShortcutsKeyboardKey;
+                    ConfigJson.Save("Config/AppConfig.json", Program.AppConfig);
+                break;
+
                 // Set scan list recursive
                 case "SetScanListRecursive":
                     Program.AppConfig.ScanListRecursive = !Program.AppConfig.ScanListRecursive;
@@ -174,59 +180,86 @@ namespace GameBoyReborn
 
                 // Open select box hook tag
                 case "OpenSelectBoxHookTag":
-                    SelectBoxOpen_ModalTop = 0;
-                    SelectBoxOpen_ModalLeft = 0;
-                    SelectBoxOpen_ParentName = "PrepareScanList";
-                    SelectBoxOpen_Name = name;
-                    SelectBoxOpen_Value = "HookTagPriority";
-
-                    ModalHighlightPos.Y = 0;
-                    SelectBoxOpen_Items.Clear();
-                    Dictionary<string, Texture2D> texturesHookTag = ModalsTexture["PrepareScanList"];
-
-                    SelectBoxOpen_ItemSelected = new() { Value = Program.AppConfig.HookTagPriority, Texture = texturesHookTag["HookTagSelectWhite"] };
-
-                    foreach (string val in new string[] {"[!]", "[! p]", "[a]", "[b]", "[c]", "[C]", "[f]", "[h]", "[o]", "[p]", "[S]", "[t]", "[T]", "[T +]", "[T-]", "[x]", "[###]"})
-                    SelectBoxOpen_Items.Add(new() { Value = val, Texture = texturesHookTag[val] });
-
-                    ActionOpenModal("SelectBoxOpen", false, WhereIAm);
+                    ActionOpenSelectBox(Program.AppConfig, "HookTagPriority", "HookTag", "PrepareScanList", PrepareScanList_HookTagKey);
                 break;
 
                 // Open select box hook tag
                 case "OpenSelectBoxBracketsTag":
-                    SelectBoxOpen_ModalTop = 0;
-                    SelectBoxOpen_ModalLeft = 0;
-                    SelectBoxOpen_ParentName = "PrepareScanList";
-                    SelectBoxOpen_Name = name;
-                    SelectBoxOpen_Value = "BracketsTagPriority";
-
-                    ModalHighlightPos.Y = 0;
-                    SelectBoxOpen_Items.Clear();
-                    Dictionary<string, Texture2D> texturesBracketsTag = ModalsTexture["PrepareScanList"];
-
-                    SelectBoxOpen_ItemSelected = new() { Value = Program.AppConfig.BracketsTagPriority, Texture = texturesBracketsTag["BracketsTagSelectWhite"] };
-
-                    foreach (string val in new string[] {"(E)", "(U)", "(J)", "(F)", "(G)", "(H)", "(I)", "(R)", "(S)", "(Unl)"})
-                    SelectBoxOpen_Items.Add(new() { Value = val, Texture = texturesBracketsTag[val] });
-
-                    ActionOpenModal("SelectBoxOpen", false, WhereIAm);
+                    ActionOpenSelectBox(Program.AppConfig, "BracketsTagPriority", "BracketsTag", "PrepareScanList", PrepareScanList_BracketsTagKey);
                 break;
 
                 // Select box submit choice
                 case "SelectBoxSubmit":
-                    SelectBoxItem itemInAction = SelectBoxOpen_ItemsListed[ModalHighlightPos.Y];
-                    RefLight.SetDynamicProperty(Program.AppConfig, SelectBoxOpen_Value, itemInAction.Value);
-                    SelectBoxOpen_ItemSelected = itemInAction;
-                    ConfigJson.Save("Config/AppConfig.json", Program.AppConfig);
+                    SelectBoxItem selectBoxItem = SelectBox_ItemsListed[ModalHighlightPos.Y];
+                    RefLight.SetDynamicProperty(SelectBox_ConfigFile, SelectBox_Value, selectBoxItem.Value);
+                    SelectBox_ItemSelected = selectBoxItem;
+                    ConfigJson.Save("Config/AppConfig.json", SelectBox_ConfigFile);
 
-                    ModalRefresh(SelectBoxOpen_ParentName);
-                    ActionCloseModal("SelectBoxOpen");
+                    ModalRefresh(SelectBox_ParentName);
+                    ActionCloseModal("SelectBox");
                 break;
 
                 // Close select box
                 case "CloseSelectBox":
-                    ActionCloseModal("SelectBoxOpen");
+                    ActionCloseModal("SelectBox");
                 break;
+
+                // Select folder
+                // -------------
+
+                // Select folder for scan list
+                case "ScanListSelectFolder":
+                    SelectFolder_Scroll = false;
+                    SelectFolder_ParentName = "PrepareScanList";
+                    SelectFolder_ConfigFile = Program.AppConfig;
+                    SelectFolder_PathSelected = SelectFolder_ConfigFile.PathRoms;
+                    SelectFolder_LastHighLightPosY = 0;
+                    SelectFolder_PosContentY = 0;
+                    ModalHighlightPos.Y = 0;
+                    SelectFolder_Value = "PathRoms";
+                    ActionOpenModal("SelectFolder", false, WhereIAm);
+                break;
+
+                // Select folder enter
+                case "SelectFolderEnter":
+                    SelectFolder_Scroll = false;
+                    SelectFolder_PathSelected = SelectFolder_Directories[ModalHighlightPos.Y];
+                    SelectFolder_LastHighLightPosY = 0;
+                    SelectFolder_PosContentY = 0;
+                    ModalHighlightPos.Y = 0;
+                    ModalRefresh("SelectFolder");
+                break;
+
+                // Select folder back
+                case "SelectFolderBack":
+                    if(SelectFolder_PathSelected != null && SelectFolder_PathSelected != "")
+                    {
+                        SelectFolder_Scroll = false;
+                        SelectFolder_BackFolder = SelectFolder_PathSelected;
+                        SelectFolder_PathSelected = GetParentDirectory(SelectFolder_PathSelected);
+                        SelectFolder_LastHighLightPosY = 0;
+                        SelectFolder_PosContentY = 0;
+                        ModalHighlightPos.Y = 0;
+                        ModalRefresh("SelectFolder");
+                    }
+                break;
+
+                // Select folder submit choice
+                case "SelectFolderSubmit":
+                    RefLight.SetDynamicProperty(SelectFolder_ConfigFile, SelectFolder_Value, SelectFolder_PathSelected);
+                    ConfigJson.Save("Config/AppConfig.json", SelectFolder_ConfigFile);
+
+                    HighLightArea = null;
+                    ModalRefresh(SelectFolder_ParentName);
+                    ActionCloseModal("SelectFolder");
+                break;
+
+                // Close select folder
+                case "CloseSelectFolder":
+                    HighLightArea = null;
+                    ActionCloseModal("SelectFolder");
+                break;
+
 
                 default: break;
             }
@@ -243,7 +276,7 @@ namespace GameBoyReborn
 
             ModalsOpen.Add(modal);
             ModalsListenning();
-            BtnInfoInit(35.0f * TextResolution);
+            BtnInfoInit();
         }
 
         // Action close modal
@@ -263,7 +296,7 @@ namespace GameBoyReborn
             }
 
             ModalsListenning();
-            BtnInfoInit(35.0f * TextResolution);
+            BtnInfoInit();
         }
 
         // Actions movement
@@ -286,6 +319,28 @@ namespace GameBoyReborn
             Action(component + "MoveRight");
         }
 
+        // Action open select box
+        private static void ActionOpenSelectBox(dynamic configFile, string configVarName, string name, string parentName, string[] keys)
+        {
+            SelectBox_ModalTop = 0;
+            SelectBox_ModalLeft = 0;
+            SelectBox_ParentName = parentName;
+            SelectBox_Name = name;
+            SelectBox_Value = configVarName;
+            SelectBox_ConfigFile = configFile;
+
+            ModalHighlightPos.Y = 0;
+            SelectBox_Items.Clear();
+            Dictionary<string, Texture2D> textures = ModalsTexture[parentName];
+
+            SelectBox_ItemSelected = new() { Value = RefLight.GetDynamicProperty(configFile, configVarName), Texture = textures[name + "SelectWhite"] };
+
+            foreach (string val in keys)
+            SelectBox_Items.Add(new() { Value = val, Texture = textures[val] });
+
+            ActionOpenModal("SelectBox", false, WhereIAm);
+        }
+
         // Actions listenning
         private static readonly List<string> ActionsCallBack = new();
 
@@ -295,6 +350,7 @@ namespace GameBoyReborn
             {
                 // Metro GB list
                 // -------------
+
                 case "List":
                 {
                     // Play
@@ -317,6 +373,9 @@ namespace GameBoyReborn
                     ActionMove("List");
                 }
                 break;
+
+                // Modals
+                // ------
 
                 case "PrepareScanList":
                 {
@@ -375,7 +434,7 @@ namespace GameBoyReborn
                 }
                 break;
 
-                case "SelectBoxOpen": 
+                case "SelectBox": 
                 {
                     // Confirm
                     if(Input.Pressed("Press A", Input.XabyPadA || Input.KeyP) && ModalHighlight.Count > 0)
@@ -384,6 +443,29 @@ namespace GameBoyReborn
                     // Close
                     if(Input.Pressed("Press C", Input.XabyPadB || Input.KeyC))
                     Action("CloseSelectBox");
+
+                    // Move
+                    ActionMove("Modal");
+                }
+                break;
+
+                case "SelectFolder": 
+                {
+                    // Confirm
+                    if(Input.Pressed("Press V", Input.XabyPadX || Input.KeyV))
+                    Action("SelectFolderSubmit");
+
+                    // Select
+                    if(Input.Pressed("Press A", Input.XabyPadA || Input.KeyS) && ModalHighlight.Count > 0)
+                    Action(ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action);
+
+                    // Back to parent folder
+                    if(Input.Pressed("Press P", Input.XabyPadB || Input.KeyP))
+                    Action("SelectFolderBack");
+
+                    // Close
+                    if(Input.Pressed("Press C", Input.XabyPadY || Input.KeyC))
+                    Action("CloseSelectFolder");
 
                     // Move
                     ActionMove("Modal");

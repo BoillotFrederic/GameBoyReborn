@@ -22,7 +22,7 @@ namespace GameBoyReborn
         private static BtnInfo[]? BtnInfos;
 
         // Buttons init
-        private static void BtnInfoInit(float textSize)
+        private static void BtnInfoInit()
         {
             // Clear
             if(BtnInfos != null)
@@ -37,7 +37,7 @@ namespace GameBoyReborn
                 if(BtnInfos != null && index < BtnInfos.Length)
                 {
                     BtnInfos[index].Action = action;
-                    BtnInfos[index].Text = SingleToTexture(text, textSize, 3.0f, textColor);
+                    BtnInfos[index].Text = SingleToTexture(text, 35.0f * TextResolution, 3.0f, textColor);
                     BtnInfos[index].IconPad = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/" + IPad);
                     BtnInfos[index].IconKey = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/" + IKey);
                     BtnInfos[index].IconPadWidth = IPadWidth;
@@ -64,32 +64,40 @@ namespace GameBoyReborn
                 case "MenuList":
                     BtnInfos = new BtnInfo[2];
                     btnInfosSet("CloseAllModals", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
-                    btnInfosSet(ModalHighlight.Count > 0 ? ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action : "-", 1, "Valider", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
+                    btnInfosSet("HighLightAction", 1, "Valider", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
                 break;
 
                 case "MenuGame":
                     BtnInfos = new BtnInfo[2];
                     btnInfosSet("MenuGameRestore", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
-                    btnInfosSet(ModalHighlight.Count > 0 ? ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action : "-", 1, "Valider", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
+                    btnInfosSet("HighLightAction", 1, "Valider", Color.WHITE, "ButtonA.png", "KeyP.png", 60, 60);
                 break;
 
                 case "PrepareScanList":
                     BtnInfos = new BtnInfo[3];
                     btnInfosSet("CloseAllModals", 0, "Annuler", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
-                    btnInfosSet(ModalHighlight.Count > 0 ? ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action : "-", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
+                    btnInfosSet("HighLightAction", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
                     btnInfosSet("ScanDir", 2, "Lancer le scan", Color.WHITE, "ButtonX.png", "KeyP.png", 60, 60);
                 break;
 
-                case "SelectBoxOpen":
+                case "SelectFolder":
+                    BtnInfos = new BtnInfo[4];
+                    btnInfosSet("CloseSelectFolder", 0, "Annuler", Color.WHITE, "ButtonY.png", "KeyC.png", 60, 60);
+                    btnInfosSet("SelectFolderBack", 1, "Dossier parent", Color.WHITE, "ButtonB.png", "KeyP.png", 60, 60);
+                    btnInfosSet("HighLightAction", 2, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
+                    btnInfosSet("SelectFolderSubmit", 3, "Confirmer", Color.WHITE, "ButtonX.png", "KeyV.png", 60, 60);
+                break;
+
+                case "SelectBox":
                     BtnInfos = new BtnInfo[2];
                     btnInfosSet("CloseSelectBox", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
-                    btnInfosSet(ModalHighlight.Count > 0 ? ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action : "-", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
+                    btnInfosSet("HighLightAction", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
                 break;
 
                 case "SelectDirForScan":
                     BtnInfos = new BtnInfo[3];
                     btnInfosSet("CloseAllModals", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
-                    btnInfosSet(ModalHighlight.Count > 0 ? ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action : "-", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
+                    btnInfosSet("HighLightAction", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
                     btnInfosSet("ScanDir", 2, "Scanner", Color.WHITE, "ButtonX.png", "KeyP.png", 60, 60);
                 break;
             }
@@ -150,7 +158,10 @@ namespace GameBoyReborn
                         Cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
 
                         if (Input.Pressed("Click", Input.MouseLeftClick))
-                        Action(BtnInfos[b].Action);
+                        {
+                            string action = BtnInfos[b].Action == "HighLightAction" && ModalHighlight.Count > 0 ? ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action : BtnInfos[b].Action;
+                            Action(action);
+                        }
                     }
                 }
             }

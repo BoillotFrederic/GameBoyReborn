@@ -4,6 +4,7 @@
 
 using Raylib_cs;
 using System.Text;
+using System.Numerics;
 
 namespace GameBoyReborn
 {
@@ -11,6 +12,7 @@ namespace GameBoyReborn
     {
         private static readonly int TextResolution = 4;
         private static TextureTitleSet[][] TitleTextures = Array.Empty<TextureTitleSet[]>();
+        private const float SpacingFixFactor = 3.2f;
         
         private struct TextureTitleSet
         {
@@ -39,10 +41,48 @@ namespace GameBoyReborn
             return textTexture;
         }
 
+        // Text truncate
+        private static string TruncateTextWithEllipsis(string text, float fontSize, float spacing, int maxWidth)
+        {
+            // Checking if the text does not exceed the requested width
+            Vector2 textSize = Raylib.MeasureTextEx(MainFont, text, fontSize, spacing * SpacingFixFactor);
+
+            if (textSize.X / TextResolution <= maxWidth)
+            return text;
+
+            // Otherwise the text is too big so we insert an ellipsis
+            string ellipsis = "...";
+            string part1 = "";
+            string part2 = "";
+            Vector2 ellipsisSize = Raylib.MeasureTextEx(MainFont, ellipsis, fontSize, spacing * SpacingFixFactor);
+
+            for (int i = 0, ii = text.Length; i < text.Length; i++, ii--)
+            {
+                if (i < 10)
+                part1 += text[i];
+
+                else
+                {
+                    string part2Temp = text[ii + 9] + part2;
+
+                    Vector2 sizePart1 = Raylib.MeasureTextEx(MainFont, part1, fontSize, spacing * SpacingFixFactor);
+                    Vector2 sizePart2 = Raylib.MeasureTextEx(MainFont, part2Temp, fontSize, spacing * SpacingFixFactor);
+
+                    int sizePart2Max = maxWidth - (int)sizePart1.X / TextResolution - (int)ellipsisSize.X / TextResolution;
+
+                    if(sizePart2.X / TextResolution < sizePart2Max) part2 = part2Temp;
+                    else break;
+                }
+            }
+
+            // Return the new string
+            return part1 + ellipsis + part2;
+        }
+
         // Title game
         private static TextureTitleSet[] TitleGameToTexture(List<TextSet> textSet, float size, float space, Color color)
         {
-            TextureTitleSet[] Texture2DArr = new TextureTitleSet[textSet.Count];
+            var Texture2DArr = new TextureTitleSet[textSet.Count];
 
             for (int i = 0; i < textSet.Count; i++)
             {
@@ -124,7 +164,7 @@ namespace GameBoyReborn
             {
                 lines.RemoveRange(limitLine, lines.Count - limitLine);
                 int lastIndex = lines.Count - 1;
-                var lastItem = lines[lastIndex];
+                TextSet lastItem = lines[lastIndex];
                 lastItem.Text += "...";
                 lines[lastIndex] = lastItem;
             }

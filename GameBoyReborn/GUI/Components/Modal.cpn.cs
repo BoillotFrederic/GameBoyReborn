@@ -14,6 +14,7 @@ namespace GameBoyReborn
         private static VecInt2 ModalHighlightLastPos = new() { X = 0, Y = 0 };
         private static readonly List<List<HighlightElm>> ModalHighlight = new();
         private static bool HighlightClicked = false;
+        private static Rectangle? HighLightArea;
 
         // Structures
         private struct HighlightElm 
@@ -79,7 +80,15 @@ namespace GameBoyReborn
             {
                 foreach (HighlightElm selectLine in selectLines)
                 {
-                    if(Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect) && !Raylib.IsCursorHidden() && Mouse.X < modalRect.X + modalRect.Width && Mouse.Y < modalRect.Y + modalRect.Height)
+                    Rectangle collisionArea = HighLightArea != null ? HighLightArea.Value : modalRect;
+
+                    if(WhereIAm == "SelectBox")
+                    {
+                        collisionArea.Y += Res(70);
+                        collisionArea.Height -= Res(70);
+                    }
+
+                    if(Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect) && Raylib.CheckCollisionPointRec(Mouse, collisionArea))
                     {
                         if (selectLine.MouseHover)
                         Cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
@@ -91,7 +100,7 @@ namespace GameBoyReborn
                         {
                             HighlightClicked = true;
 
-                            if(WhereIAm != "SelectBoxOpen")
+                            if(WhereIAm != "SelectBox")
                             ModalHighlightLastPos = ModalHighlightPos;
                         }
                     }
@@ -107,8 +116,15 @@ namespace GameBoyReborn
             else
             Raylib.BeginScissorMode((int)modalRect.X + 1, (int)modalRect.Y + 1, (int)modalRect.Width - 2, (int)modalRect.Height - 2);
 
+            // High light special area
+            if(HighLightArea != null)
+            Raylib.BeginScissorMode((int)HighLightArea.Value.X, (int)HighLightArea.Value.Y, (int)HighLightArea.Value.Width, (int)HighLightArea.Value.Height);
+
             if(ModalHighlight.Count > 0)
             Raylib.DrawRectangleRec(ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].ElmRect, Color.LIGHTGRAY);
+            
+            if(HighLightArea != null)
+            Raylib.EndScissorMode();
 
             // Draw content
             if (ModalDrawComponents.ContainsKey(modal))

@@ -64,6 +64,7 @@ namespace GameBoyReborn
         public static bool KeyG = false;
         public static bool KeyC = false;
         public static bool KeyS = false;
+        public static bool KeyV = false;
 
         // Mouse
         public static bool MouseLeftClick = false;
@@ -301,6 +302,7 @@ namespace GameBoyReborn
             KeyG = keyDown(KeyboardKey.KEY_G);
             KeyC = keyDown(KeyboardKey.KEY_C);
             KeyS = keyDown(KeyboardKey.KEY_S);
+            KeyV = keyDown(KeyboardKey.KEY_V);
 
             // Special actions
             // ---------------

@@ -2,6 +2,8 @@
 // Modal select dir for scan
 // -------------------------
 
+#pragma warning disable CS0414
+
 using Raylib_cs;
 using System.Numerics;
 
@@ -14,8 +16,10 @@ namespace GameBoyReborn
 
         private const int PrepareScanList_ModalWidth = 1024;
         private const int PrepareScanList_ModalHeight = 520;
-        private static Vector2 OpenSelectBoxHookTagPos = new();
-        private static Vector2 OpenSelectBoxBracketsTagPos = new();
+        private static readonly string[] PrepareScanList_HookTagKey = new string[] { "[!]", "[! p]", "[a]", "[b]", "[c]", "[C]", "[f]", "[h]", "[o]", "[p]", "[S]", "[t]", "[T]", "[T +]", "[T-]", "[x]", "[###]" };
+        private static readonly string[] PrepareScanList_BracketsTagKey = new string[] { "(E)", "(U)", "(J)", "(F)", "(G)", "(H)", "(I)", "(R)", "(S)", "(Unl)" };
+        private static Vector2 SelectBox_HookTagPos = new();
+        private static Vector2 SelectBox_BracketsTagPos = new();
 
         // Set textures
         // ------------
@@ -29,7 +33,7 @@ namespace GameBoyReborn
 
             // Text
             ModalsTexture[modal].Add("Dir", SingleToTexture("Dossier", 45.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("DirSelected", SingleToTexture("Aucun", 40.0f * TextResolution, 3.0f, Color.BLACK));
+            ModalsTexture[modal].Add("DirSelected", SingleToTexture(Program.AppConfig.PathRoms == "" ? "Aucun" : TruncateTextWithEllipsis(Program.AppConfig.PathRoms, 40.0f * TextResolution, 3.0f, 1024 - 230), 40.0f * TextResolution, 3.0f, Color.BLACK));
             ModalsTexture[modal].Add("Recursive", SingleToTexture("Scanner les sous-dossiers", 40.0f * TextResolution, 3.0f, Color.BLACK));
             ModalsTexture[modal].Add("Zip", SingleToTexture("Archive", 40.0f * TextResolution, 3.0f, Color.BLACK));
             ModalsTexture[modal].Add("HookTag", SingleToTexture("Tag [] privilégié", 40.0f * TextResolution, 3.0f, Color.BLACK));
@@ -56,7 +60,7 @@ namespace GameBoyReborn
                 { "[x]", "checksum incorrect" },
                 { "[###]", "checksum" },
             };
-            foreach(string val in new string[] { "[!]", "[! p]", "[a]", "[b]", "[c]", "[C]", "[f]", "[h]", "[o]", "[p]", "[S]", "[t]", "[T]", "[T +]", "[T-]", "[x]", "[###]" })
+            foreach(string val in PrepareScanList_HookTagKey)
             ModalsTexture[modal].Add(val, SingleToTexture(val + " " + hookTagSelectBoxText[val], 40.0f * TextResolution, 3.0f, Color.BLACK));
 
             string hookSelected = Program.AppConfig.HookTagPriority;
@@ -77,7 +81,7 @@ namespace GameBoyReborn
                 { "(S)", "Espagne" },
                 { "(Unl)", "Sans licence" },
             };
-            foreach(string val in new string[] { "(E)", "(U)", "(J)", "(F)", "(G)", "(H)", "(I)", "(R)", "(S)", "(Unl)" })
+            foreach(string val in PrepareScanList_BracketsTagKey)
             ModalsTexture[modal].Add(val, SingleToTexture(val + " " + bracketsTagSelectBoxText[val], 40.0f * TextResolution, 3.0f, Color.BLACK));
 
             string bracketsSelected = Program.AppConfig.BracketsTagPriority;
@@ -108,12 +112,12 @@ namespace GameBoyReborn
             // Draw dir section
             DrawTitle(Dir, cX(Res(50)), cY(Res(50)), Res(5), Color.BLACK);
             DrawTextWithImage(DirSelected, Folder, cX(Res(90)), cX((int)modalRect.Width - Res(120)), cY(Res(140)));
-            DrawCheckbox(Recursive, Checkbox, cX(Res(90)), cX((int)modalRect.Width - Res(122)), cY(Res(200)), Res(40), Res(40), true);
+            DrawCheckbox(Recursive, Checkbox, cX(Res(90)), cX((int)modalRect.Width - Res(122)), cY(Res(200)), Res(40), Res(40), Program.AppConfig.ScanListRecursive);
 
             // Draw zip section
             DrawTitle(Zip, cX(Res(50)), cY(Res(280)), Res(5), Color.BLACK);
-            DrawSelectBox(HookTag, HookTagSelect, SelectBox, cX(Res(90)), cX((int)modalRect.Width - Res(120)), cY(Res(370)), ref OpenSelectBoxHookTagPos);
-            DrawSelectBox(BracketsTag, BracketsTagSelect, SelectBox, cX(Res(90)), cX((int)modalRect.Width - Res(120)), cY(Res(430)), ref OpenSelectBoxBracketsTagPos);
+            DrawSelectBox(HookTag, HookTagSelect, SelectBox, cX(Res(90)), cX((int)modalRect.Width - Res(120)), cY(Res(370)), ref SelectBox_HookTagPos);
+            DrawSelectBox(BracketsTag, BracketsTagSelect, SelectBox, cX(Res(90)), cX((int)modalRect.Width - Res(120)), cY(Res(430)), ref SelectBox_BracketsTagPos);
         }
 
         // Set highlights
@@ -121,7 +125,7 @@ namespace GameBoyReborn
 
         private static void PrepareScanList_SetHighlights(string modal, Rectangle modalRect)
         {
-            SetHighLight(modal, "-", true, (int)(modalRect.X + Res(40)), (int)(modalRect.Y + Res(130)), (int)(modalRect.Width - Res(80)), Res(60));
+            SetHighLight(modal, "ScanListSelectFolder", true, (int)(modalRect.X + Res(40)), (int)(modalRect.Y + Res(130)), (int)(modalRect.Width - Res(80)), Res(60));
             SetHighLight(modal, "SetScanListRecursive", true, (int)(modalRect.X + Res(40)), (int)(modalRect.Y + Res(190)), (int)(modalRect.Width - Res(80)), Res(60));
             SetHighLight(modal, "OpenSelectBoxHookTag", true, (int)(modalRect.X + Res(40)), (int)(modalRect.Y + Res(360)), (int)(modalRect.Width - Res(80)), Res(60));
             SetHighLight(modal, "OpenSelectBoxBracketsTag", true, (int)(modalRect.X + Res(40)), (int)(modalRect.Y + Res(420)), (int)(modalRect.Width - Res(80)), Res(60));
