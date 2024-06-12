@@ -93,13 +93,6 @@ namespace GameBoyReborn
                     btnInfosSet("CloseSelectBox", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
                     btnInfosSet("HighLightAction", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
                 break;
-
-                case "SelectDirForScan":
-                    BtnInfos = new BtnInfo[3];
-                    btnInfosSet("CloseAllModals", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
-                    btnInfosSet("HighLightAction", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
-                    btnInfosSet("ScanDir", 2, "Scanner", Color.WHITE, "ButtonX.png", "KeyP.png", 60, 60);
-                break;
             }
         }
 

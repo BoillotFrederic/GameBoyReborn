@@ -11,7 +11,6 @@ namespace GameBoyReborn
     public partial class DrawGUI
     {
         private static readonly int TextResolution = 4;
-        private static TextureTitleSet[][] TitleTextures = Array.Empty<TextureTitleSet[]>();
         private const float SpacingFixFactor = 3.2f;
         
         private struct TextureTitleSet
@@ -21,11 +20,11 @@ namespace GameBoyReborn
             public float Height;
         }
 
-        private struct TextSet
+        private struct TitleSet
         {
             public string Text = "";
-            public int Width = 0;
-            public int Height = 0;
+            public float Width = 0;
+            public float Height = 0;
         }
 
         // Single text
@@ -80,13 +79,13 @@ namespace GameBoyReborn
         }
 
         // Title game
-        private static TextureTitleSet[] TitleGameToTexture(List<TextSet> textSet, float size, float space, Color color)
+        private static TextureTitleSet[] TitleGameToTexture(List<string> textSet, float size, float space, Color color)
         {
             var Texture2DArr = new TextureTitleSet[textSet.Count];
 
             for (int i = 0; i < textSet.Count; i++)
             {
-                Image titleToImg = Raylib.ImageTextEx(MainFont, textSet[i].Text, size, space, color);
+                Image titleToImg = Raylib.ImageTextEx(MainFont, textSet[i], size, space, color);
                 Texture2D titleTexture = Raylib.LoadTextureFromImage(titleToImg);
                 Raylib.UnloadImage(titleToImg);
                 Raylib.SetTextureFilter(titleTexture, TextureFilter.TEXTURE_FILTER_BILINEAR);
@@ -101,77 +100,41 @@ namespace GameBoyReborn
         // Text wrap and split line
         // ------------------------
 
-        private static List<TextSet> TextNlWrap(string _text, float size, float space, float sizeMax, int limitLine)
+        private static List<string> TextNlWrap(string _text, float size, float space, float sizeMax, int limitLine)
         {
-            string text = WordWrap(_text, space, size, sizeMax);
-            float spaceWidth = GetCharSize((sbyte)' ', size).Width + space;
-            float heightSize = 0;
-            string[] words = text.Split(' ',StringSplitOptions.RemoveEmptyEntries);
-            int nbWord = words.Length;
-            float wordSize;
-            int nbWordThisLine = 0;
-            float lineSize = 0;
-            string lineText = "";
-            List<TextSet> lines = new();
+            // Text
+            string[] text = _text.Split(" ");
+            List<string> lines = new();
 
-            for(int w = 0, c = 0; w < nbWord; w++, c++)
+            // Create lines
+            string words = "";
+
+            for(int i = 0; i < text.Length; i++)
             {
-                // Word
-                wordSize = 0;
-                for(int t = 0; t < words[w].Length; t++, c++)
+                if (limitLine != 0 && lines.Count >= limitLine)
                 {
-                    CharSize CharSize = GetCharSize((sbyte)text[t], size);
-                    if (t + 1 < words[w].Length) CharSize.Width += space;
-                    if (heightSize < CharSize.Height) heightSize = CharSize.Height;
-
-                    wordSize += CharSize.Width;
+                    lines[^1] += "...";
+                    break;
                 }
 
-                // Line
-                lineSize += wordSize;
-                nbWordThisLine++;
+                string lastWords = words;
+                words += " " + text[i];
+                float wordsSize = Raylib.MeasureTextEx(MainFont, words, size, space * SpacingFixFactor).X;
 
-                // Add line
-                void AddLine(string text, int width)
+                if(wordsSize > sizeMax)
                 {
-                    TextSet line = new();
-                    line.Text = text;
-                    line.Width = width;
-                    line.Height = (int)heightSize;
-                    lines.Add(line);
-                };
-
-                // Width line max
-                if(lineSize + (nbWordThisLine * spaceWidth) > sizeMax)
-                {
-                    AddLine(lineText.Trim(), (int)(lineSize - wordSize + (nbWordThisLine * spaceWidth)));
-
-                    lineText = "";
-                    lineSize = wordSize;
-                    nbWordThisLine = 0;
-
-                    if (text.Length == c)
-                    AddLine(words[w].Trim(), (int)wordSize);
+                    lines.Add(lastWords.Trim());
+                    words = text[i];
                 }
-                else if(text.Length == c)
-                AddLine((lineText + words[w]).Trim(), (int)(lineSize + (nbWordThisLine * spaceWidth)));
-
-                lineText += words[w] + " ";
+                else if(i >= text.Length - 1)
+                lines.Add(words.Trim());
             }
 
-            // Limit line
-            if(lines.Count > limitLine)
-            {
-                lines.RemoveRange(limitLine, lines.Count - limitLine);
-                int lastIndex = lines.Count - 1;
-                TextSet lastItem = lines[lastIndex];
-                lastItem.Text += "...";
-                lines[lastIndex] = lastItem;
-            }
+            if (lines.Count > 0 && text.Length > 0 && lines[0] == "")
+            lines[0] = text[0];
 
             return lines;
         }
-
 
         // Word wrap
         // ---------

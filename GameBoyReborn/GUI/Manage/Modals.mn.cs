@@ -19,7 +19,8 @@ namespace GameBoyReborn
             "ComingSoon",
             "PrepareScanList",
             "SelectBox",
-            "SelectFolder"
+            "SelectFolder",
+            "Loading"
         };
 
         // Operating variables

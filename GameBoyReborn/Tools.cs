@@ -295,6 +295,21 @@ namespace GameBoyReborn
             return Load($"Config/Roms/{gameName}.json", DefaultRomConfig);
         }
 
+        /// <summary>
+        /// Load ListGameConfig
+        /// </summary>
+        public static List<Game> LoadListGameConfig()
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config/ListGameConfig.json");
+
+            if (File.Exists(path))
+            {
+                string jsonString = File.ReadAllText(path);
+                return JsonSerializer.Deserialize<List<Game>>(jsonString) ?? new List<Game>();
+            }
+
+            return new List<Game>();
+        }
 
         // Save file
         // ---------

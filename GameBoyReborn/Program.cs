@@ -57,7 +57,10 @@ namespace GameBoyReborn
 
             // Start emulation by drag and drop
             if(args.Length > 0)
-            Emulation.Start(args[0]);
+            {
+                var game = new Game() { Name = DrawGUI.GetLastFolderName(args[0]) ?? "", Path = args[0] };
+                Emulation.Start(game);
+            }
 
             // Init Metro GB
             DrawGUI.InitMetroGB();

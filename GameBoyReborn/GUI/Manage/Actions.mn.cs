@@ -43,6 +43,8 @@ namespace GameBoyReborn
                         case "ListMoveLeft": leftRight(false); break;
                         case "ListMoveRight": leftRight(true); break;
                     }
+
+                    MouseLeftClickTarget = MouseLeftClickTarget >= NbGame ? NbGame - 1 : MouseLeftClickTarget;
                 break;
 
                 // Move in modal
@@ -90,7 +92,8 @@ namespace GameBoyReborn
 
                 // Play game
                 case "ListPlay":
-                    Emulation.Start(GameList[MouseLeftClickTarget].Path);
+                    if(MouseLeftClickTarget < NbGame && MouseLeftClickTarget >= 0)
+                    Emulation.Start(GameList[MouseLeftClickTarget]);
                 break;
 
                 // Modals list action
@@ -141,6 +144,20 @@ namespace GameBoyReborn
                 // Prepare scan list
                 case "PrepareScanList":
                     ActionOpenModal("PrepareScanList", true, WhereIAm);
+                break;
+
+                // Scan dir
+                case "ScanDir":
+                    Loading_Text = "Création de la liste";
+                    ActionOpenModal("Loading", true, WhereIAm);
+                    Task writeGameList = WriteGameList().ContinueWith(task => { ActionsCallBack.Add("ScanDirCompleted"); });
+                break;
+
+                // Scan dir completed
+                case "ScanDirCompleted":
+                    ActionCloseModal();
+                    ReadGameList();
+                    BtnInfoInit();
                 break;
 
                 // Close the program
@@ -280,7 +297,7 @@ namespace GameBoyReborn
         }
 
         // Action close modal
-        private static void ActionCloseModal(string modal)
+        private static void ActionCloseModal(string modal = "")
         {
             if (modal == "")
             {

@@ -2,10 +2,14 @@
 // Emulation
 // ---------
 
-#pragma warning disable CS8618
+//#pragma warning disable CS8618
 
 using Raylib_cs;
 using GameBoyReborn;
+using SharpCompress.Archives;
+using SharpCompress.Archives.Rar;
+using SharpCompress.Archives.SevenZip;
+using SharpCompress.Archives.Zip;
 
 namespace Emulator
 {
@@ -30,58 +34,49 @@ namespace Emulator
         public bool MenuIsOpen = false;
         public bool Paused = false;
 
-        // Emulation load
-        public Emulation(string RomPath)
+        // Emulation contruct
+        public Emulation(Game game)
         {
-            if (File.Exists(RomPath))
-            {
-                // Set file name
-                FileName = Path.GetFileName(RomPath);
-                FileName = FileName.Replace(".gb", "", StringComparison.CurrentCultureIgnoreCase);
-                FileName = FileName.Replace(".gbc", "", StringComparison.CurrentCultureIgnoreCase);
-                FileName = FileName.Replace(".sgb", "", StringComparison.CurrentCultureIgnoreCase);
+            // Set file name
+            FileName = game.Name;
 
-                // Load bytes
-                RomData = File.ReadAllBytes(RomPath);
+            // Load bytes
+            RomData = LoadGameData(game) ?? Array.Empty<byte>();
 
-                // Instances
-                IO = new IO(this);
-                Cartridge = new Cartridge(this);
-                Memory = new Memory(this);
-                CPU = new CPU(this);
-                PPU = new PPU(this);
-                APU = new APU(this);
-                Timer = new Timer(this);
+            // Instances
+            IO = new IO(this);
+            Cartridge = new Cartridge(this);
+            Memory = new Memory(this);
+            CPU = new CPU(this);
+            PPU = new PPU(this);
+            APU = new APU(this);
+            Timer = new Timer(this);
 
-                // Relations
-                IO.APU = APU;
-                IO.PPU = PPU;
-                IO.Timer = Timer;
-                IO.Cartridge = Cartridge;
+            // Relations
+            IO.APU = APU;
+            IO.PPU = PPU;
+            IO.Timer = Timer;
+            IO.Cartridge = Cartridge;
 
-                // Init
-                IO.Init();
+            // Init
+            IO.Init();
 
-                // Headers show
-                Console.WriteLine("Load rom");
-                Console.WriteLine("--------");
-                Console.WriteLine();
-                Console.WriteLine("Title : " + Cartridge.Title);
-                Console.WriteLine("Manufacturer Code : " + Cartridge.ManufacturerCode);
-                Console.WriteLine("Licensee : " + Cartridge.Licensee);
-                Console.WriteLine("Destination Code : " + Cartridge.DestinationCode);
-                Console.WriteLine("CGB Description : " + Cartridge.CGBDescription + " (0x"+ Cartridge.CGB_Flag.ToString("X2") + ")");
-                Console.WriteLine("SGB Description : " + Cartridge.SGBDescription + " (0x" + Cartridge.SGB_Flag.ToString("X2") + ")");
-                Console.WriteLine("Type Description : " + Cartridge.TypeDescription + (Cartridge.MBC1M ? " (M)" : "") + " (0x" + Cartridge.Type.ToString("X2") + ")");
-                Console.WriteLine("RomSize Description : " + Cartridge.RomSizeDescription + " (0x" + Cartridge.RomSize.ToString("X2") + ")");
-                Console.WriteLine("RamSize Description : " + Cartridge.RamSizeDescription + " (0x" + Cartridge.RamSize.ToString("X2") + ")");
-                Console.WriteLine("Header Checksum : " + (Cartridge.HeaderChecksumTest ? "OK" : "KO"));
-                //Console.WriteLine("Global Checksum : " + (Cartridge.GlobalChecksumTest ? "OK" : "KO"));
-                Console.WriteLine();
-            }
-
-            else
-            Console.WriteLine("ROM not found");
+            // Headers show
+            Console.WriteLine("Load rom");
+            Console.WriteLine("--------");
+            Console.WriteLine();
+            Console.WriteLine("Title : " + Cartridge.Title);
+            Console.WriteLine("Manufacturer Code : " + Cartridge.ManufacturerCode);
+            Console.WriteLine("Licensee : " + Cartridge.Licensee);
+            Console.WriteLine("Destination Code : " + Cartridge.DestinationCode);
+            Console.WriteLine("CGB Description : " + Cartridge.CGBDescription + " (0x"+ Cartridge.CGB_Flag.ToString("X2") + ")");
+            Console.WriteLine("SGB Description : " + Cartridge.SGBDescription + " (0x" + Cartridge.SGB_Flag.ToString("X2") + ")");
+            Console.WriteLine("Type Description : " + Cartridge.TypeDescription + (Cartridge.MBC1M ? " (M)" : "") + " (0x" + Cartridge.Type.ToString("X2") + ")");
+            Console.WriteLine("RomSize Description : " + Cartridge.RomSizeDescription + " (0x" + Cartridge.RomSize.ToString("X2") + ")");
+            Console.WriteLine("RamSize Description : " + Cartridge.RamSizeDescription + " (0x" + Cartridge.RamSize.ToString("X2") + ")");
+            Console.WriteLine("Header Checksum : " + (Cartridge.HeaderChecksumTest ? "OK" : "KO"));
+            //Console.WriteLine("Global Checksum : " + (Cartridge.GlobalChecksumTest ? "OK" : "KO"));
+            Console.WriteLine();
         }
 
         // Emulation loop
@@ -130,11 +125,11 @@ namespace Emulator
         }
 
         // Start emulation
-        public static void Start(string path)
+        public static void Start(Game game)
         {
             Raylib.SetTargetFPS(60);
             Program.EmulatorRun = true;
-            Program.Emulation = new(path);
+            Program.Emulation = new(game);
             Program.Emulation.Paused = false;
             Audio.Init();
         }
@@ -169,14 +164,54 @@ namespace Emulator
         {
         }
 
-        // Save emulation
+        // Save stat emulation
         public void Save()
         {
         }
 
-        // Load emulation
+        // Load stat emulation
         public void Load()
         {
+        }
+
+        // Load game data
+        private static byte[]? LoadGameData(Game game)
+        {
+            // Zipped file
+            if (game.ZippedFile != "")
+            {
+                string extension = Path.GetExtension(game.Path).ToLower();
+                IArchive? archive = null;
+
+                // Open archive
+                switch (extension)
+                {
+                    case ".zip": archive = ZipArchive.Open(game.Path); break;
+                    case ".7z": case ".7zip": archive = SevenZipArchive.Open(game.Path); break;
+                    case ".rar": archive = RarArchive.Open(game.Path); break;
+                }
+
+                // Find entry
+                if (archive != null)
+                {
+                    IArchiveEntry? entry = archive.Entries.FirstOrDefault(e => e.Key.EndsWith(game.ZippedFile, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (entry == null)
+                    return null;
+
+                    using Stream? entryStream = entry.OpenEntryStream();
+                    using var memoryStream = new MemoryStream();
+                    entryStream.CopyTo(memoryStream);
+                    return memoryStream.ToArray();
+                }
+
+                else
+                return null;
+            }
+
+            // Simple file
+            else
+            return File.ReadAllBytes(game.Path);
         }
     }
 }

@@ -3,6 +3,7 @@
 // --------
 
 using Raylib_cs;
+using System.Numerics;
 
 namespace GameBoyReborn
 {
@@ -25,7 +26,6 @@ namespace GameBoyReborn
         // Draw list
         private static void DrawListGame()
         {
-
             // Operating variables
             ThumbnailClicked = false;
             bool focus = WhereIAm == "List";
@@ -46,26 +46,34 @@ namespace GameBoyReborn
             int selectedCartridgeX = MouseLeftClickTarget % 6 * cartridgeWidth;
             int selectedCartridgeY = (int)(PosListTop + (Math.Floor(MouseLeftClickTarget / 6.0f) * FullThumbnailHeight));
             int selectedCartridgeHeight = FullThumbnailHeight + Res(5);
-            Raylib.DrawRectangle(selectedCartridgeX + Res(10), selectedCartridgeY, cartridgeWidth - Res(20), selectedCartridgeHeight, Color.LIGHTGRAY);
-            Raylib.DrawRectangleLines(selectedCartridgeX + Res(10), selectedCartridgeY, cartridgeWidth - Res(20), selectedCartridgeHeight, Color.GRAY);
+
+            if(MouseLeftClickTarget + 1 <= NbGame)
+            {
+                Raylib.DrawRectangle(selectedCartridgeX + Res(10), selectedCartridgeY, cartridgeWidth - Res(20), selectedCartridgeHeight, Color.LIGHTGRAY);
+                Raylib.DrawRectangleLines(selectedCartridgeX + Res(10), selectedCartridgeY, cartridgeWidth - Res(20), selectedCartridgeHeight, Color.GRAY);
+            }
 
             // Draw game list
             CartridgeGB.Width = cartridgeWidth;
             CartridgeGB.Height = cartridgeHeight;
 
-            if(TitleTextures != null && NbGame != 0)
             for(int y = 0; y < nbLine; y++)
             {
                 for(int x = 0; x < 6; x++)
                 {
                     int index = y * 6 + x;
 
+                    // Check index if exist
                     if (index >= NbGame)
                     break;
 
                     // Where
                     int X = x * cartridgeWidth;
                     int Y = PosListTop + (y * FullThumbnailHeight);
+
+                    // that the cartridge is not outside the area
+                    if (Y < -Res(300) || Y > ScreenHeight + Res(300))
+                    break;
 
                     // Draw cartridge
                     Raylib.DrawTexture(CartridgeGB, X, Y, Color.WHITE);
@@ -83,26 +91,26 @@ namespace GameBoyReborn
                     };
 
                     // Draw title
-                    for (int t = 0; t < TitleTextures[index].Length; t++)
+                    List<string> TitleWrapped = TextNlWrap(GameList[index].Name, Res(30.0f), Res(3.0f), cartridgeWidth - Res(50), 3);
+                    for (int t = 0; t < TitleWrapped.Count; t++)
                     {
-                        TitleTextures[index][t].Texture.Width = Res(TitleTextures[index][t].Width);
-                        TitleTextures[index][t].Texture.Height = Res(TitleTextures[index][t].Height);
-                        int centerX = Formulas.CenterElm(CartridgeGB.Width, TitleTextures[index][t].Texture.Width);
-                        
+                        Vector2 textMesure = Raylib.MeasureTextEx(MainFont, TitleWrapped[t], Res(30.0f), Res(3.0f));
+                        int centerX = Formulas.CenterElm(CartridgeGB.Width, (int)textMesure.X);
                         int shiftY = 0;
+
                         if(t != 0)
                         for (int s = 1; s < t + 1; s++)
-                        shiftY += TitleTextures[index][s].Texture.Height;
+                        shiftY += (int)textMesure.Y;
 
-                        Raylib.DrawTexture(TitleTextures[index][t].Texture, X + centerX, Y + shiftY + Res(275), Color.WHITE);
+                        Raylib.DrawTextEx(MainFont, TitleWrapped[t], new Vector2() { X = X + centerX, Y = Y + shiftY + Res(275) }, Res(30), Res(3.0f), Color.GRAY);
 
-                        // Collision area
+                        // Collision text area
                         Rectangle CartridgeTextRect = new()
                         {
                             X = X + centerX,
                             Y = Y + shiftY + Res(275),
-                            Width = TitleTextures[index][t].Texture.Width,
-                            Height = TitleTextures[index][t].Texture.Height
+                            Width = (int)textMesure.X,
+                            Height = (int)textMesure.Y
                         };
 
                         // Mouse hover

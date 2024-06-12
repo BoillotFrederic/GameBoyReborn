@@ -22,6 +22,7 @@
   <ItemGroup>
     <PackageReference Include="JsonConfig" Version="1.0.0" />
     <PackageReference Include="Raylib-cs" Version="5.0.0" />
+    <PackageReference Include="SharpCompress" Version="0.37.2" />
     <PackageReference Include="SharpDX.XInput" Version="4.2.0" />
   </ItemGroup>
 
