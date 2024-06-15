@@ -87,7 +87,6 @@ namespace GameBoyReborn
                         collisionArea.Y += Res(70);
                         collisionArea.Height -= Res(70);
                     }
-
                     if(Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect) && Raylib.CheckCollisionPointRec(Mouse, collisionArea))
                     {
                         if (selectLine.MouseHover)
@@ -120,7 +119,7 @@ namespace GameBoyReborn
             if(HighLightArea != null)
             Raylib.BeginScissorMode((int)HighLightArea.Value.X, (int)HighLightArea.Value.Y, (int)HighLightArea.Value.Width, (int)HighLightArea.Value.Height);
 
-            if(ModalHighlight.Count > 0)
+            if(ModalHighlight.Count > ModalHighlightPos.Y && ModalHighlight[ModalHighlightPos.Y].Count > ModalHighlightPos.X)
             Raylib.DrawRectangleRec(ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].ElmRect, Color.LIGHTGRAY);
             
             if(HighLightArea != null)

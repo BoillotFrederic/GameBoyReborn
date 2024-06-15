@@ -146,6 +146,15 @@ namespace GameBoyReborn
                     ActionOpenModal("PrepareScanList", true, WhereIAm);
                 break;
 
+                // Prepare scan list confirm
+                case "PrepareScanListConfirm":
+                    Confirm_Text = "Le scan réinitialisera la liste, êtes-vous certain de vouloir lancer le scan ?";
+                    Confirm_BtnConfirmText = "Oui";
+                    Confirm_BtnCancelText = "Annuler";
+                    Confirm_Action = "ScanDir";
+                    ActionOpenModal("Confirm", false, WhereIAm);
+                break;
+
                 // Scan dir
                 case "ScanDir":
                     Loading_Text = "Création de la liste";
@@ -277,6 +286,12 @@ namespace GameBoyReborn
                     ActionCloseModal("SelectFolder");
                 break;
 
+                // Confirm
+                // -------
+
+                case "ConfirmClose":
+                    ActionCloseModal("Confirm");
+                break;
 
                 default: break;
             }
@@ -483,6 +498,17 @@ namespace GameBoyReborn
                     // Close
                     if(Input.Pressed("Press C", Input.XabyPadY || Input.KeyC))
                     Action("CloseSelectFolder");
+
+                    // Move
+                    ActionMove("Modal");
+                }
+                break;
+
+                case "Confirm": 
+                {
+                    // Select
+                    if(Input.Pressed("Press A", Input.XabyPadA || Input.KeyS) && ModalHighlight.Count > 0)
+                    Action(ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action);
 
                     // Move
                     ActionMove("Modal");

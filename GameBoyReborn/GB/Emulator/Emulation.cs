@@ -194,7 +194,7 @@ namespace Emulator
                 // Find entry
                 if (archive != null)
                 {
-                    IArchiveEntry? entry = archive.Entries.FirstOrDefault(e => e.Key.EndsWith(game.ZippedFile, StringComparison.OrdinalIgnoreCase));
+                    IArchiveEntry? entry = archive.Entries.FirstOrDefault(e => e.Key != null && e.Key.EndsWith(game.ZippedFile, StringComparison.OrdinalIgnoreCase));
                     
                     if (entry == null)
                     return null;

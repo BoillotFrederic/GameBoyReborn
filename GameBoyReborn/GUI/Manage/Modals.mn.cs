@@ -20,6 +20,7 @@ namespace GameBoyReborn
             "PrepareScanList",
             "SelectBox",
             "SelectFolder",
+            "Confirm",
             "Loading"
         };
 
