@@ -13,6 +13,7 @@ namespace GameBoyReborn
         // Operating variables
         // -------------------
 
+        private static Game[] GameListOrigin = Array.Empty<Game>();
         private static Game[] GameList = Array.Empty<Game>();
         private static Font MainFont = LoadFont(AppDomain.CurrentDomain.BaseDirectory + "Fonts/ErasBoldITC.ttf");
         private static Texture2D CartridgeGB = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGB.png");
@@ -40,8 +41,11 @@ namespace GameBoyReborn
             // Texture cartridge
             Raylib.SetTextureFilter(CartridgeGB, TextureFilter.TEXTURE_FILTER_BILINEAR);
 
-            // Buttons infos
+            // Init buttons infos
             BtnInfoInit();
+
+            // Init buttons filter
+            BtnFilterInit();
         }
 
         // Draw metro GB
@@ -59,6 +63,9 @@ namespace GameBoyReborn
 
             // Draw info buttons
             DrawBtnInfos();
+
+            // Draw filter buttons
+            DrawBtnFilters();
 
             // Actions listenning
             ActionsListenning();

@@ -7,7 +7,6 @@
 using Raylib_cs;
 using Emulator;
 using System.Runtime.InteropServices;
-using JsonConfig;
 
 namespace GameBoyReborn
 {

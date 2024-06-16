@@ -93,7 +93,23 @@ namespace GameBoyReborn
                 // Play game
                 case "ListPlay":
                     if(MouseLeftClickTarget < NbGame && MouseLeftClickTarget >= 0)
-                    Emulation.Start(GameList[MouseLeftClickTarget]);
+                    {
+                        Game? game = GameListOrigin.FirstOrDefault(g => g.Path == GameList[MouseLeftClickTarget].Path);
+                        if (game != null) game.LatestLaunch = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                        ConfigJson.Save("Config/ListGameConfig.json", GameListOrigin);
+
+                        Emulation.Start(GameList[MouseLeftClickTarget]);
+                    }
+                break;
+
+                case "ListPreviousFilter":
+                    if(BtnFilterSelected > 0)
+                    BtnFilterSelected--;
+                break;
+
+                case "ListNextFilter":
+                    if(BtnFilterSelected < BtnFiltersList.Length - 1)
+                    BtnFilterSelected++;
                 break;
 
                 // Modals list action
@@ -401,6 +417,14 @@ namespace GameBoyReborn
                     if(Input.Pressed("Press C", Input.XabyPadX || Input.KeyC))
                     Action("ListOpenConfig");
 
+                    // Previous filter list
+                    if(Input.Repeat("Press LB", Input.TriggerPadLB, 0.15f))
+                    Action("ListPreviousFilter");
+
+                    // Next filter list
+                    if(Input.Repeat("Press RB", Input.TriggerPadRB, 0.15f))
+                    Action("ListNextFilter");
+
                     // Move
                     ActionMove("List");
                 }
@@ -417,7 +441,7 @@ namespace GameBoyReborn
 
                     // Scan
                     if(Input.Pressed("Press X", Input.XabyPadX || Input.KeyP) && ModalHighlight.Count > 0)
-                    Action(ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action);
+                    Action("PrepareScanListConfirm");
 
                     // Close
                     if(Input.Pressed("Press C", Input.XabyPadB || Input.KeyC))

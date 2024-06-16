@@ -103,34 +103,60 @@ namespace GameBoyReborn
         private static List<string> TextNlWrap(string _text, float size, float space, float sizeMax, int limitLine)
         {
             // Text
-            string[] text = _text.Split(" ");
+            string[] text = _text.Split(' ');
             List<string> lines = new();
 
             // Create lines
             string words = "";
 
-            for(int i = 0; i < text.Length; i++)
+            for (int i = 0; i < text.Length; i++)
             {
-                if (limitLine != 0 && lines.Count >= limitLine)
-                {
-                    lines[^1] += "...";
-                    break;
-                }
-
                 string lastWords = words;
-                words += " " + text[i];
-                float wordsSize = Raylib.MeasureTextEx(MainFont, words, size, space * SpacingFixFactor).X;
+                string newWords = words.Length > 0 ? words + " " + text[i] : text[i]; // Manage spaces correctly
+                float wordsSize = Raylib.MeasureTextEx(MainFont, newWords, size, space * SpacingFixFactor).X;
 
-                if(wordsSize > sizeMax)
+                if (wordsSize > sizeMax)
                 {
-                    lines.Add(lastWords.Trim());
-                    words = text[i];
+                    if (!string.IsNullOrEmpty(lastWords))
+                    {
+                        if (limitLine != 0 && lines.Count + 1 >= limitLine)
+                        {
+                            lines.Add(lastWords.Trim() + "...");
+                            break;
+                        }
+                        else
+                        {
+                            lines.Add(lastWords.Trim());
+                            words = text[i];
+                        }
+                    }
+                    else
+                    {
+                        if (limitLine != 0 && lines.Count + 1 >= limitLine)
+                        {
+                            lines.Add(newWords.Trim() + "...");
+                            break;
+                        }
+                        else
+                        {
+                            lines.Add(newWords.Trim());
+                            words = "";
+                        }
+                    }
                 }
-                else if(i >= text.Length - 1)
+                else
+                words = newWords;
+            }
+
+            // Add the last remaining words if any, and check the limit
+            if (!string.IsNullOrEmpty(words))
+            {
+                if (limitLine == 0 || lines.Count < limitLine)
                 lines.Add(words.Trim());
             }
 
-            if (lines.Count > 0 && text.Length > 0 && lines[0] == "")
+            // Ensure the first line is not empty
+            if (lines.Count > 0 && lines[0] == "")
             lines[0] = text[0];
 
             return lines;

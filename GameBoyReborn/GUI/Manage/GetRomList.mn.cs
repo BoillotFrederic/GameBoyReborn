@@ -17,6 +17,7 @@ namespace GameBoyReborn
         public string Name { get; set; } = "";
         public string Cover { get; set; } = "";
         public string ZippedFile { get; set; } = "";
+        public long LatestLaunch { get; set; } = 0;
     }
 
     public partial class DrawGUI
@@ -122,8 +123,8 @@ namespace GameBoyReborn
         // Read game list
         private static void ReadGameList()
         {
-            GameList = ConfigJson.LoadListGameConfig().ToArray();
-            GameList = GameList.OrderBy(e => e.Name, new AlphanumericComparer()).ToArray();
+            GameListOrigin = ConfigJson.LoadListGameConfig().ToArray();
+            GameList = GameListOrigin.OrderBy(e => e.Name, new AlphanumericComparer()).ToArray();
             NbGame = GameList.Length;
         }
 
@@ -219,6 +220,12 @@ namespace GameBoyReborn
 
                 return xParts.Length.CompareTo(yParts.Length);
             }
+        }
+
+        // Filters by first letter
+        private static Game[] FilterGamesByFirstLetter(Game[] games, params char[] letters)
+        {
+            return games.Where(game => letters.Contains(game.Name[0])).ToArray();
         }
     }
 }
