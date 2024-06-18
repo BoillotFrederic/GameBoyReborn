@@ -2,8 +2,6 @@
 // Start program
 // -------------
 
-#pragma warning disable CA2211
-
 using Raylib_cs;
 using Emulator;
 using System.Runtime.InteropServices;
@@ -16,11 +14,11 @@ namespace GameBoyReborn
         // -------
 
         public static readonly dynamic AppConfig = ConfigJson.LoadAppConfig();
-        public static bool EmulatorRun = false;
-        public static int WindowWidth = 1024;
-        public static int WindowHeight = 768;
-        public static Emulation ? Emulation = null;
-        public static int FPSMax = 0;
+        public static bool EmulatorRun { get; set; } = false;
+        public static int WindowWidth { get; set; } = 1024;
+        public static int WindowHeight { get; set; } = 768;
+        public static Emulation ? Emulation { get; set; } = null;
+        public static int FPSMax { get; set; } = 0;
 
         // Main task
         // ---------
@@ -29,10 +27,11 @@ namespace GameBoyReborn
         {
             // Exit handle
             Log.Start();
+
             AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
             {
                 var ex = (Exception)e.ExceptionObject;
-                Console.WriteLine($"Unhandled Exception: {ex}");
+                Log.Write($"Unhandled Exception: {ex}");
                 Log.Close();
                 Raylib.CloseWindow();
                 Environment.Exit(1);
@@ -44,6 +43,10 @@ namespace GameBoyReborn
 
                 Log.Close();
             };
+
+            // Console hidden
+            if(!AppConfig.ShowConsole)
+            HideConsole();
 
             // Set Raylib
             Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
@@ -139,6 +142,28 @@ namespace GameBoyReborn
             _ = ReleaseDC(IntPtr.Zero, hdc);
 
             return refreshRate;
+        }
+
+        // Display console
+        // ---------------
+
+        [DllImport("kernel32.dll")]
+        private static extern bool AllocConsole();
+
+        [DllImport("kernel32.dll")]
+        private static extern bool FreeConsole();
+
+        public static void ShowConsole()
+        {
+            AllocConsole();
+            Log.Init();
+            Log.ConsoleEnable = true;
+        }
+
+        public static void HideConsole()
+        {
+            FreeConsole();
+            Log.ConsoleEnable = false;
         }
     }
 }

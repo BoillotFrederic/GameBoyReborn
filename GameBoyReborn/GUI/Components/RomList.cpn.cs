@@ -54,9 +54,6 @@ namespace GameBoyReborn
             }
 
             // Draw game list
-            CartridgeGB.Width = cartridgeWidth;
-            CartridgeGB.Height = cartridgeHeight;
-
             for(int y = 0; y < nbLine; y++)
             {
                 for(int x = 0; x < 6; x++)
@@ -76,16 +73,26 @@ namespace GameBoyReborn
                     break;
 
                     // Draw cartridge
-                    Raylib.DrawTexture(CartridgeGB, X, Y, Color.WHITE);
+                    Texture2D CartridgeTexture = new();
+                    switch (GameList[index].SystemTarget)
+                    {
+                        case 0: CartridgeTexture = CartridgeGBClassic; break;
+                        case 1: CartridgeTexture = CartridgeGBSuper; break;
+                        case 2: CartridgeTexture = CartridgeGBColor; break;
+                    }
+
+                    CartridgeTexture.Width = cartridgeWidth;
+                    CartridgeTexture.Height = cartridgeHeight;
+                    Raylib.DrawTexture(CartridgeTexture, X, Y, Color.WHITE);
 
                     // Collision area
-                    int CartridgeWidthCol = (int)(CartridgeGB.Width * 0.55f);
-                    int CartridgeHeightCol = (int)(CartridgeGB.Height * 0.822f);
+                    int CartridgeWidthCol = (int)(CartridgeTexture.Width * 0.55f);
+                    int CartridgeHeightCol = (int)(CartridgeTexture.Height * 0.822f);
 
                     Rectangle CartridgeRect = new()
                     {
-                        X = X + Formulas.CenterElm(CartridgeGB.Width, CartridgeWidthCol),
-                        Y = Y + Formulas.CenterElm(CartridgeGB.Height, CartridgeHeightCol),
+                        X = X + Formulas.CenterElm(CartridgeTexture.Width, CartridgeWidthCol),
+                        Y = Y + Formulas.CenterElm(CartridgeTexture.Height, CartridgeHeightCol),
                         Width = CartridgeWidthCol,
                         Height = CartridgeHeightCol
                     };
@@ -95,7 +102,7 @@ namespace GameBoyReborn
                     for (int t = 0; t < TitleWrapped.Count; t++)
                     {
                         Vector2 textMesure = Raylib.MeasureTextEx(MainFont, TitleWrapped[t], Res(30.0f), Res(3.0f));
-                        int centerX = Formulas.CenterElm(CartridgeGB.Width, (int)textMesure.X);
+                        int centerX = Formulas.CenterElm(CartridgeTexture.Width, (int)textMesure.X);
                         int shiftY = 0;
 
                         if(t != 0)

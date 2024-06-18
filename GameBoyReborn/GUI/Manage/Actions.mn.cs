@@ -211,6 +211,19 @@ namespace GameBoyReborn
                     ConfigJson.Save("Config/AppConfig.json", Program.AppConfig);
                 break;
 
+                // Set show console
+                case "SetShowConsole":
+                    Program.AppConfig.ShowConsole = !Program.AppConfig.ShowConsole;
+
+                    if (Program.AppConfig.ShowConsole)
+                    Program.ShowConsole();
+
+                    else
+                    Program.HideConsole();
+
+                    ConfigJson.Save("Config/AppConfig.json", Program.AppConfig);
+                break;
+
                 // Set scan list recursive
                 case "SetScanListRecursive":
                     Program.AppConfig.ScanListRecursive = !Program.AppConfig.ScanListRecursive;

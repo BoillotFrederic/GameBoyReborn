@@ -188,7 +188,7 @@ namespace Emulator
 *//*                if (HaltBug)
                 {
                     Halt = false;
-                    //Console.WriteLine("test");
+                    //Log.Write("test");
                     PC++;
                     HaltBug = false;
                 }*//*
@@ -1542,7 +1542,7 @@ namespace Emulator
             /// </summary>
             private void STOP()
             {
-                //Console.WriteLine("INTR STOP");
+                //Log.Write("INTR STOP");
                 //IO.DIV = 0x00;
                 Stop = true;
             }

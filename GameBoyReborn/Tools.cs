@@ -222,6 +222,7 @@ namespace GameBoyReborn
             config.ShowFPS = false;
             config.ShowShortcutsKeyboardKey = false;
             config.ShowShortcutsPadButton = true;
+            config.ShowConsole = false;
             config.HookTagPriority = "[!]";
             config.BracketsTagPriority = "(E)";
 

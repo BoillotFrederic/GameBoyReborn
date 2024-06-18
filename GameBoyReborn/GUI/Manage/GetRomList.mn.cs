@@ -18,6 +18,7 @@ namespace GameBoyReborn
         public string Cover { get; set; } = "";
         public string ZippedFile { get; set; } = "";
         public long LatestLaunch { get; set; } = 0;
+        public int SystemTarget { get; set; } = 0;
     }
 
     public partial class DrawGUI
@@ -32,6 +33,21 @@ namespace GameBoyReborn
                 IEnumerable<string> Games = Directory.EnumerateFiles((string)Program.AppConfig.PathRoms, "*.*", searchOption).Where(s => ext.Contains(Path.GetExtension(s).TrimStart('.').ToLowerInvariant()));
                 int nbFiles = Games.Count();
                 List<Game> gameList = new();
+
+                // Get system target
+                static int getSystemTarget(Game g)
+                {
+                    string filePath = !string.IsNullOrEmpty(g.ZippedFile) ? g.ZippedFile : g.Path;
+                    string extension = Path.GetExtension(filePath).ToLowerInvariant().Trim('.');
+
+                    return extension switch
+                    {
+                        "gb" => 0,
+                        "sgb" => 1,
+                        "gbc" => 2,
+                        _ => 0,
+                    };
+                }
 
                 for(int i = 0; i < nbFiles; i++)
                 {
@@ -96,27 +112,36 @@ namespace GameBoyReborn
                                     achiveFileSelected = filteredExtDirEntries.First().Key ?? "";
 
                                     game.ZippedFile = GetRelativePath(achiveFileSelected);
+                                    game.SystemTarget = getSystemTarget(game);
                                     gameList.Add(game);
                                 }
                                 else if(filteredEntriesPriority.Any())
                                 {
                                     achiveFileSelected = filteredEntriesPriority.First().Key ?? "";
                                     game.ZippedFile = GetRelativePath(achiveFileSelected);
+                                    game.SystemTarget = getSystemTarget(game);
                                     gameList.Add(game);
                                 }
                             }
 
                         }
                     }
+
                     // File only
                     else
-                    gameList.Add(game);
-
+                    {
+                        game.SystemTarget = getSystemTarget(game);
+                        gameList.Add(game);
+                    }
+                    
                     Loading_Percent = (float)i / nbFiles;
                 }
 
                 // Write list config file
                 ConfigJson.Save("Config/ListGameConfig.json", gameList);
+
+                // Set filter on all
+                BtnFilterSelected = 1;
             });
         }
 

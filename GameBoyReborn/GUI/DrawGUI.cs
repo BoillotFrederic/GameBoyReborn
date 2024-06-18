@@ -16,7 +16,9 @@ namespace GameBoyReborn
         private static Game[] GameListOrigin = Array.Empty<Game>();
         private static Game[] GameList = Array.Empty<Game>();
         private static Font MainFont = LoadFont(AppDomain.CurrentDomain.BaseDirectory + "Fonts/ErasBoldITC.ttf");
-        private static Texture2D CartridgeGB = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGB.png");
+        private static Texture2D CartridgeGBClassic = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGBClassic.png");
+        private static Texture2D CartridgeGBSuper = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGBSuper.png");
+        private static Texture2D CartridgeGBColor = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGBColor.png");
         private static readonly int SizeRef = 2400; // 6 * (item cartridge 400) + (scrollbar 20)
         private static int ScreenWidth;
         private static int ScreenHeight;
@@ -39,7 +41,9 @@ namespace GameBoyReborn
             ReadGameList();
 
             // Texture cartridge
-            Raylib.SetTextureFilter(CartridgeGB, TextureFilter.TEXTURE_FILTER_BILINEAR);
+            Raylib.SetTextureFilter(CartridgeGBClassic, TextureFilter.TEXTURE_FILTER_BILINEAR);
+            Raylib.SetTextureFilter(CartridgeGBSuper, TextureFilter.TEXTURE_FILTER_BILINEAR);
+            Raylib.SetTextureFilter(CartridgeGBColor, TextureFilter.TEXTURE_FILTER_BILINEAR);
 
             // Init buttons infos
             BtnInfoInit();

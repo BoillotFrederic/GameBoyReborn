@@ -62,21 +62,21 @@ namespace Emulator
             IO.Init();
 
             // Headers show
-            Console.WriteLine("Load rom");
-            Console.WriteLine("--------");
-            Console.WriteLine();
-            Console.WriteLine("Title : " + Cartridge.Title);
-            Console.WriteLine("Manufacturer Code : " + Cartridge.ManufacturerCode);
-            Console.WriteLine("Licensee : " + Cartridge.Licensee);
-            Console.WriteLine("Destination Code : " + Cartridge.DestinationCode);
-            Console.WriteLine("CGB Description : " + Cartridge.CGBDescription + " (0x"+ Cartridge.CGB_Flag.ToString("X2") + ")");
-            Console.WriteLine("SGB Description : " + Cartridge.SGBDescription + " (0x" + Cartridge.SGB_Flag.ToString("X2") + ")");
-            Console.WriteLine("Type Description : " + Cartridge.TypeDescription + (Cartridge.MBC1M ? " (M)" : "") + " (0x" + Cartridge.Type.ToString("X2") + ")");
-            Console.WriteLine("RomSize Description : " + Cartridge.RomSizeDescription + " (0x" + Cartridge.RomSize.ToString("X2") + ")");
-            Console.WriteLine("RamSize Description : " + Cartridge.RamSizeDescription + " (0x" + Cartridge.RamSize.ToString("X2") + ")");
-            Console.WriteLine("Header Checksum : " + (Cartridge.HeaderChecksumTest ? "OK" : "KO"));
-            //Console.WriteLine("Global Checksum : " + (Cartridge.GlobalChecksumTest ? "OK" : "KO"));
-            Console.WriteLine();
+            Log.Write("Load rom");
+            Log.Write("--------");
+            Log.Write();
+            Log.Write("Title : " + Cartridge.Title);
+            Log.Write("Manufacturer Code : " + Cartridge.ManufacturerCode);
+            Log.Write("Licensee : " + Cartridge.Licensee);
+            Log.Write("Destination Code : " + Cartridge.DestinationCode);
+            Log.Write("CGB Description : " + Cartridge.CGBDescription + " (0x"+ Cartridge.CGB_Flag.ToString("X2") + ")");
+            Log.Write("SGB Description : " + Cartridge.SGBDescription + " (0x" + Cartridge.SGB_Flag.ToString("X2") + ")");
+            Log.Write("Type Description : " + Cartridge.TypeDescription + (Cartridge.MBC1M ? " (M)" : "") + " (0x" + Cartridge.Type.ToString("X2") + ")");
+            Log.Write("RomSize Description : " + Cartridge.RomSizeDescription + " (0x" + Cartridge.RomSize.ToString("X2") + ")");
+            Log.Write("RamSize Description : " + Cartridge.RamSizeDescription + " (0x" + Cartridge.RamSize.ToString("X2") + ")");
+            Log.Write("Header Checksum : " + (Cartridge.HeaderChecksumTest ? "OK" : "KO"));
+            //Log.Write("Global Checksum : " + (Cartridge.GlobalChecksumTest ? "OK" : "KO"));
+            Log.Write();
         }
 
         // Emulation loop

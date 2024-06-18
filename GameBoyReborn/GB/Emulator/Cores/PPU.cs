@@ -92,12 +92,12 @@ namespace Emulator
 
             if (!LCD_and_PPU_enable && Binary.ReadBit(b, 7))
             {
-                //Console.WriteLine("By IO : " + LyCycles);
+                //Log.Write("By IO : " + LyCycles);
 
                 if (!LCD_and_PPU_enable)
                     ScreenRenableDelay = 240;
 
-/*                Console.WriteLine(LyCycles);
+/*                Log.Write(LyCycles);
                 LyCycles = 0;
                 IO.LY = 0;
                 Set_Mode_PPU(3);
@@ -119,13 +119,13 @@ namespace Emulator
             {
                 if (!Enable)
                 {
-                    Console.WriteLine("By IO : " + LyCycles);
+                    Log.Write("By IO : " + LyCycles);
                     ScreenRenableDelay = 449;
                 }
             }
             else
             {
-                Console.WriteLine("Disable : " + LyCycles);
+                Log.Write("Disable : " + LyCycles);
                 Enable = false;
                 IO.LY = 0;
                 LyCycles = 0;
@@ -218,7 +218,7 @@ namespace Emulator
             {
                 /*
                 if (CPU.FOR_DEBUG_DebugModeEnable)
-                Console.WriteLine(LyCycles);
+                Log.Write(LyCycles);
                 */
 
                 // Scanline
@@ -276,7 +276,7 @@ namespace Emulator
                         if (IO.LY == 154)
                         {
                             CompletedFrame = true;
-                            //Console.WriteLine(TotalTicks);
+                            //Log.Write(TotalTicks);
                             FOR_DEBUG_TotalTicks = 0;
 
                             // Go to OAM scan
@@ -332,7 +332,7 @@ namespace Emulator
 
                     if (ScreenRenableDelay <= 0)
                     {
-                        //Console.WriteLine(LyCycles);
+                        //Log.Write(LyCycles);
                         ScreenRenableDelay = 0;
                         CompletedFrame = true;
                         LyCycles = 0;
