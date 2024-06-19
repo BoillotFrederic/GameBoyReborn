@@ -21,7 +21,9 @@ namespace GameBoyReborn
             "SelectBox",
             "SelectFolder",
             "Confirm",
-            "Loading"
+            "Loading",
+            "SettingThisGame",
+            "SelectZippedFile"
         };
 
         // Operating variables

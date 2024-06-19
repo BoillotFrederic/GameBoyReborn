@@ -87,7 +87,7 @@ namespace GameBoyReborn
                         collisionArea.Y += Res(70);
                         collisionArea.Height -= Res(70);
                     }
-                    if(Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect) && Raylib.CheckCollisionPointRec(Mouse, collisionArea))
+                    if(!Input.IsPad && Raylib.CheckCollisionPointRec(Mouse, selectLine.ElmRect) && Raylib.CheckCollisionPointRec(Mouse, collisionArea))
                     {
                         if (selectLine.MouseHover)
                         Cursor = MouseCursor.MOUSE_CURSOR_POINTING_HAND;

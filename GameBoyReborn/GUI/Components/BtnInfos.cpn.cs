@@ -88,6 +88,18 @@ namespace GameBoyReborn
                     btnInfosSet("SelectFolderSubmit", 3, "Confirmer", Color.WHITE, "ButtonX.png", "KeyV.png", 60, 60);
                 break;
 
+                case "SelectZippedFile":
+                    BtnInfos = new BtnInfo[2];
+                    btnInfosSet("CloseSelectZippedFile", 0, "Annuler", Color.WHITE, "ButtonY.png", "KeyC.png", 60, 60);
+                    btnInfosSet(SelectZippedFile_Action ?? "", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
+                break;
+
+                case "SettingThisGame":
+                    BtnInfos = new BtnInfo[2];
+                    btnInfosSet("CloseAllModals", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
+                    btnInfosSet("HighLightAction", 1, "Sélectionner", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
+                break;
+
                 case "SelectBox":
                     BtnInfos = new BtnInfo[2];
                     btnInfosSet("CloseSelectBox", 0, "Fermer", Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);

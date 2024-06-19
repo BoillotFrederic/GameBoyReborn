@@ -4,8 +4,6 @@
 using Raylib_cs;
 using SharpDX.XInput;
 
-#pragma warning disable CA2211
-
 namespace GameBoyReborn
 {
     public class Input
@@ -19,56 +17,67 @@ namespace GameBoyReborn
         // ----------------------
 
         // D-PAD
-        public static bool DPadDown = false;
-        public static bool DPadLeft = false;
-        public static bool DPadRight = false;
-        public static bool DPadUp = false;
+        public static bool DPadDown { get; set; } = false;
+        public static bool DPadLeft { get; set; } = false;
+        public static bool DPadRight { get; set; } = false;
+        public static bool DPadUp { get; set; } = false;
 
         // XABY-PAD
-        public static bool XabyPadA = false;
-        public static bool XabyPadB = false;
-        public static bool XabyPadX = false;
-        public static bool XabyPadY = false;
+        public static bool XabyPadA { get; set; } = false;
+        public static bool XabyPadB { get; set; } = false;
+        public static bool XabyPadX { get; set; } = false;
+        public static bool XabyPadY { get; set; } = false;
 
         // MIDDLE-PAD
-        public static bool MiddlePadLeft = false;
-        public static bool MiddlePadRight = false;
-        public static bool MiddlePadCenter = false;
+        public static bool MiddlePadLeft { get; set; } = false;
+        public static bool MiddlePadRight { get; set; } = false;
+        public static bool MiddlePadCenter { get; set; } = false;
 
         // TRIGGER-PAD
-        public static int DeadZoneTrigger = 40;
-        public static bool TriggerPadLB = false;
-        public static bool TriggerPadRB = false;
-        public static bool TriggerPadLT = false;
-        public static bool TriggerPadRT = false;
+        public static int DeadZoneTrigger { get; set; } = 40;
+        public static bool TriggerPadLB { get; set; } = false;
+        public static bool TriggerPadRB { get; set; } = false;
+        public static bool TriggerPadLT { get; set; } = false;
+        public static bool TriggerPadRT { get; set; } = false;
 
         // AXIS-PAD
-        public static int DeadZoneStickLeft = 40;
-        public static int DeadZoneStickRight = 40;
-        public static bool AxisLeftPadDown = false;
-        public static bool AxisLeftPadLeft = false;
-        public static bool AxisLeftPadRight = false;
-        public static bool AxisLeftPadUp = false;
-        public static bool AxisRightPadDown = false;
-        public static bool AxisRightPadLeft = false;
-        public static bool AxisRightPadRight = false;
-        public static bool AxisRightPadUp = false;
-        public static bool AxisLS = false;
-        public static bool AxisRS = false;
+        public static int DeadZoneStickLeft { get; set; } = 40;
+        public static int DeadZoneStickRight { get; set; } = 40;
+
+        public static bool AxisLeftPadDown { get => _AxisLeftPadDown; set => _AxisLeftPadDown = value; }
+        public static bool AxisLeftPadLeft { get => _AxisLeftPadLeft; set => _AxisLeftPadLeft = value; }
+        public static bool AxisLeftPadRight { get => _AxisLeftPadRight; set => _AxisLeftPadRight = value; }
+        public static bool AxisLeftPadUp { get => _AxisLeftPadUp; set => _AxisLeftPadUp = value; }
+        public static bool AxisRightPadDown { get => _AxisRightPadDown; set => _AxisRightPadDown = value; }
+        public static bool AxisRightPadLeft { get => _AxisRightPadLeft; set => _AxisRightPadLeft = value; }
+        public static bool AxisRightPadRight { get => _AxisRightPadRight; set => _AxisRightPadRight = value; }
+        public static bool AxisRightPadUp { get => _AxisRightPadUp; set => _AxisRightPadUp = value; }
+
+        private static bool _AxisLeftPadDown = false;
+        private static bool _AxisLeftPadLeft = false;
+        private static bool _AxisLeftPadRight = false;
+        private static bool _AxisLeftPadUp = false;
+        private static bool _AxisRightPadDown = false;
+        private static bool _AxisRightPadLeft = false;
+        private static bool _AxisRightPadRight = false;
+        private static bool _AxisRightPadUp = false;
+
+        public static bool AxisLS { get; set; } = false;
+        public static bool AxisRS { get; set; } = false;
 
         // ADDITIONAL KEYS
-        public static bool KeyAlt = false;
-        public static bool KeyEnter = false;
-        public static bool KeyM = false;
-        public static bool KeyP = false;
-        public static bool KeyG = false;
-        public static bool KeyC = false;
-        public static bool KeyS = false;
-        public static bool KeyV = false;
+        public static bool KeyAlt { get; set; } = false;
+        public static bool KeyEnter { get; set; } = false;
+        public static bool KeyM { get; set; } = false;
+        public static bool KeyP { get; set; } = false;
+        public static bool KeyG { get; set; } = false;
+        public static bool KeyC { get; set; } = false;
+        public static bool KeyS { get; set; } = false;
+        public static bool KeyV { get; set; } = false;
 
         // Mouse
-        public static bool MouseLeftClick = false;
-        public static bool MouseLeftDoubleClick = false;
+        public static bool MouseLeftClick { get; set; } = false;
+        public static bool MouseLeftDoubleClick { get; set; } = false;
 
         // Double click handle
         // -------------------
@@ -163,7 +172,7 @@ namespace GameBoyReborn
         // Key or pad dectection
         // ---------------------
 
-        public static bool IsPad = false;
+        public static bool IsPad { get; set; } = false;
         private static bool FirstLoop = true;
 
         private static void KeyOrPad(bool GamePadAvailable)
@@ -285,10 +294,10 @@ namespace GameBoyReborn
             AxisRS = buttonDown(GamepadButton.GAMEPAD_BUTTON_RIGHT_THUMB);
 
             // AXIS-PAD
-            axisMove(GamepadAxis.GAMEPAD_AXIS_LEFT_X, DeadZoneStickLeft, ref AxisLeftPadLeft, ref AxisLeftPadRight);
-            axisMove(GamepadAxis.GAMEPAD_AXIS_LEFT_Y, DeadZoneStickLeft, ref AxisLeftPadUp, ref AxisLeftPadDown);
-            axisMove(GamepadAxis.GAMEPAD_AXIS_RIGHT_X, DeadZoneStickRight, ref AxisRightPadLeft, ref AxisRightPadRight);
-            axisMove(GamepadAxis.GAMEPAD_AXIS_RIGHT_Y, DeadZoneStickRight, ref AxisRightPadUp, ref AxisRightPadDown);
+            axisMove(GamepadAxis.GAMEPAD_AXIS_LEFT_X, DeadZoneStickLeft, ref _AxisLeftPadLeft, ref _AxisLeftPadRight);
+            axisMove(GamepadAxis.GAMEPAD_AXIS_LEFT_Y, DeadZoneStickLeft, ref _AxisLeftPadUp, ref _AxisLeftPadDown);
+            axisMove(GamepadAxis.GAMEPAD_AXIS_RIGHT_X, DeadZoneStickRight, ref _AxisRightPadLeft, ref _AxisRightPadRight);
+            axisMove(GamepadAxis.GAMEPAD_AXIS_RIGHT_Y, DeadZoneStickRight, ref _AxisRightPadUp, ref _AxisRightPadDown);
 
             // CLICK
             MouseLeftClick = Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT);

@@ -87,7 +87,10 @@ namespace GameBoyReborn
 
                 // Open config
                 case "ListOpenConfig":
-                    ActionOpenModal("ComingSoon", false);
+                    if(GameList[MouseLeftClickTarget].ZippedFile == "")
+                    ActionCloseModal("ComingSoon");
+                    else
+                    ActionOpenModal("SettingThisGame", false);
                 break;
 
                 // Play game
@@ -315,6 +318,40 @@ namespace GameBoyReborn
                     ActionCloseModal("SelectFolder");
                 break;
 
+                // Select zipped file
+                // ------------------
+
+                // Archive list files
+                case "GameSelectZippedFile":
+                    SelectZippedFile_Files.Clear();
+                    SelectZippedFile_Scroll = false;
+                    SelectZippedFile_ParentName = "SettingThisGame";
+                    SelectZippedFile_PathArchive = GameList[MouseLeftClickTarget].Path;
+                    SelectZippedFile_LastHighLightPosY = 0;
+                    SelectZippedFile_PosContentY = 0;
+                    ModalHighlightPos.Y = 0;
+                    SelectZippedFile_Action = "GameSubmitSelectZippedFile";
+                    ActionOpenModal("SelectZippedFile", false, WhereIAm);
+                break;
+
+                // Archive list files
+                case "GameSubmitSelectZippedFile":
+                    string SelectedZippedFile = SelectZippedFile_Files[ModalHighlightPos.Y];
+                    Game? gameZippedFile = GameListOrigin.FirstOrDefault(g => g.Path == SelectZippedFile_PathArchive);
+                    if (gameZippedFile != null) gameZippedFile.ZippedFile = SelectedZippedFile;
+                    ConfigJson.Save("Config/ListGameConfig.json", GameListOrigin);
+
+                    HighLightArea = null;
+                    ModalRefresh(SelectZippedFile_ParentName);
+                    ActionCloseModal("SelectZippedFile");
+                break;
+
+                // Close select zipped file
+                case "CloseSelectZippedFile":
+                    HighLightArea = null;
+                    ActionCloseModal("SelectZippedFile");
+                break;
+
                 // Confirm
                 // -------
 
@@ -503,6 +540,21 @@ namespace GameBoyReborn
                 }
                 break;
 
+                case "SettingThisGame":
+                {
+                    // Confirm
+                    if(Input.Pressed("Press A", Input.XabyPadA || Input.KeyP) && ModalHighlight.Count > 0)
+                    Action(ModalHighlight[ModalHighlightPos.Y][ModalHighlightPos.X].Action);
+
+                    // Close
+                    if(Input.Pressed("Press C", Input.XabyPadB || Input.KeyC))
+                    Action("CloseAllModals");
+
+                    // Move
+                    ActionMove("Modal");
+                }
+                break;
+
                 case "SelectBox": 
                 {
                     // Confirm
@@ -535,6 +587,21 @@ namespace GameBoyReborn
                     // Close
                     if(Input.Pressed("Press C", Input.XabyPadY || Input.KeyC))
                     Action("CloseSelectFolder");
+
+                    // Move
+                    ActionMove("Modal");
+                }
+                break;
+
+                case "SelectZippedFile": 
+                {
+                    // Select
+                    if(Input.Pressed("Press A", Input.XabyPadA || Input.KeyS))
+                    Action(SelectZippedFile_Action ?? "");
+
+                    // Close
+                    if(Input.Pressed("Press C", Input.XabyPadY || Input.KeyC))
+                    Action("CloseSelectZippedFile");
 
                     // Move
                     ActionMove("Modal");

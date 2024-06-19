@@ -144,8 +144,8 @@ namespace GameBoyReborn
             return refreshRate;
         }
 
-        // Display console
-        // ---------------
+        // Show/hide console
+        // -----------------
 
         [DllImport("kernel32.dll")]
         private static extern bool AllocConsole();
