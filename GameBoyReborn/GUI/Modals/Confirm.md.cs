@@ -17,8 +17,6 @@ namespace GameBoyReborn
         private static string Confirm_BtnConfirmText = "";
         private static string Confirm_BtnCancelText = "";
         private static List<string> Confirm_TextWrap = new();
-        private static Rectangle ConfirmBorderRect = new();
-        private static Rectangle CancelBorderRect = new();
         private static string Confirm_Action = "";
 
         // Set textures
@@ -31,10 +29,7 @@ namespace GameBoyReborn
             for(int i = 0; i < Confirm_TextWrap.Count; i++)
             ModalsTexture[modal].Add("ConfirmText" + i, SingleToTexture(Confirm_TextWrap[i], 40.0f * TextResolution, 3.0f, Color.BLACK));
 
-            Confirm_ModalHeight = 200 + Confirm_TextWrap.Count * 60;
-
-            ModalsTexture[modal].Add("Confirm", SingleToTexture(Confirm_BtnConfirmText, 40.0f * TextResolution, 3.0f, Color.BLACK));
-            ModalsTexture[modal].Add("Cancel", SingleToTexture(Confirm_BtnCancelText, 40.0f * TextResolution, 3.0f, Color.BLACK));
+            Confirm_ModalHeight = 80 + Confirm_TextWrap.Count * 60;
         }
 
         // Draw components
@@ -48,46 +43,6 @@ namespace GameBoyReborn
             {
                 int textPosX = (int)(modalRect.X + Formulas.CenterElm((int)modalRect.Width, Res(ModalsTexture[modal]["ConfirmText" + i].Width)));
                 DrawText(ModalsTexture[modal]["ConfirmText" + i], textPosX, (int)(modalRect.Y + Res(50) + (Res(60) * i)));
-            }
-
-            // Btns
-            float confirmWidth = Res(ModalsTexture[modal]["Confirm"].Width + 100);
-            float cancelWidth = Res(ModalsTexture[modal]["Cancel"].Width + 100);
-            int posX = (int)(modalRect.X + Formulas.CenterElm((int)modalRect.Width, (int)(confirmWidth + Res(100) + cancelWidth)));
-
-            ConfirmBorderRect = new()
-            {
-                Width = confirmWidth,
-                Height = Res(60),
-                X = posX,
-                Y = modalRect.Y + Res(90) + Res(60) * nbLine
-            };
-
-            CancelBorderRect = new()
-            {
-                Width = cancelWidth,
-                Height = Res(60),
-                X = posX + confirmWidth + Res(100),
-                Y = modalRect.Y + Res(90) + Res(60) * nbLine
-            };
-
-            Raylib.DrawRectangleLinesEx(ConfirmBorderRect, 1, Color.BLACK);
-            Raylib.DrawRectangleLinesEx(CancelBorderRect, 1, Color.BLACK);
-            DrawText(ModalsTexture[modal]["Confirm"], posX + Res(50), (int)(modalRect.Y + Res(100) + (Res(60) * nbLine)));
-            DrawText(ModalsTexture[modal]["Cancel"], (int)(posX + confirmWidth + Res(150)), (int)(modalRect.Y + Res(100) + (Res(60) * nbLine)));
-        }
-
-        // Set highlights
-        // --------------
-
-        private static void Confirm_SetHighlights(string modal, Rectangle modalRect)
-        {
-            if(modal == WhereIAm)
-            {
-                List<HighlightElm> highLight = new();
-                highLight.Add(new HighlightElm() { Action = Confirm_Action, ElmRect = ConfirmBorderRect });
-                highLight.Add(new HighlightElm() { Action = "ConfirmClose", ElmRect = CancelBorderRect });
-                ModalHighlight.Add(highLight);
             }
         }
     }

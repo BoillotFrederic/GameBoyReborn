@@ -107,8 +107,9 @@ namespace GameBoyReborn
                 break;
 
                 case "Confirm":
-                    BtnInfos = new BtnInfo[1];
-                    btnInfosSet("HighLightAction", 0, "Valider", Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
+                    BtnInfos = new BtnInfo[2];
+                    btnInfosSet("ConfirmClose", 0, Confirm_BtnCancelText, Color.WHITE, "ButtonB.png", "KeyC.png", 60, 60);
+                    btnInfosSet(Confirm_Action, 1, Confirm_BtnConfirmText, Color.WHITE, "ButtonA.png", "KeyS.png", 60, 60);
                 break;
             }
         }
