@@ -3,6 +3,8 @@
 // ------------
 
 using System.Text.RegularExpressions;
+using System.Security.Cryptography;
+using System.Text;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;
 using SharpCompress.Archives.SevenZip;
@@ -13,12 +15,19 @@ namespace GameBoyReborn
     // Game set
     public class Game
     {
+        public string ID { get; set; } = "";
         public string Path { get; set; } = "";
         public string Name { get; set; } = "";
         public string Cover { get; set; } = "";
         public string ZippedFile { get; set; } = "";
         public long LatestLaunch { get; set; } = 0;
         public int SystemTarget { get; set; } = 0;
+    }
+
+    public class GameCover
+    {
+        public string[] ID { get; set; } = Array.Empty<string>();
+        public string File { get; set; } = "";
     }
 
     public partial class DrawGUI
@@ -48,6 +57,9 @@ namespace GameBoyReborn
                         _ => 0,
                     };
                 }
+
+                // Game cover file
+                GameCover[] gameCover = ConfigJson.LoadListGameCover().ToArray();
 
                 for(int i = 0; i < nbFiles; i++)
                 {
@@ -113,6 +125,8 @@ namespace GameBoyReborn
 
                                     game.ZippedFile = GetRelativePath(achiveFileSelected);
                                     game.SystemTarget = getSystemTarget(game);
+                                    game.ID = Hash.GenerateFromZippedFile(game.Path, game.ZippedFile);
+                                    game.Cover = FindCoverById(gameCover, game.ID);
                                     gameList.Add(game);
                                 }
                                 else if(filteredEntriesPriority.Any())
@@ -120,6 +134,8 @@ namespace GameBoyReborn
                                     achiveFileSelected = filteredEntriesPriority.First().Key ?? "";
                                     game.ZippedFile = GetRelativePath(achiveFileSelected);
                                     game.SystemTarget = getSystemTarget(game);
+                                    game.ID = Hash.GenerateFromZippedFile(game.Path, game.ZippedFile);
+                                    game.Cover = FindCoverById(gameCover, game.ID);
                                     gameList.Add(game);
                                 }
                             }
@@ -131,6 +147,8 @@ namespace GameBoyReborn
                     else
                     {
                         game.SystemTarget = getSystemTarget(game);
+                        game.ID = Hash.GenerateFromFile(game.Path);
+                        game.Cover = FindCoverById(gameCover, game.ID);
                         gameList.Add(game);
                     }
                     
@@ -151,6 +169,18 @@ namespace GameBoyReborn
             GameListOrigin = ConfigJson.LoadListGameConfig().ToArray();
             GameList = GameListOrigin.OrderBy(e => e.Name, new AlphanumericComparer()).ToArray();
             NbGame = GameList.Length;
+        }
+
+        // Read game cover list
+        /*        private static void ReadGameCoverList()
+                {
+                    GameCoverList = ConfigJson.LoadListGameCover().ToArray();
+                }*/
+
+        // Find cover by ID
+        private static string FindCoverById(GameCover[] gameCover, string id)
+        {
+            return gameCover.Where(gc => gc.ID.Contains(id)).Select(gc => gc.File).FirstOrDefault() ?? "";
         }
 
         // Get last folder name
@@ -251,6 +281,65 @@ namespace GameBoyReborn
         private static Game[] FilterGamesByFirstLetter(Game[] games, params char[] letters)
         {
             return games.Where(game => letters.Contains(game.Name[0])).ToArray();
+        }
+
+        // Generate unique ID
+        // ------------------
+
+        private static class Hash
+        {
+            // Generate unique id from zipped file
+            public static string GenerateFromZippedFile(string archiveFilePath, string internalFilePath)
+            {
+                try
+                {
+                    using (IArchive? archive = ArchiveFactory.Open(archiveFilePath))
+                    {
+                        foreach (IArchiveEntry? entry in archive.Entries)
+                        {
+                            if (entry.Key != null && !entry.IsDirectory && entry.Key.Equals(internalFilePath, StringComparison.OrdinalIgnoreCase))
+                            {
+                                using Stream? entryStream = entry.OpenEntryStream();
+                                return ComputeHash(entryStream);
+                            }
+                        }
+                    }
+                    return string.Empty;
+                }
+                catch (Exception ex)
+                {
+                    Log.Write($"Erreur lors de la génération du hash : {ex.Message}");
+                    return string.Empty;
+                }
+            }
+
+            // Generate unique id from file
+            public static string GenerateFromFile(string filePath)
+            {
+                try
+                {
+                    using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                    return ComputeHash(fs);
+                }
+                catch (Exception ex)
+                {
+                    Log.Write($"Erreur lors de la génération du hash : {ex.Message}");
+                    return string.Empty;
+                }
+            }
+
+            // Compute hash
+            private static string ComputeHash(Stream stream)
+            {
+                using var sha256 = SHA256.Create();
+                byte[] hashBytes = sha256.ComputeHash(stream);
+                var sb = new StringBuilder();
+
+                foreach (byte b in hashBytes)
+                sb.Append(b.ToString("x2"));
+
+                return sb.ToString();
+            }
         }
     }
 }

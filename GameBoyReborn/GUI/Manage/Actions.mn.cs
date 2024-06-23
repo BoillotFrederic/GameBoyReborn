@@ -338,7 +338,15 @@ namespace GameBoyReborn
                 case "GameSubmitSelectZippedFile":
                     string SelectedZippedFile = SelectZippedFile_Files[ModalHighlightPos.Y];
                     Game? gameZippedFile = GameListOrigin.FirstOrDefault(g => g.Path == SelectZippedFile_PathArchive);
-                    if (gameZippedFile != null) gameZippedFile.ZippedFile = SelectedZippedFile;
+
+                    if (gameZippedFile != null)
+                    {
+                        GameCover[] gameCover = ConfigJson.LoadListGameCover().ToArray();
+                        gameZippedFile.ID = Hash.GenerateFromZippedFile(gameZippedFile.Path, SelectedZippedFile);
+                        gameZippedFile.Cover = FindCoverById(gameCover, gameZippedFile.ID);
+                        gameZippedFile.ZippedFile = SelectedZippedFile;
+                    }
+
                     ConfigJson.Save("Config/ListGameConfig.json", GameListOrigin);
 
                     HighLightArea = null;

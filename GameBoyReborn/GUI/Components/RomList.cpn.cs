@@ -15,6 +15,7 @@ namespace GameBoyReborn
         private static bool ScrollVisible = false;
         private static int MouseLeftClickLastTarget = 0;
         private static int MouseLeftClickTarget = 0;
+        private static Dictionary<string, Texture2D> CoverTextures = new();
 
         // Game clicked
         private static void MouseClickTarget(int index)
@@ -84,6 +85,21 @@ namespace GameBoyReborn
                     CartridgeTexture.Width = cartridgeWidth;
                     CartridgeTexture.Height = cartridgeHeight;
                     Raylib.DrawTexture(CartridgeTexture, X, Y, Color.WHITE);
+
+                    // Draw cover
+                    if (GameList[index].Cover != "")
+                    {
+                        if (!CoverTextures.ContainsKey(GameList[index].Name))
+                        {
+                            CoverTextures.Add(GameList[index].Name, Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Covers/" + GameList[index].Cover + ".png"));
+                            Raylib.SetTextureFilter(CoverTextures[GameList[index].Name], TextureFilter.TEXTURE_FILTER_BILINEAR);
+                        }
+
+                        Texture2D CoverTexture = CoverTextures[GameList[index].Name];
+                        CoverTexture.Width = Res(!ScrollVisible ? 158 : 156);
+                        CoverTexture.Height = Res(140);
+                        Raylib.DrawTexture(CoverTexture, X + Res(!ScrollVisible ? 121 : 120), Y + Res(100), Color.WHITE);
+                    }
 
                     // Collision area
                     int CartridgeWidthCol = (int)(CartridgeTexture.Width * 0.55f);

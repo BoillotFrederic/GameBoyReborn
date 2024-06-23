@@ -312,6 +312,22 @@ namespace GameBoyReborn
             return new List<Game>();
         }
 
+        /// <summary>
+        /// Load ListGameCover
+        /// </summary>
+        public static List<GameCover> LoadListGameCover()
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Covers/DataBase.json");
+
+            if (File.Exists(path))
+            {
+                string jsonString = File.ReadAllText(path);
+                return JsonSerializer.Deserialize<List<GameCover>>(jsonString) ?? new List<GameCover>();
+            }
+
+            return new List<GameCover>();
+        }
+
         // Save file
         // ---------
 

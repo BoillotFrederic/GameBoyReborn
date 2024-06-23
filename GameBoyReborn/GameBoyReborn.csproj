@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <TextureFiles Include="GUI\Textures\*.*" />
+    <CoversFiles Include="GUI\Covers\*.*" />
     <FontFiles Include="GUI\Fonts\*.*" />
   </ItemGroup>
   
@@ -36,9 +37,11 @@
     <MakeDir Directories="$(OutputPath)Config/Roms" />
     <MakeDir Directories="$(OutputPath)Fonts" />
     <MakeDir Directories="$(OutputPath)Textures" />
+    <MakeDir Directories="$(OutputPath)Covers" />
 
     <Copy SourceFiles="@(FontFiles)" DestinationFolder="$(OutputPath)Fonts" />
     <Copy SourceFiles="@(TextureFiles)" DestinationFolder="$(OutputPath)Textures" />
+    <Copy SourceFiles="@(CoversFiles)" DestinationFolder="$(OutputPath)Covers" />
   </Target>
 
 </Project>
