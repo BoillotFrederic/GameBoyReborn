@@ -176,15 +176,32 @@ namespace GameBoyReborn
 
                 // Scan dir
                 case "ScanDir":
+                    Loading_Percent = 0;
                     Loading_Text = "Création de la liste";
                     ActionOpenModal("Loading", true, WhereIAm);
-                    Task writeGameList = WriteGameList().ContinueWith(task => { ActionsCallBack.Add("ScanDirCompleted"); });
+                    _ = WriteGameList().ContinueWith(task => { ActionsCallBack.Add("ScanDirCompleted"); });
+                break;
+
+                // Scan dir
+                case "UpdateCovers":
+                    Loading_Percent = 0;
+                    Loading_Text = "Mise à jour en cours";
+                    ActionOpenModal("Loading", true, WhereIAm);
+                    _ = UpdateCovers().ContinueWith(task => { ActionsCallBack.Add("UpdateCoversCompleted"); });
                 break;
 
                 // Scan dir completed
                 case "ScanDirCompleted":
                     ActionCloseModal();
                     ReadGameList();
+                    BtnInfoInit();
+                break;
+
+                // Scan dir completed
+                case "UpdateCoversCompleted":
+                    ActionCloseModal();
+                    ConfigJson.Save("Config/ListGameConfig.json", GameListOrigin);
+                    CoverTextures.Clear();
                     BtnInfoInit();
                 break;
 

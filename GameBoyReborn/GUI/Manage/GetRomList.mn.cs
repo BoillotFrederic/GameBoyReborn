@@ -187,11 +187,37 @@ namespace GameBoyReborn
             NbGame = GameList.Length;
         }
 
-        // Read game cover list
-        /*        private static void ReadGameCoverList()
+        // Update covers
+        private static async Task UpdateCovers()
+        {
+            await Task.Run(() =>
+            {
+                // Game cover file
+                string? gameCoverJson = ConfigJson.DownloadFile(Program.AppConfig.ServerCovers + "DataBase.json");
+
+                if(gameCoverJson != null)
+                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Covers/DataBase.json"), gameCoverJson);
+
+                GameCover[] gameCover = ConfigJson.LoadListGameCover().ToArray();
+
+                for(int i = 0; i < GameListOrigin.Length; i++)
                 {
-                    GameCoverList = ConfigJson.LoadListGameCover().ToArray();
-                }*/
+                    Game game = GameListOrigin[i];
+                    GameListOrigin[i].Cover = FindCoverById(gameCover, game.ID);
+
+                    // Download cover
+                    if(GameListOrigin[i].Cover != "")
+                    {
+                        byte[]? gameCoverByte = ConfigJson.DownloadByte(Program.AppConfig.ServerCovers + GameListOrigin[i].Cover + ".png");
+
+                        if(gameCoverByte != null)
+                        File.WriteAllBytes(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Covers/" + GameListOrigin[i].Cover + ".png"), gameCoverByte);
+                    }
+
+                    Loading_Percent = (float)i / GameListOrigin.Length;
+                }
+            });
+        }
 
         // Find cover by ID
         private static string FindCoverById(GameCover[] gameCover, string id)
