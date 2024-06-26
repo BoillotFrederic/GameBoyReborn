@@ -336,15 +336,30 @@ namespace GameBoyReborn
 
                 // Archive list files
                 case "GameSubmitSelectZippedFile":
+                    CoverTextures.Clear();
                     string SelectedZippedFile = SelectZippedFile_Files[ModalHighlightPos.Y];
                     Game? gameZippedFile = GameListOrigin.FirstOrDefault(g => g.Path == SelectZippedFile_PathArchive);
 
                     if (gameZippedFile != null)
                     {
+                        string? gameCoverJson = ConfigJson.DownloadFile(Program.AppConfig.ServerCovers + "DataBase.json");
+
+                        if(gameCoverJson != null)
+                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Covers/DataBase.json"), gameCoverJson);
+
                         GameCover[] gameCover = ConfigJson.LoadListGameCover().ToArray();
+
                         gameZippedFile.ID = Hash.GenerateFromZippedFile(gameZippedFile.Path, SelectedZippedFile);
                         gameZippedFile.Cover = FindCoverById(gameCover, gameZippedFile.ID);
                         gameZippedFile.ZippedFile = SelectedZippedFile;
+
+                        if(gameZippedFile.Cover != "")
+                        {
+                            byte[]? gameCoverByte = ConfigJson.DownloadByte(Program.AppConfig.ServerCovers + gameZippedFile.Cover + ".png");
+
+                            if(gameCoverByte != null)
+                            File.WriteAllBytes(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Covers/" + gameZippedFile.Cover + ".png"), gameCoverByte);
+                        }
                     }
 
                     ConfigJson.Save("Config/ListGameConfig.json", GameListOrigin);

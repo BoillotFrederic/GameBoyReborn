@@ -217,6 +217,7 @@ namespace GameBoyReborn
             dynamic config = new ExpandoObject();
 
             config.PathRoms = "";
+            config.ServerCovers = "http://tchaikowsky.free.fr/GBCovers/";
             config.FullScreen = true;
             config.ScanListRecursive = true;
             config.ShowFPS = false;
@@ -326,6 +327,41 @@ namespace GameBoyReborn
             }
 
             return new List<GameCover>();
+        }
+
+        // Load file distant
+        public static string? DownloadFile(string url)
+        {
+            using var client = new HttpClient();
+            try
+            {
+                HttpResponseMessage response = client.GetAsync(url).Result;
+                response.EnsureSuccessStatusCode();
+                string responseBody = response.Content.ReadAsStringAsync().Result;
+                return responseBody;
+            }
+            catch (Exception e)
+            {
+                Log.Write($"Error : {e.Message}");
+                return null;
+            }
+        }
+
+        public static byte[]? DownloadByte(string url)
+        {
+            using var client = new HttpClient();
+            try
+            {
+                HttpResponseMessage response = client.GetAsync(url).Result;
+                response.EnsureSuccessStatusCode();
+                byte[] responseBody = response.Content.ReadAsByteArrayAsync().Result;
+                return responseBody;
+            }
+            catch (Exception e)
+            {
+                Log.Write($"Error : {e.Message}");
+                return null;
+            }
         }
 
         // Save file

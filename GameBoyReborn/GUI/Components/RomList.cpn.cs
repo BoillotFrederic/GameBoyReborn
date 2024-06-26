@@ -15,7 +15,7 @@ namespace GameBoyReborn
         private static bool ScrollVisible = false;
         private static int MouseLeftClickLastTarget = 0;
         private static int MouseLeftClickTarget = 0;
-        private static Dictionary<string, Texture2D> CoverTextures = new();
+        private static readonly Dictionary<string, Texture2D> CoverTextures = new();
 
         // Game clicked
         private static void MouseClickTarget(int index)

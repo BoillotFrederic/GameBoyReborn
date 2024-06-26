@@ -59,10 +59,18 @@ namespace GameBoyReborn
                 }
 
                 // Game cover file
+                string? gameCoverJson = ConfigJson.DownloadFile(Program.AppConfig.ServerCovers + "DataBase.json");
+
+                if(gameCoverJson != null)
+                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Covers/DataBase.json"), gameCoverJson);
+
                 GameCover[] gameCover = ConfigJson.LoadListGameCover().ToArray();
 
                 for(int i = 0; i < nbFiles; i++)
                 {
+                    // Clear cover textures
+                    CoverTextures.Clear();
+
                     // Add entry
                     Game game = new();
 
@@ -150,6 +158,14 @@ namespace GameBoyReborn
                         game.ID = Hash.GenerateFromFile(game.Path);
                         game.Cover = FindCoverById(gameCover, game.ID);
                         gameList.Add(game);
+                    }
+
+                    if(game.Cover != "")
+                    {
+                        byte[]? gameCoverByte = ConfigJson.DownloadByte(Program.AppConfig.ServerCovers + game.Cover + ".png");
+
+                        if(gameCoverByte != null)
+                        File.WriteAllBytes(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Covers/" + game.Cover + ".png"), gameCoverByte);
                     }
                     
                     Loading_Percent = (float)i / nbFiles;
