@@ -4,7 +4,6 @@
 
 using Raylib_cs;
 using System.Numerics;
-using System.Runtime.InteropServices;
 
 namespace GameBoyReborn
 {
@@ -15,7 +14,7 @@ namespace GameBoyReborn
 
         private static Game[] GameListOrigin = Array.Empty<Game>();
         private static Game[] GameList = Array.Empty<Game>();
-        private static Font MainFont = LoadFont(AppDomain.CurrentDomain.BaseDirectory + "Fonts/ErasBoldITC.ttf");
+        private static Font MainFont = Raylib.LoadFontEx(AppDomain.CurrentDomain.BaseDirectory + "Fonts/ErasBoldITC.ttf", 50, null, 250);
         private static Texture2D CartridgeGBClassic = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGBClassic.png");
         private static Texture2D CartridgeGBSuper = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGBSuper.png");
         private static Texture2D CartridgeGBColor = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGBColor.png");
@@ -139,17 +138,6 @@ namespace GameBoyReborn
         {
             ScreenWidth = Raylib.GetRenderWidth();
             ScreenHeight = Raylib.GetRenderHeight();
-        }
-
-        // Load font
-        private static unsafe Font LoadFont(string path)
-        {
-            IntPtr ptrUtf8 = Marshal.StringToCoTaskMemUTF8(path);
-            sbyte* sbytePtr = (sbyte*)ptrUtf8.ToPointer();
-            Font fontTtf = Raylib.LoadFontEx(sbytePtr, 50, null, 250);
-            Marshal.FreeCoTaskMem(ptrUtf8);
-
-            return fontTtf;
         }
 
         // Mouse

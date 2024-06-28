@@ -52,6 +52,8 @@ namespace GameBoyReborn
             Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
             Raylib.SetTraceLogLevel(TraceLogLevel.LOG_WARNING);
             Raylib.InitWindow(WindowWidth, WindowHeight, "GameBoyReborn");
+            Image icon = Raylib.LoadImage(AppDomain.CurrentDomain.BaseDirectory + "Textures/icon.png");
+            Raylib.SetWindowIcon(icon);
 
             // Set FPS
             FPSMax = GetScreenRefreshRate();
