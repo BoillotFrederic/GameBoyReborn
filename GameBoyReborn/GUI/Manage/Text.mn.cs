@@ -22,9 +22,16 @@ namespace GameBoyReborn
 
         private struct TitleSet
         {
-            public string Text = "";
-            public float Width = 0;
-            public float Height = 0;
+            public string Text;
+            public float Width;
+            public float Height;
+
+            public TitleSet(string text = "", float width = 0, float height = 0)
+            {
+                Text = text;
+                Width = width;
+                Height = height;
+            }
         }
 
         // Single text
@@ -216,8 +223,14 @@ namespace GameBoyReborn
 
         private struct CharSize
         {
-            public float Width = 0;
-            public float Height = 0;
+            public float Width;
+            public float Height;
+
+            public CharSize(float width = 0, float height = 0)
+            {
+                Width = width;
+                Height = height;
+            }
         }
 
         private static unsafe CharSize GetCharSize(sbyte c, float size)

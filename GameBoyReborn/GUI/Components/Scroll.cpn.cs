@@ -14,10 +14,18 @@ namespace GameBoyReborn
         // Structures
         private struct ScrollBar
         {
-            public bool HangClicked = false;
-            public float HangClickedPosY = 0;
-            public float ContentPosY = 0;
-            public float MousePos = 0;
+            public bool HangClicked;
+            public float HangClickedPosY;
+            public float ContentPosY;
+            public float MousePos;
+
+            public ScrollBar(bool hangClicked = false, float hangClickedPosY = 0, float contentPosY = 0, float mousePos = 0)
+            {
+                HangClicked = hangClicked;
+                HangClickedPosY = hangClickedPosY;
+                ContentPosY = contentPosY;
+                MousePos = mousePos;
+            }
         }
 
         // Init scrollbar

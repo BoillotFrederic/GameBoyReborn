@@ -17,11 +17,18 @@ namespace GameBoyReborn
         private static Rectangle? HighLightArea;
 
         // Structures
-        private struct HighlightElm 
+        private struct HighlightElm
         {
-            public string Action = "";
+            public string Action;
             public Rectangle ElmRect;
-            public bool MouseHover = true;
+            public bool MouseHover;
+
+            public HighlightElm(string action = "", Rectangle elmRect = default, bool mouseHover = true)
+            {
+                Action = action;
+                ElmRect = elmRect;
+                MouseHover = mouseHover;
+            }
         }
 
         private struct VecInt2

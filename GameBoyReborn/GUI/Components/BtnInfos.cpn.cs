@@ -2,6 +2,7 @@
 // Buttons infos
 // -------------
 
+
 using Raylib_cs;
 using System.Numerics;
 
@@ -11,12 +12,22 @@ namespace GameBoyReborn
     {
         private struct BtnInfo
         {
-            public string Action = "";
+            public string Action;
             public Texture2D IconPad;
             public Texture2D IconKey;
             public Texture2D Text;
-            public int IconPadWidth = 0;
-            public int IconKeyWidth = 0;
+            public int IconPadWidth;
+            public int IconKeyWidth;
+
+            public BtnInfo(string action = "", Texture2D iconPad = default, Texture2D iconKey = default, Texture2D text = default, int iconPadWidth = 0, int iconKeyWidth = 0)
+            {
+                Action = action;
+                IconPad = iconPad;
+                IconKey = iconKey;
+                Text = text;
+                IconPadWidth = iconPadWidth;
+                IconKeyWidth = iconKeyWidth;
+            }
         }
 
         private static BtnInfo[]? BtnInfos;

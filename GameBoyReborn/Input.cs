@@ -322,8 +322,8 @@ namespace GameBoyReborn
             Program.Emulation.DebugEnable = !Program.Emulation.DebugEnable;
 
             // Toggle fullscreen
-            if(Pressed("Fullscreen", KeyAlt && KeyEnter))
-            Program.ToogleFullScreen();
+            if (Pressed("Fullscreen", KeyAlt && KeyEnter))
+            DrawGUI.Action("SetFullScreen");
 
             // Open menu in game
             if (Program.Emulation != null)
