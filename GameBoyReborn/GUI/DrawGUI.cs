@@ -14,7 +14,7 @@ namespace GameBoyReborn
 
         private static Game[] GameListOrigin = Array.Empty<Game>();
         private static Game[] GameList = Array.Empty<Game>();
-        private static Font MainFont = Raylib.LoadFontEx(AppDomain.CurrentDomain.BaseDirectory + "Fonts/ErasBoldITC.ttf", 50, null, 250);
+        private static Font MainFont = Raylib.LoadFontEx(AppDomain.CurrentDomain.BaseDirectory + "Fonts/SpartanMB-Bold.otf", 50, null, 250);
         private static Texture2D CartridgeGBClassic = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGBClassic.png");
         private static Texture2D CartridgeGBSuper = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGBSuper.png");
         private static Texture2D CartridgeGBColor = Raylib.LoadTexture(AppDomain.CurrentDomain.BaseDirectory + "Textures/CartridgeGBColor.png");
